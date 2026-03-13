@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
+    "deploy": "set -a; [ -f ../AMC/.env ] && . ../AMC/.env; set +a; npm run build && lftp -e \"set sftp:auto-confirm yes; open -u $DEPLOY_USER,$DEPLOY_PASS sftp://$DEPLOY_HOST:$DEPLOY_PORT; mkdir -p $DEPLOY_PATH/flightplan; mirror -R --delete --verbose dist $DEPLOY_PATH/flightplan; bye\"",
     "aviation:se:fetch": "node ./scripts/aviation-se/fetch-lfv-aip.mjs --skip-if-exists",
     "aviation:se:extract": "node ./scripts/aviation-se/extract-lfv-aip.mjs",
     "aviation:se:manifest": "node ./scripts/aviation-se/build-manifest.mjs",
