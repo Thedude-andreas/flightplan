@@ -1,0 +1,32 @@
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { resolve } from 'node:path'
+
+const manifestPath = resolve('data/aviation/se/normalized/lfv-manifest.json')
+const outputDir = resolve('data/aviation/se/normalized')
+const airportsPath = resolve(outputDir, 'airports.se.json')
+const manifest = existsSync(manifestPath) ? JSON.parse(readFileSync(manifestPath, 'utf8')) : null
+const parsedAirports = existsSync(airportsPath) ? JSON.parse(readFileSync(airportsPath, 'utf8')) : null
+
+const output = {
+  generatedAt: new Date().toISOString(),
+  source: 'LFV AIP Offline',
+  manifestCounts: manifest?.counts ?? null,
+  airports: parsedAirports?.airports ?? [],
+  airspaces: [],
+  navaids: [],
+  notes: [
+    'This file is the normalized entry point for Swedish aviation data in AMC.',
+    'Current step indexes official LFV AIP content and prepares stable output files.',
+    'Current airport list is parsed from LFV AD 1.1. Next parser iterations should enrich AD 2 details, airspaces from ENR 2 and navaids/frequencies from ENR 4 + AD pages.',
+  ],
+}
+
+mkdirSync(outputDir, { recursive: true })
+if (!parsedAirports) {
+  writeFileSync(resolve(outputDir, 'airports.se.json'), JSON.stringify(output.airports, null, 2))
+}
+writeFileSync(resolve(outputDir, 'airspaces.se.json'), JSON.stringify(output.airspaces, null, 2))
+writeFileSync(resolve(outputDir, 'navaids.se.json'), JSON.stringify(output.navaids, null, 2))
+writeFileSync(resolve(outputDir, 'aviation.se.index.json'), JSON.stringify(output, null, 2))
+
+console.log(`Wrote normalized placeholder datasets to ${outputDir}`)
