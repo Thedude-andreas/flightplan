@@ -8,7 +8,7 @@ import { legsToWaypoints, waypointsToLegs } from './features/flightplan/gazettee
 import { FlightplanMapEditor } from './features/flightplan/FlightplanMapEditor'
 import type { AircraftProfile, FlightPlanInput, RouteLegInput } from './features/flightplan/types'
 
-type EditorPanel = 'route' | 'fuel' | 'weightBalance' | 'performance'
+type EditorPanel = 'route' | 'fuel' | 'weightBalance' | 'performance' | 'aircraft'
 type WorkspaceTab = 'create' | 'print' | 'settings'
 type RouteRow = Record<string, string | number>
 type RowContextMenuState = { x: number; y: number; rowIndex: number } | null
@@ -296,18 +296,6 @@ export function FlightplanApp() {
           </p>
         </div>
         <div className="fp-page-actions">
-          <select
-            value={plan.aircraftRegistration}
-            onChange={(event) =>
-              setPlan((current) => ({ ...current, aircraftRegistration: event.target.value }))
-            }
-          >
-            {aircraftOptions.map((aircraft) => (
-              <option key={aircraft.registration} value={aircraft.registration}>
-                {aircraft.registration} · {aircraft.typeName}
-              </option>
-            ))}
-          </select>
           {activeTab === 'print' ? (
             <button type="button" onClick={() => window.print()}>
               Skriv ut formulär
@@ -342,6 +330,7 @@ export function FlightplanApp() {
                 routeRows={routeRows}
                 onHeaderChange={updateHeader}
                 onSectionSelect={setActivePanel}
+                onOpenAircraftPicker={() => setActivePanel('aircraft')}
                 onRadioNavChange={updateRadioNav}
                 onAddRouteRow={addRouteLeg}
                 onOpenRowMenu={(x, y, rowIndex) => {
@@ -377,6 +366,7 @@ export function FlightplanApp() {
                 routeRows={printRouteRows}
                 onHeaderChange={updateHeader}
                 onSectionSelect={setActivePanel}
+                onOpenAircraftPicker={() => setActivePanel('aircraft')}
                 onRadioNavChange={updateRadioNav}
               />
             </section>
@@ -661,6 +651,39 @@ export function FlightplanApp() {
               </section>
             )}
 
+            {activePanel === 'aircraft' && (
+              <section className="fp-panel-card fp-overlay-card">
+                <div className="fp-panel-header">
+                  <div>
+                    <p className="fp-panel-eyebrow">Flygplansval</p>
+                    <h2>Välj flygplan för färdplanen</h2>
+                  </div>
+                  <button type="button" onClick={() => setActivePanel(null)}>
+                    Stäng
+                  </button>
+                </div>
+                <div className="fp-aircraft-picker">
+                  {aircraftOptions.map((aircraft) => {
+                    const isActive = aircraft.registration === plan.aircraftRegistration
+                    return (
+                      <button
+                        key={aircraft.registration}
+                        type="button"
+                        className={isActive ? 'is-active' : ''}
+                        onClick={() => {
+                          setPlan((current) => ({ ...current, aircraftRegistration: aircraft.registration }))
+                          setActivePanel(null)
+                        }}
+                      >
+                        <strong>{aircraft.registration}</strong>
+                        <span>{aircraft.typeName}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </section>
+            )}
+
             {activePanel === 'fuel' && (
               <section className="fp-panel-card fp-overlay-card">
                 <div className="fp-panel-header">
@@ -879,6 +902,7 @@ function FlightPlanDocument({
   routeRows,
   onHeaderChange,
   onSectionSelect,
+  onOpenAircraftPicker,
   onRadioNavChange,
   onAddRouteRow,
   onOpenRowMenu,
@@ -888,6 +912,7 @@ function FlightPlanDocument({
   routeRows: RouteRow[]
   onHeaderChange: (key: keyof FlightPlanInput['header'], value: string) => void
   onSectionSelect: (panel: EditorPanel) => void
+  onOpenAircraftPicker: () => void
   onRadioNavChange: (index: number, key: 'name' | 'frequency', value: string) => void
   onAddRouteRow?: () => void
   onOpenRowMenu?: (x: number, y: number, rowIndex: number) => void
@@ -926,7 +951,11 @@ function FlightPlanDocument({
         </div>
         <div className="fp-header-meta-grid">
           <HeaderField label="Datum" className="fp-meta-date"><input type="date" value={plan.header.date} onChange={(event) => onHeaderChange('date', event.target.value)} /></HeaderField>
-          <HeaderField label="Registrering" className="fp-meta-registration"><strong>{plan.aircraftRegistration}</strong></HeaderField>
+          <HeaderField label="Registrering" className="fp-meta-registration">
+            <button type="button" className="fp-header-picker" onClick={onOpenAircraftPicker}>
+              <strong>{plan.aircraftRegistration}</strong>
+            </button>
+          </HeaderField>
           <HeaderField label="Typ" className="fp-meta-type"><strong>{derived.aircraft.typeName}</strong></HeaderField>
           <HeaderField label="Startflygplats" className="fp-meta-departure"><input value={plan.header.departureAerodrome} onChange={(event) => onHeaderChange('departureAerodrome', event.target.value)} /></HeaderField>
           <HeaderField label="Block in" className="fp-meta-block-in"><input value={plan.header.blockIn} onChange={(event) => onHeaderChange('blockIn', event.target.value)} /></HeaderField>
