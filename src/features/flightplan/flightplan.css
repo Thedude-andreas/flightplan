@@ -517,14 +517,9 @@
   .flightplan-page .fp-workspace { border-radius: 1rem; padding: 0.9rem; }
   .flightplan-page .fp-document-sheet,
   .flightplan-page .fp-map-sheet { padding: 0.8rem; }
+  .flightplan-page .fp-document-sheet { overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .flightplan-page .fp-live-map-sheet { min-height: auto; }
-  .flightplan-page .fp-flight-form__header { grid-template-columns: 1fr; }
-  .flightplan-page .fp-title-box { border-right: 0; border-bottom: 2px solid #232323; }
-  .flightplan-page .fp-header-meta-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: none; }
-  .flightplan-page .fp-header-field,
-  .flightplan-page .fp-meta-weather { grid-column: auto; grid-row: auto; }
-  .flightplan-page .fp-bottom-grid { grid-template-columns: 1fr; }
-  .flightplan-page .fp-route-table { font-size: 0.72rem; }
+  .flightplan-page .fp-flight-form { min-width: 1120px; }
   .flightplan-page .fp-map-toolbar { flex-direction: column; align-items: stretch; }
   .flightplan-page .fp-basemap-control { max-width: none; }
   .flightplan-page .fp-map-canvas { min-height: 52vh; }
