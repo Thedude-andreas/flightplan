@@ -1,0 +1,14 @@
+# Redirect all non-file requests to the Flightplan SPA entrypoint when served under /flightplan/.
+<IfModule mod_rewrite.c>
+  Options +FollowSymLinks -MultiViews
+  RewriteEngine On
+  RewriteBase /flightplan/
+
+  RewriteRule ^index\.html$ - [L]
+
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  RewriteRule . /flightplan/index.html [L]
+</IfModule>
