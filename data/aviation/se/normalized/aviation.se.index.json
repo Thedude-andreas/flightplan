@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-03-12T20:41:01.617Z",
+  "generatedAt": "2026-03-29T17:21:59.378Z",
   "source": "LFV AIP Offline",
   "manifestCounts": null,
   "airports": [
@@ -10,7 +10,7 @@
       "arp": {
         "raw": "575659N 0123441E",
         "lat": 57.94972222222222,
-        "lon": 1.3955555555555554
+        "lon": 12.578055555555554
       },
       "location": "1.8 NM NE",
       "elevationFt": 226,
@@ -24,10 +24,10 @@
       "runwayLighting": [
         "No"
       ],
-      "atsServices": [
+      "atsServices": [],
+      "fuelTypes": [
         "100LL"
       ],
-      "fuelTypes": [],
       "communicationFrequencies": [
         "123.650"
       ],
@@ -49,7 +49,7 @@
       "arp": {
         "raw": "571554N 0133606E",
         "lat": 57.265,
-        "lon": 1.5666666666666667
+        "lon": 13.601666666666667
       },
       "location": "1 NM SW",
       "elevationFt": 507,
@@ -63,10 +63,10 @@
       "runwayLighting": [
         "No"
       ],
-      "atsServices": [
+      "atsServices": [],
+      "fuelTypes": [
         "-"
       ],
-      "fuelTypes": [],
       "communicationFrequencies": [
         "123.200"
       ],
@@ -94,7 +94,7 @@
       "arp": {
         "raw": "592318N 0155515E",
         "lat": 59.388333333333335,
-        "lon": 1.9308333333333332
+        "lon": 15.920833333333333
       },
       "location": "2 NM SE",
       "elevationFt": 33,
@@ -108,10 +108,10 @@
       "runwayLighting": [
         "No"
       ],
-      "atsServices": [
+      "atsServices": [],
+      "fuelTypes": [
         "-"
       ],
-      "fuelTypes": [],
       "communicationFrequencies": [
         "123.150"
       ],
@@ -138,7 +138,7 @@
       "arp": {
         "raw": "613045N 0162221E",
         "lat": 61.5125,
-        "lon": 2.0394444444444444
+        "lon": 16.3725
       },
       "location": "1.5 NM N",
       "elevationFt": 378,
@@ -152,10 +152,10 @@
       "runwayLighting": [
         "No"
       ],
-      "atsServices": [
+      "atsServices": [],
+      "fuelTypes": [
         "91/96"
       ],
-      "fuelTypes": [],
       "communicationFrequencies": [
         "123.200"
       ],
@@ -187,10 +187,10 @@
       "runwayLighting": [
         "Yes"
       ],
-      "atsServices": [
+      "atsServices": [],
+      "fuelTypes": [
         "TWR/AFIS"
       ],
-      "fuelTypes": [],
       "communicationFrequencies": [
         "Yes"
       ],
@@ -209,7 +209,7 @@
       "arp": {
         "raw": "594030N 0123822E",
         "lat": 59.675,
-        "lon": 1.406111111111111
+        "lon": 12.639444444444443
       },
       "location": "NE 2 NM from Arvika",
       "elevationFt": 237,
@@ -223,10 +223,10 @@
       "runwayLighting": [
         "Yes"
       ],
-      "atsServices": [
+      "atsServices": [],
+      "fuelTypes": [
         "91UL"
       ],
-      "fuelTypes": [],
       "communicationFrequencies": [
         "123.350"
       ],
@@ -256,7 +256,7 @@
       "arp": {
         "raw": "601049N 0160722E",
         "lat": 60.180277777777775,
-        "lon": 2.02
+        "lon": 16.122777777777777
       },
       "location": "2.6 NM NNW",
       "elevationFt": 320,
@@ -270,10 +270,10 @@
       "runwayLighting": [
         "No"
       ],
-      "atsServices": [
+      "atsServices": [],
+      "fuelTypes": [
         "91/96"
       ],
-      "fuelTypes": [],
       "communicationFrequencies": [
         "123.550"
       ],
@@ -297,7 +297,7 @@
       "arp": {
         "raw": "565147N 0163922E",
         "lat": 56.863055555555555,
-        "lon": 2.0755555555555554
+        "lon": 16.65611111111111
       },
       "location": "0.7 NM SW Borgholm",
       "elevationFt": 118,
@@ -311,10 +311,10 @@
       "runwayLighting": [
         "No"
       ],
-      "atsServices": [
+      "atsServices": [],
+      "fuelTypes": [
         "-"
       ],
-      "fuelTypes": [],
       "communicationFrequencies": [
         "123.550"
       ],
@@ -376,7 +376,7 @@
       "arp": {
         "raw": "574145N 0125042E",
         "lat": 57.69583333333333,
-        "lon": 1.4177777777777778
+        "lon": 12.845
       },
       "location": "3.5 NM SW",
       "elevationFt": 588,
@@ -396,10 +396,9 @@
         "Yes",
         "No"
       ],
-      "atsServices": [
-        "100LL"
-      ],
+      "atsServices": [],
       "fuelTypes": [
+        "100LL",
         "91/96UL",
         "Jet A1"
       ],
@@ -438,7 +437,7 @@
       "arp": {
         "raw": "593630N 0135444E",
         "lat": 59.608333333333334,
-        "lon": 1.5955555555555556
+        "lon": 13.912222222222223
       },
       "location": null,
       "elevationFt": 588,
@@ -452,10 +451,10 @@
       "runwayLighting": [
         "Yes"
       ],
-      "atsServices": [
+      "atsServices": [],
+      "fuelTypes": [
         "100LL O/R"
       ],
-      "fuelTypes": [],
       "communicationFrequencies": [
         "-"
       ],
@@ -477,7 +476,7 @@
       "arp": {
         "raw": "575100N 0190218E",
         "lat": 57.85,
-        "lon": 2.5058333333333334
+        "lon": 19.038333333333334
       },
       "location": "0.5 NM SE",
       "elevationFt": 66,
@@ -497,10 +496,10 @@
         "No",
         "No"
       ],
-      "atsServices": [
+      "atsServices": [],
+      "fuelTypes": [
         "-"
       ],
-      "fuelTypes": [],
       "communicationFrequencies": [
         "123.400"
       ],
@@ -522,7 +521,7 @@
       "arp": {
         "raw": "603322N 0142238E",
         "lat": 60.55611111111111,
-        "lon": 1.706388888888889
+        "lon": 14.377222222222223
       },
       "location": "5 NM ENE Vansbro",
       "elevationFt": 773,
@@ -536,10 +535,10 @@
       "runwayLighting": [
         "Yes"
       ],
-      "atsServices": [
+      "atsServices": [],
+      "fuelTypes": [
         "100LL"
       ],
-      "fuelTypes": [],
       "communicationFrequencies": [
         "123.350"
       ],
@@ -566,7 +565,7 @@
       "arp": {
         "raw": "612313N 0155000E",
         "lat": 61.386944444444445,
-        "lon": 1.9166666666666665
+        "lon": 15.833333333333334
       },
       "location": "1 NM NE",
       "elevationFt": 515,
@@ -580,10 +579,10 @@
       "runwayLighting": [
         "No"
       ],
-      "atsServices": [
+      "atsServices": [],
+      "fuelTypes": [
         "80/87"
       ],
-      "fuelTypes": [],
       "communicationFrequencies": [
         "123.550"
       ],
@@ -606,7 +605,7 @@
       "arp": {
         "raw": "600917N 0133143E",
         "lat": 60.15472222222222,
-        "lon": 1.5538888888888889
+        "lon": 13.528611111111111
       },
       "location": "1.5 NM SSE",
       "elevationFt": 460,
@@ -620,10 +619,10 @@
       "runwayLighting": [
         "No"
       ],
-      "atsServices": [
+      "atsServices": [],
+      "fuelTypes": [
         "100LL"
       ],
-      "fuelTypes": [],
       "communicationFrequencies": [
         "-"
       ],
@@ -646,7 +645,7 @@
       "arp": {
         "raw": "574012N 0145631E",
         "lat": 57.669999999999995,
-        "lon": 1.7675
+        "lon": 14.941944444444445
       },
       "location": "0.5 NM W",
       "elevationFt": 720,
@@ -660,10 +659,9 @@
       "runwayLighting": [
         "No"
       ],
-      "atsServices": [
-        "100LL"
-      ],
+      "atsServices": [],
       "fuelTypes": [
+        "100LL",
         "91/96"
       ],
       "communicationFrequencies": [
@@ -691,7 +689,7 @@
       "arp": {
         "raw": "594450N 0170842E",
         "lat": 59.74722222222222,
-        "lon": 2.1900000000000004
+        "lon": 17.145
       },
       "location": "6.5 NM NNE Enköping",
       "elevationFt": 49,
@@ -711,10 +709,10 @@
         "No",
         "No"
       ],
-      "atsServices": [
+      "atsServices": [],
+      "fuelTypes": [
         "91/96"
       ],
-      "fuelTypes": [],
       "communicationFrequencies": [
         "123.525"
       ],
@@ -773,7 +771,7 @@
       "arp": {
         "raw": "592302N 0162631E",
         "lat": 59.38388888888889,
-        "lon": 2.0508333333333333
+        "lon": 16.441944444444445
       },
       "location": null,
       "elevationFt": 43,
@@ -787,10 +785,10 @@
       "runwayLighting": [
         "No"
       ],
-      "atsServices": [
+      "atsServices": [],
+      "fuelTypes": [
         "91/96"
       ],
-      "fuelTypes": [],
       "communicationFrequencies": [
         "123.200"
       ],
@@ -815,7 +813,7 @@
       "arp": {
         "raw": "555054N 0131952E",
         "lat": 55.848333333333336,
-        "lon": 1.5430555555555554
+        "lon": 13.331111111111111
       },
       "location": "1 NM NE",
       "elevationFt": 296,
@@ -835,10 +833,10 @@
         "Yes",
         "No"
       ],
-      "atsServices": [
+      "atsServices": [],
+      "fuelTypes": [
         "100LL O/R"
       ],
-      "fuelTypes": [],
       "communicationFrequencies": [
         "123.150"
       ],
@@ -861,7 +859,7 @@
       "arp": {
         "raw": "562316N 0132814E",
         "lat": 56.38777777777778,
-        "lon": 1.5558333333333332
+        "lon": 13.470555555555556
       },
       "location": "1 NM N",
       "elevationFt": 378,
@@ -875,10 +873,10 @@
       "runwayLighting": [
         "No"
       ],
-      "atsServices": [
+      "atsServices": [],
+      "fuelTypes": [
         "-"
       ],
-      "fuelTypes": [],
       "communicationFrequencies": [
         "-"
       ],
@@ -902,7 +900,7 @@
       "arp": {
         "raw": "565807N 0122314E",
         "lat": 56.968611111111116,
-        "lon": 1.3752777777777778
+        "lon": 12.387222222222222
       },
       "location": null,
       "elevationFt": 23,
@@ -916,10 +914,10 @@
       "runwayLighting": [
         "Yes"
       ],
-      "atsServices": [
+      "atsServices": [],
+      "fuelTypes": [
         "100LL"
       ],
-      "fuelTypes": [],
       "communicationFrequencies": [
         "-"
       ],
@@ -941,7 +939,7 @@
       "arp": {
         "raw": "581012N 0133516E",
         "lat": 58.169999999999995,
-        "lon": 1.5641666666666667
+        "lon": 13.587777777777779
       },
       "location": "NE 1.5 NM from Falköping",
       "elevationFt": 785,
@@ -955,10 +953,10 @@
       "runwayLighting": [
         "Yes"
       ],
-      "atsServices": [
+      "atsServices": [],
+      "fuelTypes": [
         "100LL O/R"
       ],
-      "fuelTypes": [],
       "communicationFrequencies": [
         "123.350"
       ],
@@ -985,7 +983,7 @@
       "arp": {
         "raw": "583749N 0111854E",
         "lat": 58.63027777777778,
-        "lon": 1.2069444444444444
+        "lon": 11.315000000000001
       },
       "location": "1.5 NM NNE",
       "elevationFt": 6,
@@ -999,10 +997,10 @@
       "runwayLighting": [
         "No"
       ],
-      "atsServices": [
+      "atsServices": [],
+      "fuelTypes": [
         "100LL"
       ],
-      "fuelTypes": [],
       "communicationFrequencies": [
         "123.200"
       ],
@@ -1027,7 +1025,7 @@
       "arp": {
         "raw": "603303N 0150441E",
         "lat": 60.55083333333333,
-        "lon": 1.8455555555555556
+        "lon": 15.078055555555554
       },
       "location": "2.7 NM S",
       "elevationFt": 575,
@@ -1041,10 +1039,10 @@
       "runwayLighting": [
         "No"
       ],
-      "atsServices": [
+      "atsServices": [],
+      "fuelTypes": [
         "-"
       ],
-      "fuelTypes": [],
       "communicationFrequencies": [
         "123.550"
       ],
@@ -1071,7 +1069,7 @@
       "arp": {
         "raw": "651819N 0175832E",
         "lat": 65.30527777777777,
-        "lon": 2.2730555555555556
+        "lon": 17.975555555555555
       },
       "location": "0.3 NM SE",
       "elevationFt": 980,
@@ -1085,10 +1083,10 @@
       "runwayLighting": [
         "No"
       ],
-      "atsServices": [
+      "atsServices": [],
+      "fuelTypes": [
         "100LL"
       ],
-      "fuelTypes": [],
       "communicationFrequencies": [
         "123.450"
       ],
@@ -1115,7 +1113,7 @@
       "arp": {
         "raw": "590604N 0171240E",
         "lat": 59.10111111111111,
-        "lon": 2.1900000000000004
+        "lon": 17.211111111111112
       },
       "location": "4.5 NM NW Gnesta",
       "elevationFt": 56,
@@ -1135,10 +1133,10 @@
         "No",
         "Yes"
       ],
-      "atsServices": [
+      "atsServices": [],
+      "fuelTypes": [
         "91/96"
       ],
-      "fuelTypes": [],
       "communicationFrequencies": [
         "123.375"
       ],
@@ -1170,7 +1168,7 @@
       "arp": {
         "raw": "601710N 0172546E",
         "lat": 60.28611111111111,
-        "lon": 2.2150000000000003
+        "lon": 17.429444444444446
       },
       "location": "4.5 NM SW Tierp",
       "elevationFt": 105,
@@ -1184,10 +1182,10 @@
       "runwayLighting": [
         "No"
       ],
-      "atsServices": [
+      "atsServices": [],
+      "fuelTypes": [
         "-"
       ],
-      "fuelTypes": [],
       "communicationFrequencies": [
         "123.400"
       ],
@@ -1245,7 +1243,7 @@
       "arp": {
         "raw": "603536N 0165705E",
         "lat": 60.593333333333334,
-        "lon": 2.1027777777777774
+        "lon": 16.95138888888889
       },
       "location": "SW 8 NM from Gävle",
       "elevationFt": 224,
@@ -1259,10 +1257,10 @@
       "runwayLighting": [
         "Yes"
       ],
-      "atsServices": [
+      "atsServices": [],
+      "fuelTypes": [
         "-"
       ],
-      "fuelTypes": [],
       "communicationFrequencies": [
         "123.600"
       ],
@@ -1386,7 +1384,7 @@
       "arp": {
         "raw": "583443N 0133638E",
         "lat": 58.578611111111115,
-        "lon": 1.5675000000000001
+        "lon": 13.610555555555555
       },
       "location": "4.3 NM NE Götene",
       "elevationFt": 259,
@@ -1400,10 +1398,10 @@
       "runwayLighting": [
         "No"
       ],
-      "atsServices": [
+      "atsServices": [],
+      "fuelTypes": [
         "91/96"
       ],
-      "fuelTypes": [],
       "communicationFrequencies": [
         "123.400"
       ],
@@ -1489,7 +1487,7 @@
       "arp": {
         "raw": "634418N 0152732E",
         "lat": 63.73833333333334,
-        "lon": 1.8869444444444445
+        "lon": 15.458888888888888
       },
       "location": "8 NM SSW Strömsund",
       "elevationFt": 1119,
@@ -1503,10 +1501,10 @@
       "runwayLighting": [
         "No"
       ],
-      "atsServices": [
+      "atsServices": [],
+      "fuelTypes": [
         "-"
       ],
-      "fuelTypes": [],
       "communicationFrequencies": [
         "123.550"
       ],
@@ -1568,7 +1566,7 @@
       "arp": {
         "raw": "622432N 0134450E",
         "lat": 62.40888888888889,
-        "lon": 1.5791666666666666
+        "lon": 13.747222222222222
       },
       "location": "6 NM E",
       "elevationFt": 1460,
@@ -1582,10 +1580,10 @@
       "runwayLighting": [
         "No"
       ],
-      "atsServices": [
+      "atsServices": [],
+      "fuelTypes": [
         "100LL"
       ],
-      "fuelTypes": [],
       "communicationFrequencies": [
         "123.150"
       ],
@@ -1639,7 +1637,7 @@
       "arp": {
         "raw": "580146N 0130629E",
         "lat": 58.029444444444444,
-        "lon": 1.5172222222222222
+        "lon": 13.108055555555556
       },
       "location": "3.8 NM SE",
       "elevationFt": 480,
@@ -1653,10 +1651,10 @@
       "runwayLighting": [
         "No"
       ],
-      "atsServices": [
+      "atsServices": [],
+      "fuelTypes": [
         "100LL"
       ],
-      "fuelTypes": [],
       "communicationFrequencies": [
         "123.650"
       ],
@@ -1680,7 +1678,7 @@
       "arp": {
         "raw": "614606N 0170450E",
         "lat": 61.76833333333333,
-        "lon": 2.179166666666667
+        "lon": 17.080555555555556
       },
       "location": "2.7 NM NNW",
       "elevationFt": 95,
@@ -1694,10 +1692,9 @@
       "runwayLighting": [
         "No"
       ],
-      "atsServices": [
-        "Jet A1"
-      ],
+      "atsServices": [],
       "fuelTypes": [
+        "Jet A1",
         "O/R"
       ],
       "communicationFrequencies": [
@@ -1725,7 +1722,7 @@
       "arp": {
         "raw": "573133N 0154924E",
         "lat": 57.52583333333333,
-        "lon": 1.9255555555555555
+        "lon": 15.823333333333332
       },
       "location": "NNW 2 NM Hultsfred",
       "elevationFt": 365,
@@ -1739,10 +1736,9 @@
       "runwayLighting": [
         "Yes"
       ],
-      "atsServices": [
-        "100LL O/R"
-      ],
+      "atsServices": [],
       "fuelTypes": [
+        "100LL O/R",
         "Jet A1",
         "O/R"
       ],
@@ -1770,7 +1766,7 @@
       "arp": {
         "raw": "595203N 0142525E",
         "lat": 59.8675,
-        "lon": 1.7144444444444444
+        "lon": 14.42361111111111
       },
       "location": "6 NM NW",
       "elevationFt": 600,
@@ -1784,10 +1780,10 @@
       "runwayLighting": [
         "No"
       ],
-      "atsServices": [
+      "atsServices": [],
+      "fuelTypes": [
         "100LL"
       ],
-      "fuelTypes": [],
       "communicationFrequencies": [
         "123.150"
       ],
@@ -1812,7 +1808,7 @@
       "arp": {
         "raw": "623801N 0175853E",
         "lat": 62.63361111111111,
-        "lon": 2.2736111111111112
+        "lon": 17.981388888888887
       },
       "location": null,
       "elevationFt": 271,
@@ -1826,10 +1822,10 @@
       "runwayLighting": [
         "No"
       ],
-      "atsServices": [
+      "atsServices": [],
+      "fuelTypes": [
         "100LL"
       ],
-      "fuelTypes": [],
       "communicationFrequencies": [
         "123.450"
       ],
@@ -1854,7 +1850,7 @@
       "arp": {
         "raw": "560801N 0135244E",
         "lat": 56.13361111111111,
-        "lon": 1.59
+        "lon": 13.87888888888889
       },
       "location": "3.8 NM ESE",
       "elevationFt": 105,
@@ -1868,10 +1864,10 @@
       "runwayLighting": [
         "No"
       ],
-      "atsServices": [
+      "atsServices": [],
+      "fuelTypes": [
         "91/96UL"
       ],
-      "fuelTypes": [],
       "communicationFrequencies": [
         "123.600"
       ],
@@ -1893,7 +1889,7 @@
       "arp": {
         "raw": "561105N 0123433E",
         "lat": 56.18472222222222,
-        "lon": 1.3952777777777778
+        "lon": 12.575833333333334
       },
       "location": "1 NM SE",
       "elevationFt": 21,
@@ -1913,10 +1909,9 @@
         "Yes",
         "No"
       ],
-      "atsServices": [
-        "100LL"
-      ],
+      "atsServices": [],
       "fuelTypes": [
+        "100LL",
         "91/96 UL",
         "Jet A1"
       ],
@@ -1948,7 +1943,7 @@
       "arp": {
         "raw": "615211N 0124122E",
         "lat": 61.86972222222222,
-        "lon": 1.4033333333333333
+        "lon": 12.689444444444444
       },
       "location": "1 NM NW",
       "elevationFt": 1480,
@@ -1962,10 +1957,9 @@
       "runwayLighting": [
         "Yes"
       ],
-      "atsServices": [
-        "100LL"
-      ],
+      "atsServices": [],
       "fuelTypes": [
+        "100LL",
         "Jet A1"
       ],
       "communicationFrequencies": [
@@ -1993,7 +1987,7 @@
       "arp": {
         "raw": "662948N 0200851E",
         "lat": 66.49666666666667,
-        "lon": 2.0236111111111112
+        "lon": 20.1475
       },
       "location": "10 NM SE",
       "elevationFt": 904,
@@ -2085,10 +2079,10 @@
         "Yes",
         "No"
       ],
-      "atsServices": [
+      "atsServices": [],
+      "fuelTypes": [
         "TWR/APP"
       ],
-      "fuelTypes": [],
       "communicationFrequencies": [
         "Yes"
       ],
@@ -2139,7 +2133,7 @@
       "arp": {
         "raw": "592040N 0142941E",
         "lat": 59.34444444444445,
-        "lon": 1.7261111111111112
+        "lon": 14.49472222222222
       },
       "location": "1.5 NM NNW",
       "elevationFt": 400,
@@ -2153,10 +2147,9 @@
       "runwayLighting": [
         "Yes"
       ],
-      "atsServices": [
-        "100LL"
-      ],
+      "atsServices": [],
       "fuelTypes": [
+        "100LL",
         "Jet A1"
       ],
       "communicationFrequencies": [
@@ -2215,7 +2208,7 @@
       "arp": {
         "raw": "590120N 0161313E",
         "lat": 59.02222222222222,
-        "lon": 2.0252777777777777
+        "lon": 16.220277777777778
       },
       "location": "1 NM N",
       "elevationFt": 132,
@@ -2229,10 +2222,10 @@
       "runwayLighting": [
         "No"
       ],
-      "atsServices": [
+      "atsServices": [],
+      "fuelTypes": [
         "91/96"
       ],
-      "fuelTypes": [],
       "communicationFrequencies": [
         "123.200"
       ],
@@ -2354,7 +2347,7 @@
       "arp": {
         "raw": "555942N 0130312E",
         "lat": 55.995,
-        "lon": 1.5086111111111111
+        "lon": 13.053333333333335
       },
       "location": null,
       "elevationFt": 276,
@@ -2368,10 +2361,10 @@
       "runwayLighting": [
         "No"
       ],
-      "atsServices": [
+      "atsServices": [],
+      "fuelTypes": [
         "-"
       ],
-      "fuelTypes": [],
       "communicationFrequencies": [
         "-"
       ],
@@ -2396,7 +2389,7 @@
       "arp": {
         "raw": "593139N 0155811E",
         "lat": 59.527499999999996,
-        "lon": 1.9391666666666665
+        "lon": 15.969722222222222
       },
       "location": null,
       "elevationFt": 25,
@@ -2410,10 +2403,9 @@
       "runwayLighting": [
         "Yes"
       ],
-      "atsServices": [
-        "100LL"
-      ],
+      "atsServices": [],
       "fuelTypes": [
+        "100LL",
         "UL91"
       ],
       "communicationFrequencies": [
@@ -2450,7 +2442,7 @@
       "arp": {
         "raw": "555640N 0125210E",
         "lat": 55.94444444444444,
-        "lon": 1.4225
+        "lon": 12.869444444444445
       },
       "location": "4.3 NM NNE",
       "elevationFt": 194,
@@ -2470,10 +2462,9 @@
         "Yes",
         "No"
       ],
-      "atsServices": [
-        "100LL"
-      ],
+      "atsServices": [],
       "fuelTypes": [
+        "100LL",
         "91/96UL"
       ],
       "communicationFrequencies": [
@@ -2503,7 +2494,7 @@
       "arp": {
         "raw": "582755N 0131028E",
         "lat": 58.46527777777778,
-        "lon": 1.5172222222222222
+        "lon": 13.174444444444443
       },
       "location": "2.5 NM S Lidköping",
       "elevationFt": 200,
@@ -2517,10 +2508,9 @@
       "runwayLighting": [
         "Yes"
       ],
-      "atsServices": [
-        "100LL"
-      ],
+      "atsServices": [],
       "fuelTypes": [
+        "100LL",
         "91/96",
         "Jet A1"
       ],
@@ -2622,7 +2612,7 @@
       "arp": {
         "raw": "565701N 0135518E",
         "lat": 56.95027777777778,
-        "lon": 1.5975000000000001
+        "lon": 13.921666666666667
       },
       "location": "7 NM NE Ljungby",
       "elevationFt": 538,
@@ -2636,10 +2626,9 @@
       "runwayLighting": [
         "No"
       ],
-      "atsServices": [
-        "100LL"
-      ],
+      "atsServices": [],
       "fuelTypes": [
+        "100LL",
         "Jet A1"
       ],
       "communicationFrequencies": [
@@ -2704,7 +2693,7 @@
       "arp": {
         "raw": "614901N 0160015E",
         "lat": 61.816944444444445,
-        "lon": 2.000277777777778
+        "lon": 16.004166666666666
       },
       "location": "2.0 NM WSW",
       "elevationFt": 485,
@@ -2718,10 +2707,9 @@
       "runwayLighting": [
         "No"
       ],
-      "atsServices": [
-        "100LL"
-      ],
+      "atsServices": [],
       "fuelTypes": [
+        "100LL",
         "91/96"
       ],
       "communicationFrequencies": [
@@ -2747,7 +2735,7 @@
       "arp": {
         "raw": "600518N 0150547E",
         "lat": 60.08833333333334,
-        "lon": 1.8483333333333334
+        "lon": 15.096388888888889
       },
       "location": "2 NM WSW Ludvika",
       "elevationFt": 894,
@@ -2761,10 +2749,10 @@
       "runwayLighting": [
         "Yes"
       ],
-      "atsServices": [
+      "atsServices": [],
+      "fuelTypes": [
         "91/96"
       ],
-      "fuelTypes": [],
       "communicationFrequencies": [
         "123.150"
       ],
@@ -2893,7 +2881,7 @@
       "arp": {
         "raw": "603932N 0134336E",
         "lat": 60.65888888888889,
-        "lon": 1.5758333333333334
+        "lon": 13.726666666666667
       },
       "location": "1.7 NM SSE",
       "elevationFt": 975,
@@ -2907,10 +2895,10 @@
       "runwayLighting": [
         "Yes"
       ],
-      "atsServices": [
+      "atsServices": [],
+      "fuelTypes": [
         "91/96"
       ],
-      "fuelTypes": [],
       "communicationFrequencies": [
         "123.330"
       ],
@@ -2935,7 +2923,7 @@
       "arp": {
         "raw": "632331N 0181914E",
         "lat": 63.39194444444444,
-        "lon": 2.375277777777778
+        "lon": 18.320555555555554
       },
       "location": "13 NM NW Örnsköldsvik",
       "elevationFt": 265,
@@ -2949,10 +2937,10 @@
       "runwayLighting": [
         "No"
       ],
-      "atsServices": [
+      "atsServices": [],
+      "fuelTypes": [
         "91/96"
       ],
-      "fuelTypes": [],
       "communicationFrequencies": [
         "123.400"
       ],
@@ -2975,7 +2963,7 @@
       "arp": {
         "raw": "611728N 0165047E",
         "lat": 61.29111111111111,
-        "lon": 2.0844444444444443
+        "lon": 16.84638888888889
       },
       "location": "6 NM W Söderhamn",
       "elevationFt": 215,
@@ -2989,10 +2977,10 @@
       "runwayLighting": [
         "Yes"
       ],
-      "atsServices": [
+      "atsServices": [],
+      "fuelTypes": [
         "91/96"
       ],
-      "fuelTypes": [],
       "communicationFrequencies": [
         "123.600"
       ],
@@ -3045,7 +3033,7 @@
       "arp": {
         "raw": "594756N 0132926E",
         "lat": 59.79888888888889,
-        "lon": 1.5588888888888888
+        "lon": 13.490555555555554
       },
       "location": "1.6 NM S",
       "elevationFt": 279,
@@ -3059,10 +3047,10 @@
       "runwayLighting": [
         "No"
       ],
-      "atsServices": [
+      "atsServices": [],
+      "fuelTypes": [
         "100LL"
       ],
-      "fuelTypes": [],
       "communicationFrequencies": [
         "-"
       ],
@@ -3124,7 +3112,7 @@
       "arp": {
         "raw": "594358N 0184147E",
         "lat": 59.73277777777778,
-        "lon": 2.403888888888889
+        "lon": 18.69638888888889
       },
       "location": "1.6 NM S",
       "elevationFt": 40,
@@ -3138,10 +3126,9 @@
       "runwayLighting": [
         "Yes"
       ],
-      "atsServices": [
-        "100LL"
-      ],
+      "atsServices": [],
       "fuelTypes": [
+        "100LL",
         "91/96",
         "Jet A1"
       ],
@@ -3174,7 +3161,7 @@
       "arp": {
         "raw": "630731N 0144830E",
         "lat": 63.125277777777775,
-        "lon": 1.756388888888889
+        "lon": 14.808333333333334
       },
       "location": "5 NM SE Östersund",
       "elevationFt": 1236,
@@ -3194,10 +3181,10 @@
         "Yes",
         "No"
       ],
-      "atsServices": [
+      "atsServices": [],
+      "fuelTypes": [
         "100LL"
       ],
-      "fuelTypes": [],
       "communicationFrequencies": [
         "123.550"
       ],
@@ -3221,7 +3208,7 @@
       "arp": {
         "raw": "611132N 0144309E",
         "lat": 61.19222222222222,
-        "lon": 1.7416666666666667
+        "lon": 14.719166666666666
       },
       "location": "1 NM WNW Mässbacken",
       "elevationFt": 683,
@@ -3235,10 +3222,10 @@
       "runwayLighting": [
         "No"
       ],
-      "atsServices": [
+      "atsServices": [],
+      "fuelTypes": [
         "-"
       ],
-      "fuelTypes": [],
       "communicationFrequencies": [
         "123.400"
       ],
@@ -3264,7 +3251,7 @@
       "arp": {
         "raw": "572107N 0162954E",
         "lat": 57.35194444444445,
-        "lon": 2.0597222222222222
+        "lon": 16.498333333333335
       },
       "location": "NNE 5.4 NM from Oskarshamn",
       "elevationFt": 96,
@@ -3278,10 +3265,10 @@
       "runwayLighting": [
         "No"
       ],
-      "atsServices": [
+      "atsServices": [],
+      "fuelTypes": [
         "-"
       ],
-      "fuelTypes": [],
       "communicationFrequencies": [
         "123.350"
       ],
@@ -3307,7 +3294,7 @@
       "arp": {
         "raw": "630230N 0140005E",
         "lat": 63.041666666666664,
-        "lon": 1.6666666666666665
+        "lon": 14.001388888888888
       },
       "location": null,
       "elevationFt": 1640,
@@ -3321,10 +3308,9 @@
       "runwayLighting": [
         "No"
       ],
-      "atsServices": [
-        "91UL"
-      ],
+      "atsServices": [],
       "fuelTypes": [
+        "91UL",
         "100LL",
         "O/R"
       ],
@@ -3384,7 +3370,7 @@
       "arp": {
         "raw": "652354N 0211539E",
         "lat": 65.39833333333334,
-        "lon": 2.1980555555555554
+        "lon": 21.260833333333334
       },
       "location": "8 NM NW",
       "elevationFt": 43,
@@ -3398,10 +3384,9 @@
       "runwayLighting": [
         "Yes"
       ],
-      "atsServices": [
-        "91 UL"
-      ],
+      "atsServices": [],
       "fuelTypes": [
+        "91 UL",
         "Jet A1"
       ],
       "communicationFrequencies": [
@@ -3427,7 +3412,7 @@
       "arp": {
         "raw": "632925N 0162901E",
         "lat": 63.49027777777778,
-        "lon": 2.058333333333333
+        "lon": 16.483611111111113
       },
       "location": "2.7 NM S",
       "elevationFt": 660,
@@ -3441,10 +3426,9 @@
       "runwayLighting": [
         "No"
       ],
-      "atsServices": [
-        "100LL"
-      ],
+      "atsServices": [],
       "fuelTypes": [
+        "100LL",
         "91/96"
       ],
       "communicationFrequencies": [
@@ -3502,7 +3486,7 @@
       "arp": {
         "raw": "582953N 0130311E",
         "lat": 58.49805555555556,
-        "lon": 1.5086111111111111
+        "lon": 13.053055555555556
       },
       "location": null,
       "elevationFt": 246,
@@ -3516,10 +3500,10 @@
       "runwayLighting": [
         "Yes"
       ],
-      "atsServices": [
+      "atsServices": [],
+      "fuelTypes": [
         "-"
       ],
-      "fuelTypes": [],
       "communicationFrequencies": [
         "-"
       ],
@@ -3542,7 +3526,7 @@
       "arp": {
         "raw": "570406N 0165151E",
         "lat": 57.068333333333335,
-        "lon": 2.0875
+        "lon": 16.86416666666667
       },
       "location": "16 NM NNE Borgholm",
       "elevationFt": 36,
@@ -3556,10 +3540,10 @@
       "runwayLighting": [
         "No"
       ],
-      "atsServices": [
+      "atsServices": [],
+      "fuelTypes": [
         "-"
       ],
-      "fuelTypes": [],
       "communicationFrequencies": [
         "123.450"
       ],
@@ -3584,7 +3568,7 @@
       "arp": {
         "raw": "604706N 0144938E",
         "lat": 60.785,
-        "lon": 1.7591666666666668
+        "lon": 14.827222222222222
       },
       "location": "1 NM NW",
       "elevationFt": 611,
@@ -3604,10 +3588,9 @@
         "No",
         "No"
       ],
-      "atsServices": [
-        "100LL"
-      ],
+      "atsServices": [],
       "fuelTypes": [
+        "100LL",
         "91/96"
       ],
       "communicationFrequencies": [
@@ -3632,7 +3615,7 @@
       "arp": {
         "raw": "553554N 0134038E",
         "lat": 55.598333333333336,
-        "lon": 1.5675
+        "lon": 13.677222222222222
       },
       "location": "2 NM SSW Sjöbo",
       "elevationFt": 118,
@@ -3646,10 +3629,10 @@
       "runwayLighting": [
         "Yes"
       ],
-      "atsServices": [
+      "atsServices": [],
+      "fuelTypes": [
         "91/96 UL"
       ],
-      "fuelTypes": [],
       "communicationFrequencies": [
         "123.650"
       ],
@@ -3705,7 +3688,7 @@
       "arp": {
         "raw": "582722N 0135822E",
         "lat": 58.45611111111111,
-        "lon": 1.6061111111111113
+        "lon": 13.972777777777777
       },
       "location": "5.4 NM NE from Skövde",
       "elevationFt": 324,
@@ -3719,10 +3702,10 @@
       "runwayLighting": [
         "Yes"
       ],
-      "atsServices": [
+      "atsServices": [],
+      "fuelTypes": [
         "91/96"
       ],
-      "fuelTypes": [],
       "communicationFrequencies": [
         "123.055"
       ],
@@ -3746,7 +3729,7 @@
       "arp": {
         "raw": "571007N 0132624E",
         "lat": 57.16861111111111,
-        "lon": 1.5505555555555555
+        "lon": 13.44
       },
       "location": null,
       "elevationFt": 540,
@@ -3760,10 +3743,10 @@
       "runwayLighting": [
         "Yes"
       ],
-      "atsServices": [
+      "atsServices": [],
+      "fuelTypes": [
         "100LL"
       ],
-      "fuelTypes": [],
       "communicationFrequencies": [
         "123.200"
       ],
@@ -3788,7 +3771,7 @@
       "arp": {
         "raw": "631016N 0165908E",
         "lat": 63.17111111111111,
-        "lon": 2.108333333333333
+        "lon": 16.985555555555557
       },
       "location": "2.4 NM WSW",
       "elevationFt": 433,
@@ -3802,10 +3785,10 @@
       "runwayLighting": [
         "No"
       ],
-      "atsServices": [
+      "atsServices": [],
+      "fuelTypes": [
         "Jet A1"
       ],
-      "fuelTypes": [],
       "communicationFrequencies": [
         "123.350"
       ],
@@ -3827,7 +3810,7 @@
       "arp": {
         "raw": "582600N 0163618E",
         "lat": 58.43333333333333,
-        "lon": 2.0669444444444443
+        "lon": 16.605
       },
       "location": null,
       "elevationFt": 6,
@@ -3841,10 +3824,10 @@
       "runwayLighting": [
         "No"
       ],
-      "atsServices": [
+      "atsServices": [],
+      "fuelTypes": [
         "-"
       ],
-      "fuelTypes": [],
       "communicationFrequencies": [
         "123.550"
       ],
@@ -3981,7 +3964,7 @@
       "arp": {
         "raw": "592042N 0174426E",
         "lat": 59.345,
-        "lon": 2.245
+        "lon": 17.740555555555556
       },
       "location": "10 NM W",
       "elevationFt": 17,
@@ -4001,10 +3984,9 @@
         "No",
         "No"
       ],
-      "atsServices": [
-        "100LL"
-      ],
+      "atsServices": [],
       "fuelTypes": [
+        "100LL",
         "91/96 UL"
       ],
       "communicationFrequencies": [
@@ -4066,7 +4048,7 @@
       "arp": {
         "raw": "645739N 0174148E",
         "lat": 64.96083333333334,
-        "lon": 2.2372222222222224
+        "lon": 17.696666666666665
       },
       "location": "ESE 16.0 NM from Storuman",
       "elevationFt": 915,
@@ -4080,10 +4062,10 @@
       "runwayLighting": [
         "No"
       ],
-      "atsServices": [
+      "atsServices": [],
+      "fuelTypes": [
         "-"
       ],
-      "fuelTypes": [],
       "communicationFrequencies": [
         "-"
       ],
@@ -4105,7 +4087,7 @@
       "arp": {
         "raw": "603516N 0163512E",
         "lat": 60.58777777777778,
-        "lon": 2.0641666666666665
+        "lon": 16.586666666666666
       },
       "location": null,
       "elevationFt": 210,
@@ -4119,10 +4101,9 @@
       "runwayLighting": [
         "No"
       ],
-      "atsServices": [
-        "91/96"
-      ],
+      "atsServices": [],
       "fuelTypes": [
+        "91/96",
         "Jet A1"
       ],
       "communicationFrequencies": [
@@ -4147,7 +4128,7 @@
       "arp": {
         "raw": "590101N 0112037E",
         "lat": 59.01694444444444,
-        "lon": 1.2008333333333332
+        "lon": 11.343611111111112
       },
       "location": "7 NM NE",
       "elevationFt": 115,
@@ -4161,10 +4142,9 @@
       "runwayLighting": [
         "No"
       ],
-      "atsServices": [
-        "91/96 UL"
-      ],
+      "atsServices": [],
       "fuelTypes": [
+        "91/96 UL",
         "Jet A1"
       ],
       "communicationFrequencies": [
@@ -4191,7 +4171,7 @@
       "arp": {
         "raw": "595522N 0173212E",
         "lat": 59.922777777777775,
-        "lon": 2.2225
+        "lon": 17.53666666666667
       },
       "location": "5 NM NW Uppsala",
       "elevationFt": 62,
@@ -4217,10 +4197,9 @@
         "No",
         "No"
       ],
-      "atsServices": [
-        "100LL"
-      ],
+      "atsServices": [],
       "fuelTypes": [
+        "100LL",
         "91/96"
       ],
       "communicationFrequencies": [
@@ -4294,7 +4273,7 @@
       "arp": {
         "raw": "595137N 0130646E",
         "lat": 59.86027777777778,
-        "lon": 1.5177777777777777
+        "lon": 13.112777777777778
       },
       "location": "1.5 NM NW",
       "elevationFt": 380,
@@ -4308,10 +4287,10 @@
       "runwayLighting": [
         "No"
       ],
-      "atsServices": [
+      "atsServices": [],
+      "fuelTypes": [
         "100LL"
       ],
-      "fuelTypes": [],
       "communicationFrequencies": [
         "123.200"
       ],
@@ -4405,7 +4384,7 @@
       "arp": {
         "raw": "590528N 0125730E",
         "lat": 59.09111111111111,
-        "lon": 1.4369444444444446
+        "lon": 12.958333333333332
       },
       "location": "2.7 NM S",
       "elevationFt": 151,
@@ -4419,10 +4398,10 @@
       "runwayLighting": [
         "No"
       ],
-      "atsServices": [
+      "atsServices": [],
+      "fuelTypes": [
         "91/96"
       ],
-      "fuelTypes": [],
       "communicationFrequencies": [
         "123.600"
       ],
@@ -4477,7 +4456,7 @@
       "arp": {
         "raw": "611541N 0170554E",
         "lat": 61.26138888888889,
-        "lon": 2.181944444444445
+        "lon": 17.098333333333333
       },
       "location": "2.8 NM SE Söderhamn",
       "elevationFt": 88,
@@ -4491,10 +4470,9 @@
       "runwayLighting": [
         "No"
       ],
-      "atsServices": [
-        "100LL"
-      ],
+      "atsServices": [],
       "fuelTypes": [
+        "100LL",
         "Jet A1"
       ],
       "communicationFrequencies": [
@@ -4522,7 +4500,7 @@
       "arp": {
         "raw": "581131N 0135944E",
         "lat": 58.19194444444444,
-        "lon": 1.6094444444444447
+        "lon": 13.995555555555555
       },
       "location": null,
       "elevationFt": 456,
@@ -4536,10 +4514,10 @@
       "runwayLighting": [
         "No"
       ],
-      "atsServices": [
+      "atsServices": [],
+      "fuelTypes": [
         "91/96"
       ],
-      "fuelTypes": [],
       "communicationFrequencies": [
         "123.650"
       ],
@@ -4564,7 +4542,7 @@
       "arp": {
         "raw": "602042N 0172519E",
         "lat": 60.345,
-        "lon": 2.214166666666667
+        "lon": 17.421944444444446
       },
       "location": "2.7 NM W Tierp",
       "elevationFt": 129,
@@ -4578,10 +4556,10 @@
       "runwayLighting": [
         "No"
       ],
-      "atsServices": [
+      "atsServices": [],
+      "fuelTypes": [
         "91/96"
       ],
-      "fuelTypes": [],
       "communicationFrequencies": [
         "123.400"
       ],
@@ -4637,7 +4615,7 @@
       "arp": {
         "raw": "581038N 0115825E",
         "lat": 58.17722222222222,
-        "lon": 1.2727777777777778
+        "lon": 11.973611111111111
       },
       "location": "10.4 NM S Uddevalla",
       "elevationFt": 424,
@@ -4651,10 +4629,9 @@
       "runwayLighting": [
         "No"
       ],
-      "atsServices": [
-        "91/96"
-      ],
+      "atsServices": [],
       "fuelTypes": [
+        "91/96",
         "100LL"
       ],
       "communicationFrequencies": [
@@ -4680,7 +4657,7 @@
       "arp": {
         "raw": "582204N 0114631E",
         "lat": 58.367777777777775,
-        "lon": 1.2508333333333335
+        "lon": 11.775277777777779
       },
       "location": "5.0 NM NW",
       "elevationFt": 120,
@@ -4694,10 +4671,10 @@
       "runwayLighting": [
         "No"
       ],
-      "atsServices": [
+      "atsServices": [],
+      "fuelTypes": [
         "91/96"
       ],
-      "fuelTypes": [],
       "communicationFrequencies": [
         "123.550"
       ],
@@ -4791,7 +4768,7 @@
       "arp": {
         "raw": "570729N 0121341E",
         "lat": 57.124722222222225,
-        "lon": 1.3594444444444445
+        "lon": 12.228055555555555
       },
       "location": "1.5 NM NW",
       "elevationFt": 3,
@@ -4811,10 +4788,9 @@
         "No",
         "Yes"
       ],
-      "atsServices": [
-        "91/96"
-      ],
+      "atsServices": [],
       "fuelTypes": [
+        "91/96",
         "100LL"
       ],
       "communicationFrequencies": [
@@ -4842,7 +4818,7 @@
       "arp": {
         "raw": "552346N 0130131E",
         "lat": 55.39611111111111,
-        "lon": 1.503611111111111
+        "lon": 13.025277777777779
       },
       "location": null,
       "elevationFt": 12,
@@ -4856,10 +4832,9 @@
       "runwayLighting": [
         "No"
       ],
-      "atsServices": [
-        "100LL"
-      ],
+      "atsServices": [],
       "fuelTypes": [
+        "100LL",
         "91/96"
       ],
       "communicationFrequencies": [
@@ -4989,7 +4964,7 @@
       "arp": {
         "raw": "580555N 0142409E",
         "lat": 58.09861111111111,
-        "lon": 1.711111111111111
+        "lon": 14.4025
       },
       "location": null,
       "elevationFt": 309,
@@ -5009,10 +4984,10 @@
         "No",
         "No"
       ],
-      "atsServices": [
+      "atsServices": [],
+      "fuelTypes": [
         "-"
       ],
-      "fuelTypes": [],
       "communicationFrequencies": [
         "123.500"
       ],
@@ -5034,7 +5009,7 @@
       "arp": {
         "raw": "580221N 0124709E",
         "lat": 58.03916666666667,
-        "lon": 1.4194444444444443
+        "lon": 12.785833333333333
       },
       "location": "0.8 NM NW",
       "elevationFt": 328,
@@ -5048,10 +5023,10 @@
       "runwayLighting": [
         "No"
       ],
-      "atsServices": [
+      "atsServices": [],
+      "fuelTypes": [
         "Jet A1 O/R"
       ],
-      "fuelTypes": [],
       "communicationFrequencies": [
         "123.650"
       ],
@@ -5081,7 +5056,7 @@
       "arp": {
         "raw": "574648N 0163125E",
         "lat": 57.78,
-        "lon": 2.0533333333333332
+        "lon": 16.52361111111111
       },
       "location": "4 NM NW",
       "elevationFt": 129,
@@ -5095,10 +5070,9 @@
       "runwayLighting": [
         "Yes"
       ],
-      "atsServices": [
-        "100LL"
-      ],
+      "atsServices": [],
       "fuelTypes": [
+        "100LL",
         "Jet A1"
       ],
       "communicationFrequencies": [
@@ -5125,7 +5099,7 @@
       "arp": {
         "raw": "593433N 0163011E",
         "lat": 59.575833333333335,
-        "lon": 2.0502777777777776
+        "lon": 16.503055555555555
       },
       "location": "2.5 NM SW",
       "elevationFt": 25,
@@ -5145,10 +5119,10 @@
         "Yes",
         "No"
       ],
-      "atsServices": [
+      "atsServices": [],
+      "fuelTypes": [
         "UL91"
       ],
-      "fuelTypes": [],
       "communicationFrequencies": [
         "123.650"
       ],
@@ -5209,7 +5183,7 @@
       "arp": {
         "raw": "580805N 0133609E",
         "lat": 58.13472222222222,
-        "lon": 1.5666666666666667
+        "lon": 13.6025
       },
       "location": "3 NM SE Falköping",
       "elevationFt": 1099,
@@ -5223,10 +5197,10 @@
       "runwayLighting": [
         "No"
       ],
-      "atsServices": [
+      "atsServices": [],
+      "fuelTypes": [
         "91/96 O/R"
       ],
-      "fuelTypes": [],
       "communicationFrequencies": [
         "123.400"
       ],
@@ -5252,7 +5226,7 @@
       "arp": {
         "raw": "623355N 0155005E",
         "lat": 62.56527777777777,
-        "lon": 1.9166666666666665
+        "lon": 15.834722222222222
       },
       "location": null,
       "elevationFt": 427,
@@ -5266,10 +5240,10 @@
       "runwayLighting": [
         "No"
       ],
-      "atsServices": [
+      "atsServices": [],
+      "fuelTypes": [
         "-"
       ],
-      "fuelTypes": [],
       "communicationFrequencies": [
         "123.150"
       ],
@@ -5302,10 +5276,10 @@
       "runwayLighting": [
         "Yes"
       ],
-      "atsServices": [
+      "atsServices": [],
+      "fuelTypes": [
         "TWR/APP"
       ],
-      "fuelTypes": [],
       "communicationFrequencies": [
         "Yes"
       ],
@@ -5324,7 +5298,7 @@
       "arp": {
         "raw": "631246N 0184457E",
         "lat": 63.21277777777778,
-        "lon": 2.4125
+        "lon": 18.749166666666667
       },
       "location": "5 NM S Örnsköldsvik",
       "elevationFt": 39,
@@ -5338,10 +5312,10 @@
       "runwayLighting": [
         "No"
       ],
-      "atsServices": [
+      "atsServices": [],
+      "fuelTypes": [
         "-"
       ],
-      "fuelTypes": [],
       "communicationFrequencies": [
         "123.400"
       ],
@@ -5363,7 +5337,7 @@
       "arp": {
         "raw": "563414N 0140959E",
         "lat": 56.57055555555556,
-        "lon": 1.6930555555555553
+        "lon": 14.16638888888889
       },
       "location": "2.5 NM NNE",
       "elevationFt": 480,
@@ -5377,10 +5351,9 @@
       "runwayLighting": [
         "No"
       ],
-      "atsServices": [
-        "91/96"
-      ],
+      "atsServices": [],
       "fuelTypes": [
+        "91/96",
         "100LL"
       ],
       "communicationFrequencies": [
@@ -5406,7 +5379,7 @@
       "arp": {
         "raw": "653845N 0210341E",
         "lat": 65.64583333333334,
-        "lon": 2.176111111111111
+        "lon": 21.06138888888889
       },
       "location": "1.1 NM SE",
       "elevationFt": 227,
@@ -5420,10 +5393,10 @@
       "runwayLighting": [
         "No"
       ],
-      "atsServices": [
+      "atsServices": [],
+      "fuelTypes": [
         "100LL"
       ],
-      "fuelTypes": [],
       "communicationFrequencies": [
         "123.350"
       ],
@@ -5479,7 +5452,7 @@
       "arp": {
         "raw": "571943N 0170301E",
         "lat": 57.328611111111115,
-        "lon": 2.1750000000000003
+        "lon": 17.05027777777778
       },
       "location": "5 NM N Böda",
       "elevationFt": 27,
@@ -5493,10 +5466,10 @@
       "runwayLighting": [
         "No"
       ],
-      "atsServices": [
+      "atsServices": [],
+      "fuelTypes": [
         "-"
       ],
-      "fuelTypes": [],
       "communicationFrequencies": [
         "123.650"
       ],
@@ -5551,7 +5524,7 @@
       "arp": {
         "raw": "572643N 0123856E",
         "lat": 57.445277777777775,
-        "lon": 1.4069444444444443
+        "lon": 12.648888888888889
       },
       "location": "5.4 NM SW Kinna",
       "elevationFt": 378,
@@ -5565,10 +5538,10 @@
       "runwayLighting": [
         "No"
       ],
-      "atsServices": [
+      "atsServices": [],
+      "fuelTypes": [
         "100LL O/R"
       ],
-      "fuelTypes": [],
       "communicationFrequencies": [
         "123.200"
       ],
@@ -5622,6 +5595,6 @@
   "notes": [
     "This file is the normalized entry point for Swedish aviation data in AMC.",
     "Current step indexes official LFV AIP content and prepares stable output files.",
-    "Current airport list is parsed from LFV AD 1.1. Next parser iterations should enrich AD 2 details, airspaces from ENR 2 and navaids/frequencies from ENR 4 + AD pages."
+    "Current airport list is parsed from LFV AD 1.1. Initial airspace polygons are fetched from LFV Digital AIM WFS for CTR, TMA, ATZ and TRA."
   ]
 }

@@ -13,6 +13,7 @@
     "aviation:se:extract": "node ./scripts/aviation-se/extract-lfv-aip.mjs",
     "aviation:se:manifest": "node ./scripts/aviation-se/build-manifest.mjs",
     "aviation:se:airports": "node ./scripts/aviation-se/parse-ad-1.1-airports.mjs",
+    "aviation:se:airspaces": "node ./scripts/aviation-se/parse-lfv-wfs-airspaces.mjs",
     "aviation:se:build": "node ./scripts/aviation-se/build-reference-data.mjs"
   },
   "dependencies": {

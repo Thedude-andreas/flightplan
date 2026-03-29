@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 import {
   CircleMarker,
+  GeoJSON,
   MapContainer,
   Marker,
   Popup,
@@ -15,6 +16,7 @@ import 'leaflet/dist/leaflet.css'
 import { calculateFlightPlan, formatTimeFromMinutes } from './calculations'
 import { formatCoordinateDms } from './coordinates'
 import { legsToWaypoints, pointWithNearestName, waypointsToLegs } from './gazetteer'
+import { swedishAirspaces } from './generated/airspaces.se'
 import { swedishAirports } from './generated/airports.se'
 import type { FlightPlanInput, FlightPlanDerived } from './types'
 
@@ -87,6 +89,7 @@ export function FlightplanMapEditor({
   onRouteLegsChange: (legs: FlightPlanInput['routeLegs']) => void
 }) {
   const [basemap, setBasemap] = useState<BasemapKey>('topo')
+  const [showAirspaces, setShowAirspaces] = useState(true)
   const [dragPreviewWaypoints, setDragPreviewWaypoints] = useState<ReturnType<typeof legsToWaypoints> | null>(null)
   const [midpointInsertIndex, setMidpointInsertIndex] = useState<number | null>(null)
   const suppressNextMapClick = useRef(false)
@@ -110,6 +113,24 @@ export function FlightplanMapEditor({
     const avgLon = displayWaypoints.reduce((sum, point) => sum + point.lon, 0) / displayWaypoints.length
     return [avgLat, avgLon]
   }, [displayWaypoints])
+  const airspaceGeoJson = useMemo(
+    () => ({
+      type: 'FeatureCollection' as const,
+      features: swedishAirspaces.map((airspace) => ({
+        type: 'Feature' as const,
+        properties: {
+          id: airspace.id,
+          kind: airspace.kind,
+          name: airspace.name,
+          lower: airspace.lower,
+          upper: airspace.upper,
+          positionIndicator: airspace.positionIndicator,
+        },
+        geometry: airspace.geometry,
+      })),
+    }),
+    [],
+  )
 
   const setWaypoints = (nextWaypoints: typeof waypoints) => {
     setDragPreviewWaypoints(null)
@@ -180,22 +201,75 @@ export function FlightplanMapEditor({
           <p className="fp-panel-eyebrow">Karteditor</p>
           <h3>Magenta färdlinje med redigerbara waypoints</h3>
         </div>
-        <label className="fp-basemap-control">
-          Kartlager
-          <select value={basemap} onChange={(event) => setBasemap(event.target.value as BasemapKey)}>
-            {Object.entries(basemaps).map(([key, config]) => (
-              <option key={key} value={key}>
-                {config.label}
-              </option>
-            ))}
-          </select>
-        </label>
+        <div className="fp-map-controls">
+          <label className="fp-basemap-control">
+            Kartlager
+            <select value={basemap} onChange={(event) => setBasemap(event.target.value as BasemapKey)}>
+              {Object.entries(basemaps).map(([key, config]) => (
+                <option key={key} value={key}>
+                  {config.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="fp-overlay-toggle">
+            <input
+              type="checkbox"
+              checked={showAirspaces}
+              onChange={(event) => setShowAirspaces(event.target.checked)}
+            />
+            Visa luftrum
+          </label>
+        </div>
       </div>
 
       <div className="fp-map-canvas">
         <MapContainer center={center} zoom={7} scrollWheelZoom className="fp-leaflet-map">
           <TileLayer attribution={basemaps[basemap].attribution} url={basemaps[basemap].url} />
           <MapClickHandler onAddPoint={addPointToEnd} shouldSuppressClick={shouldSuppressClick} />
+
+          {showAirspaces ? (
+            <GeoJSON
+              data={airspaceGeoJson}
+              style={(feature) => {
+                const kind = feature?.properties?.kind
+                const palette = {
+                  CTR: { color: '#cc5d00', fillColor: '#ffb46b' },
+                  TMA: { color: '#005db5', fillColor: '#82b8ff' },
+                  ATZ: { color: '#007a4d', fillColor: '#7adca8' },
+                  TRA: { color: '#8f1e8f', fillColor: '#e59cf4' },
+                } as const
+                const current = palette[kind as keyof typeof palette] ?? palette.CTR
+
+                return {
+                  color: current.color,
+                  weight: 1.25,
+                  opacity: 0.9,
+                  fillColor: current.fillColor,
+                  fillOpacity: 0.12,
+                }
+              }}
+              onEachFeature={(feature, layer) => {
+                const props = feature.properties as {
+                  kind?: string
+                  name?: string
+                  lower?: string
+                  upper?: string
+                  positionIndicator?: string
+                }
+                const lines = [
+                  `<strong>${props.kind ?? 'Luftrum'}${props.name ? ` · ${props.name}` : ''}</strong>`,
+                  props.positionIndicator ? `<span>${props.positionIndicator}</span>` : '',
+                  `<span>${props.lower ?? '—'} till ${props.upper ?? '—'}</span>`,
+                ].filter(Boolean)
+
+                layer.bindTooltip(`<div class="fp-airspace-tooltip">${lines.join('')}</div>`, {
+                  sticky: true,
+                  opacity: 0.95,
+                })
+              }}
+            />
+          ) : null}
 
           {swedishAirports.map((airport) => (
             <CircleMarker

@@ -467,8 +467,31 @@
   font-size: 1rem;
 }
 
+.flightplan-page .fp-map-controls {
+  display: flex;
+  gap: 0.9rem;
+  align-items: end;
+}
+
 .flightplan-page .fp-basemap-control {
   max-width: 180px;
+}
+
+.flightplan-page .fp-overlay-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  border: 1px solid #b8b09d;
+  background: #fff;
+  color: #151515;
+  border-radius: 0.7rem;
+  padding: 0.7rem 0.85rem;
+  font-family: 'Space Grotesk', 'Inter', sans-serif;
+  font-size: 0.92rem;
+}
+
+.flightplan-page .fp-overlay-toggle input {
+  margin: 0;
 }
 
 .flightplan-page .fp-map-canvas {
@@ -487,6 +510,7 @@
 
 .flightplan-page .fp-segment-tooltip div,
 .flightplan-page .fp-waypoint-tooltip div,
+.flightplan-page .fp-airspace-tooltip,
 .flightplan-page .fp-airport-tooltip {
   display: grid;
   gap: 0.15rem;
@@ -589,6 +613,7 @@
   .flightplan-page .fp-live-map-sheet { min-height: auto; }
   .flightplan-page .fp-flight-form { min-width: 1120px; }
   .flightplan-page .fp-map-toolbar { flex-direction: column; align-items: stretch; }
+  .flightplan-page .fp-map-controls { flex-direction: column; align-items: stretch; }
   .flightplan-page .fp-basemap-control { max-width: none; }
   .flightplan-page .fp-map-canvas { min-height: 52vh; }
   .flightplan-page .fp-leaflet-map { height: 56vh; }
