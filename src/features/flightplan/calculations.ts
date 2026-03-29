@@ -1,4 +1,3 @@
-import { aircraftProfiles } from './data'
 import type {
   AircraftProfile,
   DerivedRouteLeg,
@@ -85,7 +84,7 @@ function computeLeg(
   }
 }
 
-function getAircraft(registration: string): AircraftProfile {
+function getAircraft(registration: string, aircraftProfiles: AircraftProfile[]): AircraftProfile {
   return aircraftProfiles.find((aircraft) => aircraft.registration === registration) ?? aircraftProfiles[0]
 }
 
@@ -163,8 +162,8 @@ function computePerformance(
   }
 }
 
-export function calculateFlightPlan(plan: FlightPlanInput): FlightPlanDerived {
-  const aircraft = getAircraft(plan.aircraftRegistration)
+export function calculateFlightPlan(plan: FlightPlanInput, aircraftProfiles: AircraftProfile[]): FlightPlanDerived {
+  const aircraft = getAircraft(plan.aircraftRegistration, aircraftProfiles)
 
   let accumulatedDistance = 0
   let accumulatedTime = 0

@@ -1,63 +1,124 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import './features/flightplan/flightplan.css'
 import { aircraftProfiles, initialFlightPlan } from './features/flightplan/data'
 import { calculateFlightPlan, formatNumber, formatTimeFromMinutes } from './features/flightplan/calculations'
+import { formatCoordinateDms, parseCoordinateDms, snapCoordinate } from './features/flightplan/coordinates'
 import { FlightplanMapEditor } from './features/flightplan/FlightplanMapEditor'
-import type { FlightPlanInput, RouteLegInput } from './features/flightplan/types'
+import type { AircraftProfile, FlightPlanInput, RouteLegInput } from './features/flightplan/types'
 
 type EditorPanel = 'route' | 'fuel' | 'weightBalance' | 'performance'
+type WorkspaceTab = 'create' | 'print' | 'settings'
+type RouteRow = Record<string, string | number>
+
+const printLogoSrc = `${import.meta.env.BASE_URL}lbfk-logo.png`
+
+function emptyRouteRow(index: number): RouteRow {
+  return {
+    index,
+    wind: '',
+    tas: '',
+    tt: '',
+    wca: '',
+    th: '',
+    variation: '',
+    mh: '',
+    altitude: '',
+    segment: '',
+    navRef: '',
+    gs: '',
+    distInt: '',
+    distAcc: '',
+    timeInt: '',
+    timeAcc: '',
+    notes: '',
+  }
+}
+
+function createRouteRows(
+  plan: FlightPlanInput,
+  derived: ReturnType<typeof calculateFlightPlan>,
+  targetLength?: number,
+): RouteRow[] {
+  const rows: RouteRow[] = derived.routeLegs.map((leg, index) => ({
+    index,
+    wind: leg.windText,
+    tas: plan.routeLegs[index].tasKt,
+    tt: leg.trueTrack,
+    wca: leg.windCorrectionAngle,
+    th: leg.trueHeading,
+    variation: plan.routeLegs[index].variation,
+    mh: leg.magneticHeading,
+    altitude: plan.routeLegs[index].altitude,
+    segment: leg.segmentName,
+    navRef: plan.routeLegs[index].navRef,
+    gs: leg.groundSpeedKt,
+    distInt: leg.distanceNm,
+    distAcc: leg.accumulatedDistanceNm,
+    timeInt: formatTimeFromMinutes(leg.legTimeMinutes),
+    timeAcc: formatTimeFromMinutes(leg.accumulatedTimeMinutes),
+    notes: plan.routeLegs[index].notes,
+  }))
+
+  if (!targetLength || rows.length >= targetLength) {
+    return rows
+  }
+
+  return rows.concat(Array.from({ length: targetLength - rows.length }, (_, index) => emptyRouteRow(rows.length + index)))
+}
+
+function createAircraftDraft(source?: AircraftProfile, seed = 1): AircraftProfile {
+  if (source) {
+    return {
+      ...source,
+      registration: `SE-N${seed.toString().padStart(2, '0')}`,
+      typeName: `${source.typeName} kopia`,
+      callsign: `${source.callsign} Copy`,
+      armsMm: { ...source.armsMm },
+      limits: { ...source.limits },
+      performance: { ...source.performance },
+    }
+  }
+
+  return {
+    registration: `SE-N${seed.toString().padStart(2, '0')}`,
+    typeName: 'Ny typ',
+    callsign: 'Ny callsign',
+    cruiseTasKt: 100,
+    fuelBurnLph: 32,
+    fuelDensityKgPerLiter: 0.72,
+    emptyWeightKg: 700,
+    emptyMomentKgMm: 240000,
+    armsMm: {
+      frontLeft: 940,
+      frontRight: 940,
+      rearLeft: 1830,
+      rearRight: 1830,
+      baggage: 2480,
+      fuel: 1210,
+    },
+    limits: {
+      maxTowKg: 1100,
+      minArmMm: 910,
+      maxArmMm: 1220,
+    },
+    performance: {
+      takeoff50FtM: 500,
+      landing50FtM: 420,
+    },
+  }
+}
 
 export function FlightplanApp() {
   const [plan, setPlan] = useState<FlightPlanInput>(initialFlightPlan)
   const [activePanel, setActivePanel] = useState<EditorPanel | null>(null)
-  const derived = calculateFlightPlan(plan)
+  const [activeTab, setActiveTab] = useState<WorkspaceTab>('create')
+  const [aircraftOptions, setAircraftOptions] = useState<AircraftProfile[]>(aircraftProfiles)
+  const [settingsIndex, setSettingsIndex] = useState(0)
 
-  const routeRows = Array.from({ length: 13 }, (_, index) => {
-    const leg = derived.routeLegs[index]
-
-    if (!leg) {
-      return {
-        index,
-        wind: '',
-        tas: '',
-        tt: '',
-        wca: '',
-        th: '',
-        variation: '',
-        mh: '',
-        altitude: '',
-        segment: '',
-        navRef: '',
-        gs: '',
-        distInt: '',
-        distAcc: '',
-        timeInt: '',
-        timeAcc: '',
-        notes: '',
-      }
-    }
-
-    return {
-      index,
-      wind: leg.windText,
-      tas: plan.routeLegs[index].tasKt,
-      tt: leg.trueTrack,
-      wca: leg.windCorrectionAngle,
-      th: leg.trueHeading,
-      variation: plan.routeLegs[index].variation,
-      mh: leg.magneticHeading,
-      altitude: plan.routeLegs[index].altitude,
-      segment: leg.segmentName,
-      navRef: plan.routeLegs[index].navRef,
-      gs: leg.groundSpeedKt,
-      distInt: leg.distanceNm,
-      distAcc: leg.accumulatedDistanceNm,
-      timeInt: formatTimeFromMinutes(leg.legTimeMinutes),
-      timeAcc: formatTimeFromMinutes(leg.accumulatedTimeMinutes),
-      notes: plan.routeLegs[index].notes,
-    }
-  })
+  const derived = calculateFlightPlan(plan, aircraftOptions)
+  const routeRows = useMemo(() => createRouteRows(plan, derived), [plan, derived])
+  const printRouteRows = useMemo(() => createRouteRows(plan, derived, 13), [plan, derived])
 
   const updateHeader = (key: keyof FlightPlanInput['header'], value: string) => {
     setPlan((current) => ({
@@ -130,8 +191,8 @@ export function FlightplanApp() {
             from: { ...template.to },
             to: {
               name: `Punkt ${current.routeLegs.length + 1}`,
-              lat: template.to.lat + 0.25,
-              lon: template.to.lon + 0.2,
+              lat: snapCoordinate(template.to.lat + 0.25),
+              lon: snapCoordinate(template.to.lon + 0.2),
             },
             notes: '',
           },
@@ -156,6 +217,37 @@ export function FlightplanApp() {
     }))
   }
 
+  const addAircraftConfiguration = () => {
+    setAircraftOptions((current) => {
+      const next = [...current, createAircraftDraft(current.at(settingsIndex), current.length + 1)]
+      setSettingsIndex(next.length - 1)
+      return next
+    })
+    setActiveTab('settings')
+  }
+
+  const updateAircraftConfiguration = (
+    index: number,
+    updater: (aircraft: AircraftProfile) => AircraftProfile,
+  ) => {
+    setAircraftOptions((current) => {
+      const previous = current[index]
+      const nextAircraft = updater(previous)
+      const next = current.map((aircraft, aircraftIndex) => (aircraftIndex === index ? nextAircraft : aircraft))
+
+      if (plan.aircraftRegistration === previous.registration && nextAircraft.registration !== previous.registration) {
+        setPlan((currentPlan) => ({
+          ...currentPlan,
+          aircraftRegistration: nextAircraft.registration,
+        }))
+      }
+
+      return next
+    })
+  }
+
+  const selectedAircraftConfig = aircraftOptions[settingsIndex] ?? aircraftOptions[0]
+
   return (
     <div className="flightplan-page">
       <header className="fp-page-header fp-no-print">
@@ -173,46 +265,282 @@ export function FlightplanApp() {
               setPlan((current) => ({ ...current, aircraftRegistration: event.target.value }))
             }
           >
-            {aircraftProfiles.map((aircraft) => (
+            {aircraftOptions.map((aircraft) => (
               <option key={aircraft.registration} value={aircraft.registration}>
                 {aircraft.registration} · {aircraft.typeName}
               </option>
             ))}
           </select>
-          <button type="button" onClick={() => window.print()}>
-            Skriv ut formulär
-          </button>
+          {activeTab === 'print' ? (
+            <button type="button" onClick={() => window.print()}>
+              Skriv ut formulär
+            </button>
+          ) : (
+            <button type="button" onClick={() => setActiveTab('print')}>
+              Gå till skriv ut
+            </button>
+          )}
         </div>
       </header>
 
-      <main className="fp-workspace">
-        <div className="fp-document-stack">
-          <section className="fp-document-sheet">
-            <FlightPlanDocument
-              plan={plan}
-              derived={derived}
-              routeRows={routeRows}
-              onHeaderChange={updateHeader}
-              onSectionSelect={setActivePanel}
-              onRadioNavChange={updateRadioNav}
-            />
-          </section>
+      <div className="fp-tabs fp-no-print" role="tablist" aria-label="Arbetsyta">
+        <button type="button" className={activeTab === 'create' ? 'is-active' : ''} onClick={() => setActiveTab('create')}>
+          Skapa
+        </button>
+        <button type="button" className={activeTab === 'print' ? 'is-active' : ''} onClick={() => setActiveTab('print')}>
+          Skriv ut
+        </button>
+        <button type="button" className={activeTab === 'settings' ? 'is-active' : ''} onClick={() => setActiveTab('settings')}>
+          Inställningar
+        </button>
+      </div>
 
-          <section className="fp-map-sheet">
-            <div className="fp-map-header">
-              <div>
-                <p className="fp-eyebrow">Ruttöversikt</p>
-                <h2>Kartbild för utskrift</h2>
+      <main className="fp-workspace">
+        {activeTab === 'create' && (
+          <div className="fp-tab-panel">
+            <section className="fp-document-sheet">
+              <FlightPlanDocument
+                plan={plan}
+                derived={derived}
+                routeRows={routeRows}
+                onHeaderChange={updateHeader}
+                onSectionSelect={setActivePanel}
+                onRadioNavChange={updateRadioNav}
+                onAddRouteRow={addRouteLeg}
+              />
+            </section>
+
+            <section className="fp-map-sheet fp-live-map-sheet">
+              <div className="fp-map-header">
+                <div>
+                  <p className="fp-eyebrow">Livekarta</p>
+                  <h2>Bygg rutten direkt på kartan</h2>
+                </div>
+                <div className="fp-map-meta">
+                  <span>{plan.header.departureAerodrome}</span>
+                  <span>{plan.header.destinationAerodrome}</span>
+                  <span>{formatNumber(derived.totals.distanceNm, 1)} nm</span>
+                </div>
               </div>
-              <div className="fp-map-meta">
-                <span>{plan.header.departureAerodrome}</span>
-                <span>{plan.header.destinationAerodrome}</span>
-                <span>{formatNumber(derived.totals.distanceNm, 1)} nm</span>
+              <FlightplanMapEditor plan={plan} derived={derived} onRouteLegsChange={replaceRouteLegs} />
+            </section>
+          </div>
+        )}
+
+        {activeTab === 'print' && (
+          <div className="fp-document-stack fp-print-stack">
+            <section className="fp-document-sheet">
+              <FlightPlanDocument
+                plan={plan}
+                derived={derived}
+                routeRows={printRouteRows}
+                onHeaderChange={updateHeader}
+                onSectionSelect={setActivePanel}
+                onRadioNavChange={updateRadioNav}
+              />
+            </section>
+
+            <section className="fp-map-sheet">
+              <div className="fp-map-header">
+                <div>
+                  <p className="fp-eyebrow">Ruttöversikt</p>
+                  <h2>Kartbild för utskrift</h2>
+                </div>
+                <div className="fp-map-meta">
+                  <span>{plan.header.departureAerodrome}</span>
+                  <span>{plan.header.destinationAerodrome}</span>
+                  <span>{formatNumber(derived.totals.distanceNm, 1)} nm</span>
+                </div>
+              </div>
+              <RoutePreview legs={plan.routeLegs} />
+            </section>
+          </div>
+        )}
+
+        {activeTab === 'settings' && selectedAircraftConfig && (
+          <section className="fp-panel-card fp-settings-card fp-no-print">
+            <div className="fp-panel-header">
+              <div>
+                <p className="fp-panel-eyebrow">Inställningar</p>
+                <h2>Flygplanskonfigurationer</h2>
+              </div>
+              <button type="button" onClick={addAircraftConfiguration}>
+                Lägg till flygplan
+              </button>
+            </div>
+
+            <div className="fp-settings-layout">
+              <div className="fp-config-list">
+                {aircraftOptions.map((aircraft, index) => (
+                  <button
+                    key={`${aircraft.registration}-${index}`}
+                    type="button"
+                    className={index === settingsIndex ? 'is-active' : ''}
+                    onClick={() => setSettingsIndex(index)}
+                  >
+                    <strong>{aircraft.registration}</strong>
+                    <span>{aircraft.typeName}</span>
+                  </button>
+                ))}
+              </div>
+
+              <div className="fp-settings-editor">
+                <div className="fp-input-grid fp-two-col">
+                  <EditorInput
+                    label="Registrering"
+                    value={selectedAircraftConfig.registration}
+                    onChange={(value) => updateAircraftConfiguration(settingsIndex, (aircraft) => ({ ...aircraft, registration: value.toUpperCase() }))}
+                  />
+                  <EditorInput
+                    label="Typ"
+                    value={selectedAircraftConfig.typeName}
+                    onChange={(value) => updateAircraftConfiguration(settingsIndex, (aircraft) => ({ ...aircraft, typeName: value }))}
+                  />
+                  <EditorInput
+                    label="Callsign"
+                    value={selectedAircraftConfig.callsign}
+                    onChange={(value) => updateAircraftConfiguration(settingsIndex, (aircraft) => ({ ...aircraft, callsign: value }))}
+                  />
+                  <EditorNumber
+                    label="Cruise TAS kt"
+                    value={selectedAircraftConfig.cruiseTasKt}
+                    onChange={(value) => updateAircraftConfiguration(settingsIndex, (aircraft) => ({ ...aircraft, cruiseTasKt: value }))}
+                  />
+                  <EditorNumber
+                    label="Förbrukning lit/tim"
+                    value={selectedAircraftConfig.fuelBurnLph}
+                    onChange={(value) => updateAircraftConfiguration(settingsIndex, (aircraft) => ({ ...aircraft, fuelBurnLph: value }))}
+                  />
+                  <EditorNumber
+                    label="Bränsledensitet kg/l"
+                    value={selectedAircraftConfig.fuelDensityKgPerLiter}
+                    onChange={(value) => updateAircraftConfiguration(settingsIndex, (aircraft) => ({ ...aircraft, fuelDensityKgPerLiter: value }))}
+                  />
+                  <EditorNumber
+                    label="Tomvikt kg"
+                    value={selectedAircraftConfig.emptyWeightKg}
+                    onChange={(value) => updateAircraftConfiguration(settingsIndex, (aircraft) => ({ ...aircraft, emptyWeightKg: value }))}
+                  />
+                  <EditorNumber
+                    label="Tommoment"
+                    value={selectedAircraftConfig.emptyMomentKgMm}
+                    onChange={(value) => updateAircraftConfiguration(settingsIndex, (aircraft) => ({ ...aircraft, emptyMomentKgMm: value }))}
+                  />
+                  <EditorNumber
+                    label="Max TOW kg"
+                    value={selectedAircraftConfig.limits.maxTowKg}
+                    onChange={(value) =>
+                      updateAircraftConfiguration(settingsIndex, (aircraft) => ({
+                        ...aircraft,
+                        limits: { ...aircraft.limits, maxTowKg: value },
+                      }))
+                    }
+                  />
+                  <EditorNumber
+                    label="Arm min mm"
+                    value={selectedAircraftConfig.limits.minArmMm}
+                    onChange={(value) =>
+                      updateAircraftConfiguration(settingsIndex, (aircraft) => ({
+                        ...aircraft,
+                        limits: { ...aircraft.limits, minArmMm: value },
+                      }))
+                    }
+                  />
+                  <EditorNumber
+                    label="Arm max mm"
+                    value={selectedAircraftConfig.limits.maxArmMm}
+                    onChange={(value) =>
+                      updateAircraftConfiguration(settingsIndex, (aircraft) => ({
+                        ...aircraft,
+                        limits: { ...aircraft.limits, maxArmMm: value },
+                      }))
+                    }
+                  />
+                  <EditorNumber
+                    label="T/O 50 ft m"
+                    value={selectedAircraftConfig.performance.takeoff50FtM}
+                    onChange={(value) =>
+                      updateAircraftConfiguration(settingsIndex, (aircraft) => ({
+                        ...aircraft,
+                        performance: { ...aircraft.performance, takeoff50FtM: value },
+                      }))
+                    }
+                  />
+                  <EditorNumber
+                    label="LDG 50 ft m"
+                    value={selectedAircraftConfig.performance.landing50FtM}
+                    onChange={(value) =>
+                      updateAircraftConfiguration(settingsIndex, (aircraft) => ({
+                        ...aircraft,
+                        performance: { ...aircraft.performance, landing50FtM: value },
+                      }))
+                    }
+                  />
+                  <EditorNumber
+                    label="Arm fram vänster"
+                    value={selectedAircraftConfig.armsMm.frontLeft}
+                    onChange={(value) =>
+                      updateAircraftConfiguration(settingsIndex, (aircraft) => ({
+                        ...aircraft,
+                        armsMm: { ...aircraft.armsMm, frontLeft: value },
+                      }))
+                    }
+                  />
+                  <EditorNumber
+                    label="Arm fram höger"
+                    value={selectedAircraftConfig.armsMm.frontRight}
+                    onChange={(value) =>
+                      updateAircraftConfiguration(settingsIndex, (aircraft) => ({
+                        ...aircraft,
+                        armsMm: { ...aircraft.armsMm, frontRight: value },
+                      }))
+                    }
+                  />
+                  <EditorNumber
+                    label="Arm bak vänster"
+                    value={selectedAircraftConfig.armsMm.rearLeft}
+                    onChange={(value) =>
+                      updateAircraftConfiguration(settingsIndex, (aircraft) => ({
+                        ...aircraft,
+                        armsMm: { ...aircraft.armsMm, rearLeft: value },
+                      }))
+                    }
+                  />
+                  <EditorNumber
+                    label="Arm bak höger"
+                    value={selectedAircraftConfig.armsMm.rearRight}
+                    onChange={(value) =>
+                      updateAircraftConfiguration(settingsIndex, (aircraft) => ({
+                        ...aircraft,
+                        armsMm: { ...aircraft.armsMm, rearRight: value },
+                      }))
+                    }
+                  />
+                  <EditorNumber
+                    label="Arm bagage"
+                    value={selectedAircraftConfig.armsMm.baggage}
+                    onChange={(value) =>
+                      updateAircraftConfiguration(settingsIndex, (aircraft) => ({
+                        ...aircraft,
+                        armsMm: { ...aircraft.armsMm, baggage: value },
+                      }))
+                    }
+                  />
+                  <EditorNumber
+                    label="Arm bränsle"
+                    value={selectedAircraftConfig.armsMm.fuel}
+                    onChange={(value) =>
+                      updateAircraftConfiguration(settingsIndex, (aircraft) => ({
+                        ...aircraft,
+                        armsMm: { ...aircraft.armsMm, fuel: value },
+                      }))
+                    }
+                  />
+                </div>
               </div>
             </div>
-            <RoutePreview legs={plan.routeLegs} />
           </section>
-        </div>
+        )}
       </main>
 
       {activePanel && (
@@ -251,10 +579,10 @@ export function FlightplanApp() {
                       <div className="fp-input-grid fp-two-col">
                         <EditorInput label="Från" value={leg.from.name} onChange={(value) => updateLeg(index, (current) => ({ ...current, from: { ...current.from, name: value } }))} />
                         <EditorInput label="Till" value={leg.to.name} onChange={(value) => updateLeg(index, (current) => ({ ...current, to: { ...current.to, name: value } }))} />
-                        <EditorNumber label="Från lat" value={leg.from.lat} onChange={(value) => updateLeg(index, (current) => ({ ...current, from: { ...current.from, lat: value } }))} />
-                        <EditorNumber label="Från lon" value={leg.from.lon} onChange={(value) => updateLeg(index, (current) => ({ ...current, from: { ...current.from, lon: value } }))} />
-                        <EditorNumber label="Till lat" value={leg.to.lat} onChange={(value) => updateLeg(index, (current) => ({ ...current, to: { ...current.to, lat: value } }))} />
-                        <EditorNumber label="Till lon" value={leg.to.lon} onChange={(value) => updateLeg(index, (current) => ({ ...current, to: { ...current.to, lon: value } }))} />
+                        <EditorCoordinate label="Från lat" axis="lat" value={leg.from.lat} onChange={(value) => updateLeg(index, (current) => ({ ...current, from: { ...current.from, lat: value } }))} />
+                        <EditorCoordinate label="Från lon" axis="lon" value={leg.from.lon} onChange={(value) => updateLeg(index, (current) => ({ ...current, from: { ...current.from, lon: value } }))} />
+                        <EditorCoordinate label="Till lat" axis="lat" value={leg.to.lat} onChange={(value) => updateLeg(index, (current) => ({ ...current, to: { ...current.to, lat: value } }))} />
+                        <EditorCoordinate label="Till lon" axis="lon" value={leg.to.lon} onChange={(value) => updateLeg(index, (current) => ({ ...current, to: { ...current.to, lon: value } }))} />
                         <EditorNumber label="Vindriktning" value={leg.windDirection} onChange={(value) => updateLeg(index, (current) => ({ ...current, windDirection: value }))} />
                         <EditorNumber label="Vind kt" value={leg.windSpeedKt} onChange={(value) => updateLeg(index, (current) => ({ ...current, windSpeedKt: value }))} />
                         <EditorNumber label="TAS kt" value={leg.tasKt} onChange={(value) => updateLeg(index, (current) => ({ ...current, tasKt: value }))} />
@@ -423,6 +751,44 @@ function EditorNumber({
   )
 }
 
+function EditorCoordinate({
+  label,
+  axis,
+  value,
+  onChange,
+}: {
+  label: string
+  axis: 'lat' | 'lon'
+  value: number
+  onChange: (value: number) => void
+}) {
+  const [draft, setDraft] = useState(() => formatCoordinateDms(value, axis))
+
+  useEffect(() => {
+    setDraft(formatCoordinateDms(value, axis))
+  }, [axis, value])
+
+  return (
+    <label>
+      {label}
+      <input
+        value={draft}
+        onChange={(event) => setDraft(event.target.value)}
+        onBlur={() => {
+          const parsed = parseCoordinateDms(draft, axis)
+          if (parsed === null) {
+            setDraft(formatCoordinateDms(value, axis))
+            return
+          }
+
+          onChange(parsed)
+          setDraft(formatCoordinateDms(parsed, axis))
+        }}
+      />
+    </label>
+  )
+}
+
 function SeatBox({
   title,
   value,
@@ -450,21 +816,26 @@ function FlightPlanDocument({
   onHeaderChange,
   onSectionSelect,
   onRadioNavChange,
+  onAddRouteRow,
 }: {
   plan: FlightPlanInput
   derived: ReturnType<typeof calculateFlightPlan>
-  routeRows: Array<Record<string, string | number>>
+  routeRows: RouteRow[]
   onHeaderChange: (key: keyof FlightPlanInput['header'], value: string) => void
   onSectionSelect: (panel: EditorPanel) => void
   onRadioNavChange: (index: number, key: 'name' | 'frequency', value: string) => void
+  onAddRouteRow?: () => void
 }) {
   return (
     <div className="fp-flight-form">
       <section className="fp-flight-form__header">
         <div className="fp-title-box">
-          <div className="fp-crest" aria-hidden="true">FFK</div>
+          <div className="fp-crest" aria-hidden="true">
+            <span className="fp-crest-text">LBFK</span>
+            <img className="fp-crest-logo" src={printLogoSrc} alt="" />
+          </div>
           <div className="fp-title-copy">
-            <h2>FRIVILLIGA FLYGKÅREN</h2>
+            <h2>LULEÅ-BODEN FLYGKLUBB</h2>
             <h3>DRIFTFÄRDPLAN</h3>
             <p>Signatur befälhavare</p>
           </div>
@@ -476,13 +847,13 @@ function FlightPlanDocument({
           <HeaderField label="Startflygplats" className="fp-meta-departure"><input value={plan.header.departureAerodrome} onChange={(event) => onHeaderChange('departureAerodrome', event.target.value)} /></HeaderField>
           <HeaderField label="Block in" className="fp-meta-block-in"><input value={plan.header.blockIn} onChange={(event) => onHeaderChange('blockIn', event.target.value)} /></HeaderField>
           <HeaderField label="Landning" className="fp-meta-landing"><input value={plan.header.landing} onChange={(event) => onHeaderChange('landing', event.target.value)} /></HeaderField>
-          <HeaderField label="Befälhavare / FFK Status" className="fp-meta-captain"><input value={plan.header.captain} onChange={(event) => onHeaderChange('captain', event.target.value)} /></HeaderField>
-          <HeaderField label="Spanare / FFK Status" className="fp-meta-observer"><input value={plan.header.observer} onChange={(event) => onHeaderChange('observer', event.target.value)} /></HeaderField>
+          <HeaderField label="Befälhavare / Status" className="fp-meta-captain"><input value={plan.header.captain} onChange={(event) => onHeaderChange('captain', event.target.value)} /></HeaderField>
+          <HeaderField label="Spanare / Status" className="fp-meta-observer"><input value={plan.header.observer} onChange={(event) => onHeaderChange('observer', event.target.value)} /></HeaderField>
           <HeaderField label="NOTAM kontroll" className="fp-meta-notam"><input value={plan.header.notamStatus} onChange={(event) => onHeaderChange('notamStatus', event.target.value)} /></HeaderField>
           <HeaderField label="Landningsflygplats" className="fp-meta-destination"><input value={plan.header.destinationAerodrome} onChange={(event) => onHeaderChange('destinationAerodrome', event.target.value)} /></HeaderField>
           <HeaderField label="Block ut" className="fp-meta-block-out"><input value={plan.header.blockOut} onChange={(event) => onHeaderChange('blockOut', event.target.value)} /></HeaderField>
           <HeaderField label="Start" className="fp-meta-takeoff"><input value={plan.header.takeoff} onChange={(event) => onHeaderChange('takeoff', event.target.value)} /></HeaderField>
-          <HeaderField label="Fpl status FFK" className="fp-meta-fpl-status"><input value={plan.header.fplStatus} onChange={(event) => onHeaderChange('fplStatus', event.target.value)} /></HeaderField>
+          <HeaderField label="Fpl status" className="fp-meta-fpl-status"><input value={plan.header.fplStatus} onChange={(event) => onHeaderChange('fplStatus', event.target.value)} /></HeaderField>
           <HeaderField label="Daglig tillsyn" className="fp-meta-daily"><input value={plan.header.dailyInspection} onChange={(event) => onHeaderChange('dailyInspection', event.target.value)} /></HeaderField>
           <HeaderField label="Väder / Metar" className="fp-meta-weather"><input value={plan.header.weatherStatus} onChange={(event) => onHeaderChange('weatherStatus', event.target.value)} /></HeaderField>
           <HeaderField label="Blocktid" className="fp-meta-block-time"><strong>{formatTimeFromMinutes(derived.totals.blockTimeMinutes)}</strong></HeaderField>
@@ -507,6 +878,13 @@ function FlightPlanDocument({
             ))}
           </tbody>
         </table>
+        {onAddRouteRow && (
+          <div className="fp-route-actions fp-no-print">
+            <button type="button" onClick={onAddRouteRow} disabled={routeRows.length >= 13}>
+              Lägg till rad
+            </button>
+          </div>
+        )}
       </section>
 
       <section className="fp-bottom-grid">
@@ -514,11 +892,9 @@ function FlightPlanDocument({
           <div className="fp-subtable-title">STOL-PRESTANDA/VÄDERINFO</div>
           <div className="fp-metric-row"><span>T/O TILL 50 FOT ENL POH</span><strong>{formatNumber(derived.performance.takeoffPohM)} m</strong></div>
           <div className="fp-metric-row"><span>T/O INKL KORREKTIONER</span><strong>{formatNumber(derived.performance.takeoffCorrectedM)} m</strong></div>
-          <div className="fp-metric-row"><span>T/O INKL TSFS-TILLÄGG</span><strong>{formatNumber(derived.performance.takeoffRequiredM)} m</strong></div>
           <div className="fp-metric-row fp-highlight-row"><span>TILLGÄNGLIG STARTSTRÄCKA</span><strong>{formatNumber(plan.performance.availableTakeoffDistanceM)} m</strong></div>
           <div className="fp-metric-row"><span>LDG FR 50 FOT ENL POH</span><strong>{formatNumber(derived.performance.landingPohM)} m</strong></div>
           <div className="fp-metric-row"><span>LDG INKL KORREKTIONER</span><strong>{formatNumber(derived.performance.landingCorrectedM)} m</strong></div>
-          <div className="fp-metric-row"><span>LDG INKL TSFS-TILLÄGG</span><strong>{formatNumber(derived.performance.landingRequiredM)} m</strong></div>
           <div className="fp-metric-row fp-highlight-row"><span>TILLGÄNGLIG LAND.STRÄCKA</span><strong>{formatNumber(plan.performance.availableLandingDistanceM)} m</strong></div>
         </div>
 
@@ -614,22 +990,25 @@ function RoutePreview({ legs }: { legs: FlightPlanInput['routeLegs'] }) {
         {Array.from({ length: 6 }, (_, index) => (
           <line key={`v-${index}`} y1="40" y2="380" x1={40 + index * 136} x2={40 + index * 136} stroke="#ddd5c4" strokeDasharray="4 6" />
         ))}
-        <polyline fill="none" stroke="#183a63" strokeWidth="4" points={polyline} />
+        <polyline fill="none" stroke="#ff35c4" strokeWidth="5" strokeLinejoin="round" strokeLinecap="round" points={polyline} />
         {points.map((point, index) => {
           const projected = project(point.lat, point.lon)
           return (
             <g key={`${point.name}-${index}`}>
-              <circle cx={projected.x} cy={projected.y} r="6" fill="#ab5f33" />
-              <text x={projected.x + 10} y={projected.y - 10} fontSize="14" fill="#183a63">{point.name}</text>
+              <circle cx={projected.x} cy={projected.y} r="7" fill="#ff35c4" stroke="#ffffff" strokeWidth="3" />
+              <text x={projected.x + 10} y={projected.y - 12} fontSize="16" fill="#3a3228" fontWeight="600">
+                {point.name}
+              </text>
             </g>
           )
         })}
       </svg>
+
       <div className="fp-route-legend">
         {legs.map((leg, index) => (
           <div key={`${leg.from.name}-${leg.to.name}-${index}`}>
-            <strong>Ben {index + 1}</strong>
-            <span>{leg.from.name} → {leg.to.name} · {leg.windDirection}/{leg.windSpeedKt} kt</span>
+            <strong>{leg.from.name} → {leg.to.name}</strong>
+            <span>{leg.altitude} ft · {leg.windDirection}/{leg.windSpeedKt} kt</span>
           </div>
         ))}
       </div>

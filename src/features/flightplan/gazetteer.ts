@@ -1,5 +1,6 @@
 import type { RoutePointInput, RouteLegInput } from './types'
 import { swedishAirports } from './generated/airports.se'
+import { formatCoordinateDms, snapCoordinate } from './coordinates'
 
 type GazetteerEntry = {
   name: string
@@ -35,9 +36,7 @@ function distanceNm(fromLat: number, fromLon: number, toLat: number, toLon: numb
 }
 
 function formatCoordinateLabel(lat: number, lon: number) {
-  const latHemisphere = lat >= 0 ? 'N' : 'S'
-  const lonHemisphere = lon >= 0 ? 'E' : 'W'
-  return `${Math.abs(lat).toFixed(3)}${latHemisphere} ${Math.abs(lon).toFixed(3)}${lonHemisphere}`
+  return `${formatCoordinateDms(lat, 'lat')} ${formatCoordinateDms(lon, 'lon')}`
 }
 
 export function nearestPlaceLabel(lat: number, lon: number) {
@@ -93,9 +92,12 @@ export function waypointsToLegs(
 }
 
 export function pointWithNearestName(lat: number, lon: number): RoutePointInput {
+  const snappedLat = snapCoordinate(lat)
+  const snappedLon = snapCoordinate(lon)
+
   return {
-    lat,
-    lon,
-    name: nearestPlaceLabel(lat, lon),
+    lat: snappedLat,
+    lon: snappedLon,
+    name: nearestPlaceLabel(snappedLat, snappedLon),
   }
 }
