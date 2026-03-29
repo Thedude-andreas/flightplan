@@ -2,9 +2,9 @@ import type { AircraftProfile, FlightPlanInput } from './types'
 
 export const aircraftProfiles: AircraftProfile[] = [
   {
-    registration: 'SE-KBT',
+    registration: 'SE-MDE',
     typeName: 'C172',
-    callsign: 'Kilo Bravo Tango',
+    callsign: 'Mike Delta Echo',
     cruiseTasKt: 102,
     fuelBurnLph: 32,
     fuelDensityKgPerLiter: 0.72,
@@ -29,36 +29,36 @@ export const aircraftProfiles: AircraftProfile[] = [
     },
   },
   {
-    registration: 'SE-MEP',
-    typeName: 'PA-28',
-    callsign: 'Mike Echo Papa',
-    cruiseTasKt: 108,
-    fuelBurnLph: 34,
+    registration: 'SE-MCZ',
+    typeName: 'Husky',
+    callsign: 'Mike Charlie Zulu',
+    cruiseTasKt: 95,
+    fuelBurnLph: 30,
     fuelDensityKgPerLiter: 0.72,
-    emptyWeightKg: 702,
-    emptyMomentKgMm: 242000,
+    emptyWeightKg: 640,
+    emptyMomentKgMm: 214500,
     armsMm: {
-      frontLeft: 910,
-      frontRight: 910,
-      rearLeft: 1810,
-      rearRight: 1810,
-      baggage: 2360,
-      fuel: 1180,
+      frontLeft: 870,
+      frontRight: 870,
+      rearLeft: 1650,
+      rearRight: 1650,
+      baggage: 2230,
+      fuel: 1090,
     },
     limits: {
-      maxTowKg: 1057,
-      minArmMm: 880,
-      maxArmMm: 1180,
+      maxTowKg: 998,
+      minArmMm: 840,
+      maxArmMm: 1120,
     },
     performance: {
-      takeoff50FtM: 510,
-      landing50FtM: 430,
+      takeoff50FtM: 285,
+      landing50FtM: 240,
     },
   },
 ]
 
 export const initialFlightPlan: FlightPlanInput = {
-  aircraftRegistration: 'SE-KBT',
+  aircraftRegistration: 'SE-MDE',
   header: {
     date: new Date().toISOString().slice(0, 10),
     departureAerodrome: 'ESSB',
