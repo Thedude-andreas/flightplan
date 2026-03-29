@@ -1,17 +1,30 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { ReactNode } from 'react'
+import type { PointerEvent as ReactPointerEvent, ReactNode } from 'react'
 import './features/flightplan/flightplan.css'
 import { aircraftProfiles, initialFlightPlan } from './features/flightplan/data'
 import { calculateFlightPlan, formatNumber, formatTimeFromMinutes } from './features/flightplan/calculations'
 import { formatCoordinateDms, parseCoordinateDms, snapCoordinate } from './features/flightplan/coordinates'
+import { legsToWaypoints, waypointsToLegs } from './features/flightplan/gazetteer'
 import { FlightplanMapEditor } from './features/flightplan/FlightplanMapEditor'
 import type { AircraftProfile, FlightPlanInput, RouteLegInput } from './features/flightplan/types'
 
 type EditorPanel = 'route' | 'fuel' | 'weightBalance' | 'performance'
 type WorkspaceTab = 'create' | 'print' | 'settings'
 type RouteRow = Record<string, string | number>
+type RowContextMenuState = { x: number; y: number; rowIndex: number } | null
 
 const printLogoSrc = `${import.meta.env.BASE_URL}lbfk-logo.png`
+const contextMenuSize = { width: 220, height: 112, margin: 12 }
+
+function clampContextMenuPosition(x: number, y: number) {
+  const maxX = window.innerWidth - contextMenuSize.width - contextMenuSize.margin
+  const maxY = window.innerHeight - contextMenuSize.height - contextMenuSize.margin
+
+  return {
+    x: Math.max(contextMenuSize.margin, Math.min(x, maxX)),
+    y: Math.max(contextMenuSize.margin, Math.min(y, maxY)),
+  }
+}
 
 function emptyRouteRow(index: number): RouteRow {
   return {
@@ -115,6 +128,7 @@ export function FlightplanApp() {
   const [activeTab, setActiveTab] = useState<WorkspaceTab>('create')
   const [aircraftOptions, setAircraftOptions] = useState<AircraftProfile[]>(aircraftProfiles)
   const [settingsIndex, setSettingsIndex] = useState(0)
+  const [rowContextMenu, setRowContextMenu] = useState<RowContextMenuState>(null)
 
   const derived = calculateFlightPlan(plan, aircraftOptions)
   const routeRows = useMemo(() => createRouteRows(plan, derived), [plan, derived])
@@ -202,9 +216,32 @@ export function FlightplanApp() {
   }
 
   const removeRouteLeg = (index: number) => {
+    setRowContextMenu(null)
     setPlan((current) => ({
       ...current,
       routeLegs: current.routeLegs.filter((_, legIndex) => legIndex !== index),
+    }))
+  }
+
+  const removeWaypointFromRoute = (waypointIndex: number) => {
+    if (plan.routeLegs.length <= 1) {
+      return
+    }
+
+    const waypoints = legsToWaypoints(plan.routeLegs)
+    if (waypointIndex < 0 || waypointIndex >= waypoints.length) {
+      return
+    }
+
+    const nextWaypoints = waypoints.filter((_, index) => index !== waypointIndex)
+    if (nextWaypoints.length < 2) {
+      return
+    }
+
+    setRowContextMenu(null)
+    setPlan((current) => ({
+      ...current,
+      routeLegs: waypointsToLegs(nextWaypoints, current.routeLegs, derived.aircraft.cruiseTasKt),
     }))
   }
 
@@ -295,7 +332,7 @@ export function FlightplanApp() {
         </button>
       </div>
 
-      <main className="fp-workspace">
+      <main className="fp-workspace" onClick={() => setRowContextMenu(null)}>
         {activeTab === 'create' && (
           <div className="fp-tab-panel">
             <section className="fp-document-sheet">
@@ -307,6 +344,10 @@ export function FlightplanApp() {
                 onSectionSelect={setActivePanel}
                 onRadioNavChange={updateRadioNav}
                 onAddRouteRow={addRouteLeg}
+                onOpenRowMenu={(x, y, rowIndex) => {
+                  const clamped = clampContextMenuPosition(x, y)
+                  setRowContextMenu({ x: clamped.x, y: clamped.y, rowIndex })
+                }}
               />
             </section>
 
@@ -542,6 +583,29 @@ export function FlightplanApp() {
           </section>
         )}
       </main>
+
+      {rowContextMenu && (
+        <div
+          className="fp-context-menu fp-no-print"
+          style={{ left: rowContextMenu.x, top: rowContextMenu.y }}
+          onClick={(event) => event.stopPropagation()}
+        >
+          <button
+            type="button"
+            onClick={() => removeWaypointFromRoute(rowContextMenu.rowIndex)}
+            disabled={plan.routeLegs.length === 1}
+          >
+            Ta bort start-waypoint
+          </button>
+          <button
+            type="button"
+            onClick={() => removeWaypointFromRoute(rowContextMenu.rowIndex + 1)}
+            disabled={plan.routeLegs.length === 1}
+          >
+            Ta bort slut-waypoint
+          </button>
+        </div>
+      )}
 
       {activePanel && (
         <div className="fp-overlay-shell fp-no-print" onClick={() => setActivePanel(null)}>
@@ -817,6 +881,7 @@ function FlightPlanDocument({
   onSectionSelect,
   onRadioNavChange,
   onAddRouteRow,
+  onOpenRowMenu,
 }: {
   plan: FlightPlanInput
   derived: ReturnType<typeof calculateFlightPlan>
@@ -825,7 +890,26 @@ function FlightPlanDocument({
   onSectionSelect: (panel: EditorPanel) => void
   onRadioNavChange: (index: number, key: 'name' | 'frequency', value: string) => void
   onAddRouteRow?: () => void
+  onOpenRowMenu?: (x: number, y: number, rowIndex: number) => void
 }) {
+  const [pressTimer, setPressTimer] = useState<number | null>(null)
+
+  const clearPressTimer = () => {
+    if (pressTimer !== null) {
+      window.clearTimeout(pressTimer)
+      setPressTimer(null)
+    }
+  }
+
+  const startLongPress = (event: ReactPointerEvent<HTMLTableRowElement>, rowIndex: number) => {
+    clearPressTimer()
+    const nextTimer = window.setTimeout(() => {
+      onOpenRowMenu?.(event.clientX, event.clientY, rowIndex)
+      setPressTimer(null)
+    }, 550)
+    setPressTimer(nextTimer)
+  }
+
   return (
     <div className="fp-flight-form">
       <section className="fp-flight-form__header">
@@ -870,7 +954,26 @@ function FlightPlanDocument({
           </thead>
           <tbody>
             {routeRows.map((row) => (
-              <tr key={String(row.index)}>
+              <tr
+                key={String(row.index)}
+                onContextMenu={(event) => {
+                  if (!onOpenRowMenu || typeof row.index !== 'number' || row.index >= plan.routeLegs.length) {
+                    return
+                  }
+                  event.preventDefault()
+                  onOpenRowMenu(event.clientX, event.clientY, row.index)
+                }}
+                onPointerDown={(event) => {
+                  if (!onOpenRowMenu || typeof row.index !== 'number' || row.index >= plan.routeLegs.length || event.pointerType !== 'touch') {
+                    return
+                  }
+                  startLongPress(event, row.index)
+                }}
+                onPointerUp={clearPressTimer}
+                onPointerCancel={clearPressTimer}
+                onPointerLeave={clearPressTimer}
+                onPointerMove={clearPressTimer}
+              >
                 <td>{row.wind}</td><td>{row.tas}</td><td className="fp-highlight-cell">{row.tt}</td><td>{row.wca}</td><td>{row.th}</td><td>{row.variation}</td><td className="fp-highlight-cell">{row.mh}</td><td>{row.altitude}</td>
                 <td className="fp-highlight-cell fp-route-link" onClick={() => onSectionSelect('route')}>{row.segment}</td>
                 <td>{row.navRef}</td><td>{row.gs}</td><td>{row.distInt}</td><td>{row.distAcc}</td><td>{row.timeInt}</td><td>{row.timeAcc}</td><td>{row.notes}</td>

@@ -18,6 +18,7 @@ import { swedishAirports } from './generated/airports.se'
 import type { FlightPlanInput, FlightPlanDerived } from './types'
 
 type BasemapKey = 'topo' | 'osm'
+const contextMenuSize = { width: 180, height: 56, margin: 12 }
 
 const basemaps: Record<
   BasemapKey,
@@ -57,6 +58,16 @@ function midpoint(a: FlightPlanInput['routeLegs'][number]['from'], b: FlightPlan
   }
 }
 
+function clampContextMenuPosition(x: number, y: number) {
+  const maxX = window.innerWidth - contextMenuSize.width - contextMenuSize.margin
+  const maxY = window.innerHeight - contextMenuSize.height - contextMenuSize.margin
+
+  return {
+    x: Math.max(contextMenuSize.margin, Math.min(x, maxX)),
+    y: Math.max(contextMenuSize.margin, Math.min(y, maxY)),
+  }
+}
+
 function MapClickHandler({
   onAddPoint,
   shouldSuppressClick,
@@ -88,6 +99,7 @@ export function FlightplanMapEditor({
   const [basemap, setBasemap] = useState<BasemapKey>('topo')
   const [dragPreviewWaypoints, setDragPreviewWaypoints] = useState<ReturnType<typeof legsToWaypoints> | null>(null)
   const [midpointInsertIndex, setMidpointInsertIndex] = useState<number | null>(null)
+  const [waypointMenu, setWaypointMenu] = useState<{ x: number; y: number; index: number } | null>(null)
   const suppressNextMapClick = useRef(false)
   const lastMidpointDragPosition = useRef<{ lat: number; lon: number } | null>(null)
   const waypoints = useMemo(() => legsToWaypoints(plan.routeLegs), [plan.routeLegs])
@@ -113,6 +125,7 @@ export function FlightplanMapEditor({
   const setWaypoints = (nextWaypoints: typeof waypoints) => {
     setDragPreviewWaypoints(null)
     setMidpointInsertIndex(null)
+    setWaypointMenu(null)
     const nextLegs = waypointsToLegs(nextWaypoints, plan.routeLegs, derived.aircraft.cruiseTasKt)
     onRouteLegsChange(nextLegs)
   }
@@ -172,8 +185,13 @@ export function FlightplanMapEditor({
     setWaypoints(waypoints.filter((_, pointIndex) => pointIndex !== index))
   }
 
+  const openWaypointMenu = (index: number, x: number, y: number) => {
+    const clamped = clampContextMenuPosition(x, y)
+    setWaypointMenu({ index, x: clamped.x, y: clamped.y })
+  }
+
   return (
-    <section className="fp-map-editor">
+    <section className="fp-map-editor" onClick={() => setWaypointMenu(null)}>
       <div className="fp-map-toolbar">
         <div>
           <p className="fp-panel-eyebrow">Karteditor</p>
@@ -249,6 +267,7 @@ export function FlightplanMapEditor({
               eventHandlers={{
                 dragstart: () => {
                   suppressNextMapClick.current = true
+                  setWaypointMenu(null)
                   setDragPreviewWaypoints(waypoints)
                 },
                 drag: (event) => {
@@ -261,7 +280,13 @@ export function FlightplanMapEditor({
                   const latLng = marker.getLatLng()
                   updateWaypoint(index, latLng.lat, latLng.lng)
                 },
-                contextmenu: () => removeWaypoint(index),
+                contextmenu: (event: LeafletMouseEvent) => {
+                  const original = event.originalEvent as MouseEvent | undefined
+                  original?.preventDefault()
+                  original?.stopPropagation()
+                  event.originalEvent.preventDefault?.()
+                  openWaypointMenu(index, original?.clientX ?? 80, original?.clientY ?? 80)
+                },
               }}
             >
               <Tooltip direction="top" offset={[0, -10]} opacity={1} className="fp-waypoint-tooltip">
@@ -342,7 +367,24 @@ export function FlightplanMapEditor({
             )
           })}
         </MapContainer>
+
       </div>
+
+      {waypointMenu && (
+        <div
+          className="fp-context-menu fp-map-context-menu"
+          style={{ left: waypointMenu.x, top: waypointMenu.y }}
+          onClick={(event) => event.stopPropagation()}
+        >
+          <button
+            type="button"
+            onClick={() => removeWaypoint(waypointMenu.index)}
+            disabled={waypoints.length <= 2}
+          >
+            Ta bort waypoint
+          </button>
+        </div>
+      )}
     </section>
   )
 }
