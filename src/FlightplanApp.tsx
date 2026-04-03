@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent, ReactNode } from 'react'
 import './features/flightplan/flightplan.css'
-import { aircraftProfiles, initialFlightPlan } from './features/flightplan/data'
+import { aircraftProfiles, createInitialFlightPlan } from './features/flightplan/data'
 import { calculateFlightPlan, formatNumber, formatTimeFromMinutes } from './features/flightplan/calculations'
 import { formatCoordinateDms, parseCoordinateDms, snapCoordinate } from './features/flightplan/coordinates'
 import { legsToWaypoints, waypointsToLegs } from './features/flightplan/gazetteer'
@@ -122,17 +122,60 @@ function createAircraftDraft(source?: AircraftProfile, seed = 1): AircraftProfil
   }
 }
 
-export function FlightplanApp() {
-  const [plan, setPlan] = useState<FlightPlanInput>(initialFlightPlan)
+function cloneAircraftProfile(source: AircraftProfile): AircraftProfile {
+  return {
+    ...source,
+    armsMm: { ...source.armsMm },
+    limits: { ...source.limits },
+    performance: { ...source.performance },
+  }
+}
+
+function cloneFlightPlan(plan: FlightPlanInput): FlightPlanInput {
+  return {
+    ...plan,
+    header: { ...plan.header },
+    routeLegs: plan.routeLegs.map((leg) => ({
+      ...leg,
+      from: { ...leg.from },
+      to: { ...leg.to },
+    })),
+    radioNav: plan.radioNav.map((entry) => ({ ...entry })),
+    performance: { ...plan.performance },
+    fuel: { ...plan.fuel },
+    weightBalance: { ...plan.weightBalance },
+  }
+}
+
+type FlightplanAppProps = {
+  initialPlan?: FlightPlanInput
+  initialAircraftOptions?: AircraftProfile[]
+  headerSlot?: ReactNode
+  onPlanChange?: (plan: FlightPlanInput) => void
+}
+
+export function FlightplanApp({
+  initialPlan,
+  initialAircraftOptions,
+  headerSlot,
+  onPlanChange,
+}: FlightplanAppProps = {}) {
+  const [plan, setPlan] = useState<FlightPlanInput>(() => cloneFlightPlan(initialPlan ?? createInitialFlightPlan()))
   const [activePanel, setActivePanel] = useState<EditorPanel | null>(null)
   const [activeTab, setActiveTab] = useState<WorkspaceTab>('flightplan')
-  const [aircraftOptions, setAircraftOptions] = useState<AircraftProfile[]>(aircraftProfiles)
+  const [aircraftOptions, setAircraftOptions] = useState<AircraftProfile[]>(() =>
+    (initialAircraftOptions ?? aircraftProfiles).map(cloneAircraftProfile),
+  )
   const [settingsIndex, setSettingsIndex] = useState(0)
   const [rowContextMenu, setRowContextMenu] = useState<RowContextMenuState>(null)
 
   const derived = calculateFlightPlan(plan, aircraftOptions)
   const routeRows = useMemo(() => createRouteRows(plan, derived), [plan, derived])
   const printRouteRows = useMemo(() => createRouteRows(plan, derived, 13), [plan, derived])
+
+  useEffect(() => {
+    onPlanChange?.(plan)
+  }, [onPlanChange, plan])
 
   const updateHeader = (key: keyof FlightPlanInput['header'], value: string) => {
     setPlan((current) => ({
@@ -296,6 +339,7 @@ export function FlightplanApp() {
           </p>
         </div>
         <div className="fp-page-actions">
+          {headerSlot}
           {activeTab === 'print' ? (
             <button type="button" onClick={() => window.print()}>
               Skriv ut formulär

@@ -53,6 +53,22 @@ export async function listFlightPlans() {
   return ((data ?? []) as FlightPlanRow[]).map(mapRecord)
 }
 
+export async function getFlightPlanById(id: string) {
+  const supabase = requireClient()
+  const { data, error } = await supabase
+    .from('flight_plans')
+    .select('id, owner_user_id, name, aircraft_profile_id, status, visibility, payload, created_at, updated_at, archived_at')
+    .eq('id', id)
+    .is('archived_at', null)
+    .maybeSingle()
+
+  if (error) {
+    throw error
+  }
+
+  return data ? mapRecord(data as FlightPlanRow) : null
+}
+
 export async function createFlightPlan(input: CreateFlightPlanInput) {
   const supabase = requireClient()
   const {

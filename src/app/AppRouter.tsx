@@ -1,5 +1,4 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
-import { FlightplanApp } from '../FlightplanApp'
 import { AccountPage } from '../features/account/pages/AccountPage'
 import { AircraftProfilesPage } from '../features/aircraft/pages/AircraftProfilesPage'
 import { DashboardPage } from '../features/dashboard/pages/DashboardPage'
@@ -10,6 +9,7 @@ import { LoginPage } from '../features/auth/pages/LoginPage'
 import { ResetPasswordPage } from '../features/auth/pages/ResetPasswordPage'
 import { SignupPage } from '../features/auth/pages/SignupPage'
 import { VerifyEmailPage } from '../features/auth/pages/VerifyEmailPage'
+import { FlightPlanEditorPage } from '../features/flightplan/pages/FlightPlanEditorPage'
 import { FlightPlansPage } from '../features/flightplan/pages/FlightPlansPage'
 import { AppLayout } from '../layouts/AppLayout'
 import { PublicLayout } from '../layouts/PublicLayout'
@@ -30,7 +30,8 @@ export function AppRouter() {
         <Route path="/app" element={<AppLayout />}>
           <Route index element={<DashboardPage />} />
           <Route path="flightplans" element={<FlightPlansPage />} />
-          <Route path="flightplans/new" element={<FlightplanApp />} />
+          <Route path="flightplans/new" element={<FlightPlanEditorPage />} />
+          <Route path="flightplans/:id" element={<FlightPlanEditorPage />} />
           <Route path="aircraft" element={<AircraftProfilesPage />} />
           <Route path="account" element={<AccountPage />} />
         </Route>

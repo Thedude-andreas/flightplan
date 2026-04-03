@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { createFlightPlan, listFlightPlans } from '../api/flightPlansRepository'
+import { archiveFlightPlan, createFlightPlan, listFlightPlans } from '../api/flightPlansRepository'
 import type { FlightPlanRecord } from '../persistenceTypes'
-import { initialFlightPlan } from '../data'
+import { createInitialFlightPlan } from '../data'
 
 function formatDateTime(value: string) {
   return new Intl.DateTimeFormat('sv-SE', {
@@ -46,7 +46,7 @@ export function FlightPlansPage() {
     try {
       const created = await createFlightPlan({
         name: createDefaultPlanName(),
-        payload: initialFlightPlan,
+        payload: createInitialFlightPlan(),
       })
 
       setPlans((current) => [created, ...current])
@@ -54,6 +54,17 @@ export function FlightPlansPage() {
       setError(nextError instanceof Error ? nextError.message : 'Kunde inte skapa färdplan.')
     } finally {
       setCreating(false)
+    }
+  }
+
+  async function handleArchive(id: string) {
+    setError('')
+
+    try {
+      await archiveFlightPlan(id)
+      setPlans((current) => current.filter((plan) => plan.id !== id))
+    } catch (nextError) {
+      setError(nextError instanceof Error ? nextError.message : 'Kunde inte arkivera färdplanen.')
     }
   }
 
@@ -99,9 +110,12 @@ export function FlightPlansPage() {
               </div>
               <p>Senast uppdaterad {formatDateTime(plan.updatedAt)}</p>
               <div className="resource-list__actions">
-                <Link to="/app/flightplans/new" className="button-link">
-                  Öppna editor
+                <Link to={`/app/flightplans/${plan.id}`} className="button-link">
+                  Öppna
                 </Link>
+                <button type="button" onClick={() => handleArchive(plan.id)}>
+                  Arkivera
+                </button>
               </div>
             </article>
           ))}

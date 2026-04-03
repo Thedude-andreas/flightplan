@@ -57,7 +57,7 @@ export const aircraftProfiles: AircraftProfile[] = [
   },
 ]
 
-export const initialFlightPlan: FlightPlanInput = {
+const initialFlightPlanTemplate: FlightPlanInput = {
   aircraftRegistration: 'SE-MDE',
   header: {
     date: new Date().toISOString().slice(0, 10),
@@ -134,3 +134,21 @@ export const initialFlightPlan: FlightPlanInput = {
     baggageKg: 18,
   },
 }
+
+export function createInitialFlightPlan(): FlightPlanInput {
+  return {
+    ...initialFlightPlanTemplate,
+    header: { ...initialFlightPlanTemplate.header, date: new Date().toISOString().slice(0, 10) },
+    routeLegs: initialFlightPlanTemplate.routeLegs.map((leg) => ({
+      ...leg,
+      from: { ...leg.from },
+      to: { ...leg.to },
+    })),
+    radioNav: initialFlightPlanTemplate.radioNav.map((entry) => ({ ...entry })),
+    performance: { ...initialFlightPlanTemplate.performance },
+    fuel: { ...initialFlightPlanTemplate.fuel },
+    weightBalance: { ...initialFlightPlanTemplate.weightBalance },
+  }
+}
+
+export const initialFlightPlan = createInitialFlightPlan()
