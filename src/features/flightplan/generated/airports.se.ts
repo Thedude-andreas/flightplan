@@ -41,6 +41,14 @@ export const swedishAirports: SwedishAirport[] = [
     "detailsInAd2": false
   },
   {
+    "icao": "ESNX",
+    "name": "ARVIDSJAUR",
+    "lat": 65.59027777777777,
+    "lon": 19.281944444444445,
+    "category": "Licensed, instrument AD",
+    "detailsInAd2": true
+  },
+  {
     "icao": "ESKV",
     "name": "ARVIKA",
     "lat": 59.675,
@@ -63,6 +71,14 @@ export const swedishAirports: SwedishAirport[] = [
     "lon": 16.65611111111111,
     "category": "Non-licensed AD",
     "detailsInAd2": false
+  },
+  {
+    "icao": "ESSD",
+    "name": "BORLÄNGE",
+    "lat": 60.42222222222222,
+    "lon": 15.515,
+    "category": "Licensed, instrument AD",
+    "detailsInAd2": true
   },
   {
     "icao": "ESGE",
@@ -127,6 +143,14 @@ export const swedishAirports: SwedishAirport[] = [
     "lon": 17.145,
     "category": "Non-licensed AD",
     "detailsInAd2": false
+  },
+  {
+    "icao": "ESSU",
+    "name": "ESKILSTUNA",
+    "lat": 59.352222222222224,
+    "lon": 16.708333333333332,
+    "category": "Licensed, instrument AD",
+    "detailsInAd2": true
   },
   {
     "icao": "ESSC",
@@ -209,12 +233,44 @@ export const swedishAirports: SwedishAirport[] = [
     "detailsInAd2": false
   },
   {
+    "icao": "ESNG",
+    "name": "GÄLLIVARE",
+    "lat": 67.13305555555554,
+    "lon": 20.81222222222222,
+    "category": "Licensed, instrument AD",
+    "detailsInAd2": true
+  },
+  {
     "icao": "ESSK",
     "name": "GÄVLE",
     "lat": 60.593333333333334,
     "lon": 16.95138888888889,
     "category": "Non-licensed AD",
     "detailsInAd2": false
+  },
+  {
+    "icao": "ESGG",
+    "name": "GÖTEBORG/LANDVETTER",
+    "lat": 57.66,
+    "lon": 12.29111111111111,
+    "category": "Licensed, instrument AD",
+    "detailsInAd2": true
+  },
+  {
+    "icao": "ESGT",
+    "name": "GÖTEBORG/STALLBACKA",
+    "lat": 58.31805555555556,
+    "lon": 12.345,
+    "category": "Licensed, instrument AD",
+    "detailsInAd2": true
+  },
+  {
+    "icao": "ESGP",
+    "name": "GÖTEBORG/SÄVE",
+    "lat": 57.775555555555556,
+    "lon": 11.870555555555557,
+    "category": "Licensed AD",
+    "detailsInAd2": true
   },
   {
     "icao": "ESGN",
@@ -225,6 +281,22 @@ export const swedishAirports: SwedishAirport[] = [
     "detailsInAd2": false
   },
   {
+    "icao": "ESOH",
+    "name": "HAGFORS",
+    "lat": 60.02111111111111,
+    "lon": 13.578888888888889,
+    "category": "Licensed, instrument AD",
+    "detailsInAd2": true
+  },
+  {
+    "icao": "ESMV",
+    "name": "HAGSHULT",
+    "lat": 57.29222222222222,
+    "lon": 14.136944444444444,
+    "category": "MIL, non-licensed AD",
+    "detailsInAd2": true
+  },
+  {
     "icao": "ESNA",
     "name": "HALLVIKEN",
     "lat": 63.73833333333334,
@@ -233,12 +305,28 @@ export const swedishAirports: SwedishAirport[] = [
     "detailsInAd2": false
   },
   {
+    "icao": "ESMT",
+    "name": "HALMSTAD",
+    "lat": 56.69083333333333,
+    "lon": 12.82,
+    "category": "Licensed, instrument AD",
+    "detailsInAd2": true
+  },
+  {
     "icao": "ESNC",
     "name": "HEDE/HEDLANDA",
     "lat": 62.40888888888889,
     "lon": 13.747222222222222,
     "category": "Non-licensed AD",
     "detailsInAd2": false
+  },
+  {
+    "icao": "ESUT",
+    "name": "HEMAVAN TÄRNABY",
+    "lat": 65.80611111111111,
+    "lon": 15.082777777777778,
+    "category": "Licensed, instrument AD",
+    "detailsInAd2": true
   },
   {
     "icao": "ESGH",
@@ -313,6 +401,30 @@ export const swedishAirports: SwedishAirport[] = [
     "detailsInAd2": false
   },
   {
+    "icao": "ESGJ",
+    "name": "JÖNKÖPING",
+    "lat": 57.75833333333333,
+    "lon": 14.069166666666666,
+    "category": "Licensed, instrument AD",
+    "detailsInAd2": true
+  },
+  {
+    "icao": "ESMQ",
+    "name": "KALMAR",
+    "lat": 56.68555555555555,
+    "lon": 16.2875,
+    "category": "Licensed, instrument AD",
+    "detailsInAd2": true
+  },
+  {
+    "icao": "ESIA",
+    "name": "KARLSBORG",
+    "lat": 58.51361111111111,
+    "lon": 14.507222222222222,
+    "category": "MIL, non-licensed AD",
+    "detailsInAd2": true
+  },
+  {
     "icao": "ESKK",
     "name": "KARLSKOGA",
     "lat": 59.34444444444445,
@@ -321,12 +433,44 @@ export const swedishAirports: SwedishAirport[] = [
     "detailsInAd2": false
   },
   {
+    "icao": "ESOK",
+    "name": "KARLSTAD",
+    "lat": 59.44472222222222,
+    "lon": 13.3375,
+    "category": "Licensed, instrument AD",
+    "detailsInAd2": true
+  },
+  {
     "icao": "ESVK",
     "name": "KATRINEHOLM",
     "lat": 59.02222222222222,
     "lon": 16.220277777777778,
     "category": "Non-licensed AD",
     "detailsInAd2": false
+  },
+  {
+    "icao": "ESNQ",
+    "name": "KIRUNA",
+    "lat": 67.82138888888889,
+    "lon": 20.335555555555555,
+    "category": "Licensed, instrument AD",
+    "detailsInAd2": true
+  },
+  {
+    "icao": "ESNK",
+    "name": "KRAMFORS-SOLLEFTEÅ",
+    "lat": 63.04861111111111,
+    "lon": 17.76888888888889,
+    "category": "Licensed, instrument AD",
+    "detailsInAd2": true
+  },
+  {
+    "icao": "ESMK",
+    "name": "KRISTIANSTAD",
+    "lat": 55.92055555555555,
+    "lon": 14.085277777777778,
+    "category": "Licensed, instrument AD",
+    "detailsInAd2": true
   },
   {
     "icao": "ESMJ",
@@ -361,12 +505,36 @@ export const swedishAirports: SwedishAirport[] = [
     "detailsInAd2": false
   },
   {
+    "icao": "ESCF",
+    "name": "LINKÖPING/MALMEN",
+    "lat": 58.39611111111111,
+    "lon": 15.521944444444445,
+    "category": "MIL, licensed, instrument AD",
+    "detailsInAd2": true
+  },
+  {
+    "icao": "ESSL",
+    "name": "LINKÖPING/SAAB",
+    "lat": 58.406388888888884,
+    "lon": 15.679722222222221,
+    "category": "Licensed, instrument AD",
+    "detailsInAd2": true
+  },
+  {
     "icao": "ESMG",
     "name": "LJUNGBY/FERINGE",
     "lat": 56.95027777777778,
     "lon": 13.921666666666667,
     "category": "Non-licensed AD",
     "detailsInAd2": false
+  },
+  {
+    "icao": "ESTL",
+    "name": "LJUNGBYHED",
+    "lat": 56.08527777777778,
+    "lon": 13.206944444444444,
+    "category": "Licensed, instrument AD",
+    "detailsInAd2": true
   },
   {
     "icao": "ESUL",
@@ -383,6 +551,30 @@ export const swedishAirports: SwedishAirport[] = [
     "lon": 15.096388888888889,
     "category": "Non-licensed AD",
     "detailsInAd2": false
+  },
+  {
+    "icao": "ESPA",
+    "name": "LULEÅ/KALLAX",
+    "lat": 65.54333333333334,
+    "lon": 22.12361111111111,
+    "category": "MIL, licensed, instrument AD",
+    "detailsInAd2": true
+  },
+  {
+    "icao": "ESNL",
+    "name": "LYCKSELE",
+    "lat": 64.5475,
+    "lon": 18.717777777777776,
+    "category": "Licensed, instrument AD",
+    "detailsInAd2": true
+  },
+  {
+    "icao": "ESMS",
+    "name": "MALMÖ",
+    "lat": 55.54833333333333,
+    "lon": 13.353333333333333,
+    "category": "Licensed, instrument AD",
+    "detailsInAd2": true
   },
   {
     "icao": "ESVM",
@@ -409,12 +601,28 @@ export const swedishAirports: SwedishAirport[] = [
     "detailsInAd2": false
   },
   {
+    "icao": "ESKM",
+    "name": "MORA/SILJAN",
+    "lat": 60.95861111111111,
+    "lon": 14.510555555555555,
+    "category": "Licensed, instrument AD",
+    "detailsInAd2": true
+  },
+  {
     "icao": "ESKO",
     "name": "MUNKFORS",
     "lat": 59.79888888888889,
     "lon": 13.490555555555554,
     "category": "Non-licensed AD",
     "detailsInAd2": false
+  },
+  {
+    "icao": "ESSP",
+    "name": "NORRKÖPING/KUNGSÄNGEN",
+    "lat": 58.586111111111116,
+    "lon": 16.24638888888889,
+    "category": "Licensed, instrument AD",
+    "detailsInAd2": true
   },
   {
     "icao": "ESSN",
@@ -457,6 +665,14 @@ export const swedishAirports: SwedishAirport[] = [
     "detailsInAd2": false
   },
   {
+    "icao": "ESUP",
+    "name": "PAJALA",
+    "lat": 67.24583333333334,
+    "lon": 23.06888888888889,
+    "category": "Licensed, instrument AD",
+    "detailsInAd2": true
+  },
+  {
     "icao": "ESNP",
     "name": "PITEÅ",
     "lat": 65.39833333333334,
@@ -471,6 +687,14 @@ export const swedishAirports: SwedishAirport[] = [
     "lon": 16.483611111111113,
     "category": "Non-licensed AD",
     "detailsInAd2": false
+  },
+  {
+    "icao": "ESDF",
+    "name": "RONNEBY",
+    "lat": 56.266666666666666,
+    "lon": 15.265,
+    "category": "MIL, licensed instrument AD",
+    "detailsInAd2": true
   },
   {
     "icao": "ESFR",
@@ -505,6 +729,14 @@ export const swedishAirports: SwedishAirport[] = [
     "detailsInAd2": false
   },
   {
+    "icao": "ESNS",
+    "name": "SKELLEFTEÅ",
+    "lat": 64.62472222222222,
+    "lon": 21.076944444444443,
+    "category": "Licensed, instrument AD",
+    "detailsInAd2": true
+  },
+  {
     "icao": "ESGR",
     "name": "SKÖVDE",
     "lat": 58.45611111111111,
@@ -537,12 +769,44 @@ export const swedishAirports: SwedishAirport[] = [
     "detailsInAd2": false
   },
   {
+    "icao": "ESSA",
+    "name": "STOCKHOLM/ARLANDA",
+    "lat": 59.651944444444446,
+    "lon": 17.91861111111111,
+    "category": "Licensed, instrument AD",
+    "detailsInAd2": true
+  },
+  {
+    "icao": "ESSB",
+    "name": "STOCKHOLM/BROMMA",
+    "lat": 59.35444444444445,
+    "lon": 17.942222222222224,
+    "category": "Licensed, instrument AD",
+    "detailsInAd2": true
+  },
+  {
+    "icao": "ESKN",
+    "name": "STOCKHOLM/SKAVSTA",
+    "lat": 58.78861111111111,
+    "lon": 16.90361111111111,
+    "category": "Licensed, instrument AD",
+    "detailsInAd2": true
+  },
+  {
     "icao": "ESSE",
     "name": "STOCKHOLM/SKÅ-EDEBY",
     "lat": 59.345,
     "lon": 17.740555555555556,
     "category": "Non-licensed AD",
     "detailsInAd2": false
+  },
+  {
+    "icao": "ESOW",
+    "name": "STOCKHOLM/VÄSTERÅS",
+    "lat": 59.589444444444446,
+    "lon": 16.63361111111111,
+    "category": "Licensed, instrument AD",
+    "detailsInAd2": true
   },
   {
     "icao": "ESUD",
@@ -577,6 +841,14 @@ export const swedishAirports: SwedishAirport[] = [
     "detailsInAd2": false
   },
   {
+    "icao": "ESNN",
+    "name": "SUNDSVALL-TIMRÅ",
+    "lat": 62.529444444444444,
+    "lon": 17.442777777777778,
+    "category": "Licensed, instrument AD",
+    "detailsInAd2": true
+  },
+  {
     "icao": "ESKU",
     "name": "SUNNE",
     "lat": 59.86027777777778,
@@ -585,12 +857,36 @@ export const swedishAirports: SwedishAirport[] = [
     "detailsInAd2": false
   },
   {
+    "icao": "ESND",
+    "name": "SVEG",
+    "lat": 62.047777777777775,
+    "lon": 14.424166666666666,
+    "category": "Licensed, instrument AD",
+    "detailsInAd2": true
+  },
+  {
+    "icao": "ESIB",
+    "name": "SÅTENÄS",
+    "lat": 58.42833333333333,
+    "lon": 12.71111111111111,
+    "category": "MIL, licensed, instument AD",
+    "detailsInAd2": true
+  },
+  {
     "icao": "ESGY",
     "name": "SÄFFLE",
     "lat": 59.09111111111111,
     "lon": 12.958333333333332,
     "category": "Licensed AD",
     "detailsInAd2": false
+  },
+  {
+    "icao": "ESKS",
+    "name": "SÄLEN/SCANDINAVIAN MOUNTAINS",
+    "lat": 61.164722222222224,
+    "lon": 12.83388888888889,
+    "category": "Licensed instrument AD",
+    "detailsInAd2": true
   },
   {
     "icao": "ESNY",
@@ -617,6 +913,14 @@ export const swedishAirports: SwedishAirport[] = [
     "detailsInAd2": false
   },
   {
+    "icao": "ESST",
+    "name": "TORSBY",
+    "lat": 60.15472222222222,
+    "lon": 12.993611111111111,
+    "category": "Licensed, instrument AD",
+    "detailsInAd2": true
+  },
+  {
     "icao": "ESGA",
     "name": "UDDEVALLA/BACKAMO",
     "lat": 58.17722222222222,
@@ -633,6 +937,22 @@ export const swedishAirports: SwedishAirport[] = [
     "detailsInAd2": false
   },
   {
+    "icao": "ESNU",
+    "name": "UMEÅ",
+    "lat": 63.793055555555554,
+    "lon": 20.279999999999998,
+    "category": "Licensed, instrument AD",
+    "detailsInAd2": true
+  },
+  {
+    "icao": "ESCM",
+    "name": "UPPSALA",
+    "lat": 59.900277777777774,
+    "lon": 17.592499999999998,
+    "category": "MIL, non-licensed AD",
+    "detailsInAd2": true
+  },
+  {
     "icao": "ESGV",
     "name": "VARBERG",
     "lat": 57.124722222222225,
@@ -647,6 +967,30 @@ export const swedishAirports: SwedishAirport[] = [
     "lon": 13.025277777777779,
     "category": "Non-licensed AD",
     "detailsInAd2": false
+  },
+  {
+    "icao": "ESPE",
+    "name": "VIDSEL",
+    "lat": 65.87527777777777,
+    "lon": 20.15,
+    "category": "MIL, non-licensed AD",
+    "detailsInAd2": true
+  },
+  {
+    "icao": "ESNV",
+    "name": "VILHELMINA",
+    "lat": 64.5786111111111,
+    "lon": 16.83972222222222,
+    "category": "Licensed, instrument AD",
+    "detailsInAd2": true
+  },
+  {
+    "icao": "ESSV",
+    "name": "VISBY",
+    "lat": 57.66277777777778,
+    "lon": 18.34611111111111,
+    "category": "Licensed, instrument AD",
+    "detailsInAd2": true
   },
   {
     "icao": "ESSI",
@@ -673,12 +1017,20 @@ export const swedishAirports: SwedishAirport[] = [
     "detailsInAd2": false
   },
   {
-    "icao": "JOHANNISBERG",
-    "name": "VÄSTERÅS/",
+    "icao": "ESSX",
+    "name": "VÄSTERÅS/JOHANNISBERG",
     "lat": 59.575833333333335,
     "lon": 16.503055555555555,
     "category": "Non-licensed AD",
     "detailsInAd2": false
+  },
+  {
+    "icao": "ESMX",
+    "name": "VÄXJÖ/KRONOBERG",
+    "lat": 56.930277777777775,
+    "lon": 14.72888888888889,
+    "category": "Licensed, instrument AD",
+    "detailsInAd2": true
   },
   {
     "icao": "ESGC",
@@ -695,6 +1047,14 @@ export const swedishAirports: SwedishAirport[] = [
     "lon": 15.834722222222222,
     "category": "Non-licensed AD",
     "detailsInAd2": false
+  },
+  {
+    "icao": "ESNZ",
+    "name": "ÅRE ÖSTERSUND",
+    "lat": 63.19444444444444,
+    "lon": 14.500277777777777,
+    "category": "Licensed, instrument AD",
+    "detailsInAd2": true
   },
   {
     "icao": "ESNF",
@@ -721,6 +1081,14 @@ export const swedishAirports: SwedishAirport[] = [
     "detailsInAd2": false
   },
   {
+    "icao": "ESTA",
+    "name": "ÄNGELHOLM",
+    "lat": 56.29111111111111,
+    "lon": 12.855,
+    "category": "Licensed, instrument AD",
+    "detailsInAd2": true
+  },
+  {
     "icao": "ESMZ",
     "name": "ÖLANDA",
     "lat": 57.328611111111115,
@@ -729,11 +1097,27 @@ export const swedishAirports: SwedishAirport[] = [
     "detailsInAd2": false
   },
   {
+    "icao": "ESOE",
+    "name": "ÖREBRO",
+    "lat": 59.22805555555556,
+    "lon": 15.04,
+    "category": "Licensed, instrument AD",
+    "detailsInAd2": true
+  },
+  {
     "icao": "ESGM",
     "name": "ÖRESTEN",
     "lat": 57.445277777777775,
     "lon": 12.648888888888889,
     "category": "Non-licensed AD",
     "detailsInAd2": false
+  },
+  {
+    "icao": "ESNO",
+    "name": "ÖRNSKÖLDSVIK",
+    "lat": 63.407777777777774,
+    "lon": 18.9925,
+    "category": "Licensed, instrument AD",
+    "detailsInAd2": true
   }
 ]

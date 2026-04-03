@@ -1,7 +1,8 @@
 {
-  "generatedAt": "2026-03-12T20:43:09.216Z",
-  "source": "LFV AD 1.1",
-  "inputPath": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html",
+  "generatedAt": "2026-04-03T19:43:23.855Z",
+  "source": "LFV AD 1.1 + AD 2",
+  "inputPath": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html",
+  "ad2Source": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js",
   "count": 139,
   "airports": [
     {
@@ -40,7 +41,7 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
@@ -85,7 +86,7 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
@@ -129,7 +130,7 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
@@ -168,14 +169,17 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
       "name": "ARVIDSJAUR",
       "icao": "ESNX",
       "detailsInAd2": true,
-      "arp": null,
+      "arp": {
+        "lat": 65.59027777777777,
+        "lon": 19.281944444444445
+      },
       "location": null,
       "elevationFt": null,
       "runways": [
@@ -199,8 +203,8 @@
       "ownerOperator": "Municipal",
       "contactLines": [],
       "source": {
-        "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
       }
     },
     {
@@ -247,7 +251,7 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
@@ -288,7 +292,7 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
@@ -329,14 +333,17 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
       "name": "BORLÄNGE",
       "icao": "ESSD",
       "detailsInAd2": true,
-      "arp": null,
+      "arp": {
+        "lat": 60.42222222222222,
+        "lon": 15.515
+      },
       "location": null,
       "elevationFt": null,
       "runways": [
@@ -366,8 +373,8 @@
       "ownerOperator": "Municipal",
       "contactLines": [],
       "source": {
-        "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
       }
     },
     {
@@ -428,7 +435,7 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
@@ -467,7 +474,7 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
@@ -512,7 +519,7 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
@@ -556,7 +563,7 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
@@ -596,7 +603,7 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
@@ -636,7 +643,7 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
@@ -680,7 +687,7 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
@@ -730,14 +737,17 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
       "name": "ESKILSTUNA",
       "icao": "ESSU",
       "detailsInAd2": true,
-      "arp": null,
+      "arp": {
+        "lat": 59.352222222222224,
+        "lon": 16.708333333333332
+      },
       "location": null,
       "elevationFt": null,
       "runways": [
@@ -761,8 +771,8 @@
       "ownerOperator": "Municipal",
       "contactLines": [],
       "source": {
-        "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
       }
     },
     {
@@ -804,7 +814,7 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
@@ -850,7 +860,7 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
@@ -891,7 +901,7 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
@@ -930,7 +940,7 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
@@ -974,7 +984,7 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
@@ -1016,7 +1026,7 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
@@ -1060,7 +1070,7 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
@@ -1104,7 +1114,7 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
@@ -1159,7 +1169,7 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
@@ -1202,14 +1212,17 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
       "name": "GÄLLIVARE",
       "icao": "ESNG",
       "detailsInAd2": true,
-      "arp": null,
+      "arp": {
+        "lat": 67.13305555555554,
+        "lon": 20.81222222222222
+      },
       "location": null,
       "elevationFt": null,
       "runways": [
@@ -1233,8 +1246,8 @@
       "ownerOperator": "Municipal",
       "contactLines": [],
       "source": {
-        "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
       }
     },
     {
@@ -1279,14 +1292,17 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
       "name": "GÖTEBORG/LANDVETTER",
       "icao": "ESGG",
       "detailsInAd2": true,
-      "arp": null,
+      "arp": {
+        "lat": 57.66,
+        "lon": 12.29111111111111
+      },
       "location": null,
       "elevationFt": null,
       "runways": [
@@ -1310,15 +1326,18 @@
       "ownerOperator": "Swedavia AB",
       "contactLines": [],
       "source": {
-        "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
       }
     },
     {
       "name": "GÖTEBORG/STALLBACKA",
       "icao": "ESGT",
       "detailsInAd2": true,
-      "arp": null,
+      "arp": {
+        "lat": 58.31805555555556,
+        "lon": 12.345
+      },
       "location": null,
       "elevationFt": null,
       "runways": [
@@ -1342,15 +1361,18 @@
       "ownerOperator": "Municipal",
       "contactLines": [],
       "source": {
-        "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
       }
     },
     {
       "name": "GÖTEBORG/SÄVE",
       "icao": "ESGP",
       "detailsInAd2": true,
-      "arp": null,
+      "arp": {
+        "lat": 57.775555555555556,
+        "lon": 11.870555555555557
+      },
       "location": null,
       "elevationFt": null,
       "runways": [
@@ -1374,8 +1396,8 @@
       "ownerOperator": "Private",
       "contactLines": [],
       "source": {
-        "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
       }
     },
     {
@@ -1414,14 +1436,17 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
       "name": "HAGFORS",
       "icao": "ESOH",
       "detailsInAd2": true,
-      "arp": null,
+      "arp": {
+        "lat": 60.02111111111111,
+        "lon": 13.578888888888889
+      },
       "location": null,
       "elevationFt": null,
       "runways": [
@@ -1445,15 +1470,18 @@
       "ownerOperator": "Municipal",
       "contactLines": [],
       "source": {
-        "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
       }
     },
     {
       "name": "HAGSHULT",
       "icao": "ESMV",
       "detailsInAd2": true,
-      "arp": null,
+      "arp": {
+        "lat": 57.29222222222222,
+        "lon": 14.136944444444444
+      },
       "location": null,
       "elevationFt": null,
       "runways": [
@@ -1477,8 +1505,8 @@
       "ownerOperator": "FM/Swedish Armed Forces",
       "contactLines": [],
       "source": {
-        "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
       }
     },
     {
@@ -1519,14 +1547,17 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
       "name": "HALMSTAD",
       "icao": "ESMT",
       "detailsInAd2": true,
-      "arp": null,
+      "arp": {
+        "lat": 56.69083333333333,
+        "lon": 12.82
+      },
       "location": null,
       "elevationFt": null,
       "runways": [
@@ -1556,8 +1587,8 @@
       "ownerOperator": "Municipal",
       "contactLines": [],
       "source": {
-        "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
       }
     },
     {
@@ -1596,14 +1627,17 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
       "name": "HEMAVAN TÄRNABY",
       "icao": "ESUT",
       "detailsInAd2": true,
-      "arp": null,
+      "arp": {
+        "lat": 65.80611111111111,
+        "lon": 15.082777777777778
+      },
       "location": null,
       "elevationFt": null,
       "runways": [
@@ -1627,8 +1661,8 @@
       "ownerOperator": "Municipal",
       "contactLines": [],
       "source": {
-        "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
       }
     },
     {
@@ -1669,7 +1703,7 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
@@ -1713,7 +1747,7 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
@@ -1757,7 +1791,7 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
@@ -1799,7 +1833,7 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
@@ -1841,7 +1875,7 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
@@ -1880,7 +1914,7 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
@@ -1934,7 +1968,7 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
@@ -1978,7 +2012,7 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
@@ -2016,14 +2050,17 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
       "name": "JÖNKÖPING",
       "icao": "ESGJ",
       "detailsInAd2": true,
-      "arp": null,
+      "arp": {
+        "lat": 57.75833333333333,
+        "lon": 14.069166666666666
+      },
       "location": null,
       "elevationFt": null,
       "runways": [
@@ -2053,15 +2090,18 @@
       "ownerOperator": "Municipal",
       "contactLines": [],
       "source": {
-        "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
       }
     },
     {
       "name": "KALMAR",
       "icao": "ESMQ",
       "detailsInAd2": true,
-      "arp": null,
+      "arp": {
+        "lat": 56.68555555555555,
+        "lon": 16.2875
+      },
       "location": null,
       "elevationFt": null,
       "runways": [
@@ -2091,15 +2131,18 @@
       "ownerOperator": "Municipal",
       "contactLines": [],
       "source": {
-        "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
       }
     },
     {
       "name": "KARLSBORG",
       "icao": "ESIA",
       "detailsInAd2": true,
-      "arp": null,
+      "arp": {
+        "lat": 58.51361111111111,
+        "lon": 14.507222222222222
+      },
       "location": null,
       "elevationFt": null,
       "runways": [
@@ -2123,8 +2166,8 @@
       "ownerOperator": "FM/Swedish Armed Forces",
       "contactLines": [],
       "source": {
-        "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
       }
     },
     {
@@ -2167,14 +2210,17 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
       "name": "KARLSTAD",
       "icao": "ESOK",
       "detailsInAd2": true,
-      "arp": null,
+      "arp": {
+        "lat": 59.44472222222222,
+        "lon": 13.3375
+      },
       "location": null,
       "elevationFt": null,
       "runways": [
@@ -2198,8 +2244,8 @@
       "ownerOperator": "Municipal",
       "contactLines": [],
       "source": {
-        "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
       }
     },
     {
@@ -2242,14 +2288,17 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
       "name": "KIRUNA",
       "icao": "ESNQ",
       "detailsInAd2": true,
-      "arp": null,
+      "arp": {
+        "lat": 67.82138888888889,
+        "lon": 20.335555555555555
+      },
       "location": null,
       "elevationFt": null,
       "runways": [
@@ -2273,15 +2322,18 @@
       "ownerOperator": "Swedavia AB",
       "contactLines": [],
       "source": {
-        "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
       }
     },
     {
       "name": "KRAMFORS-SOLLEFTEÅ",
       "icao": "ESNK",
       "detailsInAd2": true,
-      "arp": null,
+      "arp": {
+        "lat": 63.04861111111111,
+        "lon": 17.76888888888889
+      },
       "location": null,
       "elevationFt": null,
       "runways": [
@@ -2305,15 +2357,18 @@
       "ownerOperator": "Municipal",
       "contactLines": [],
       "source": {
-        "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
       }
     },
     {
       "name": "KRISTIANSTAD",
       "icao": "ESMK",
       "detailsInAd2": true,
-      "arp": null,
+      "arp": {
+        "lat": 55.92055555555555,
+        "lon": 14.085277777777778
+      },
       "location": null,
       "elevationFt": null,
       "runways": [
@@ -2337,8 +2392,8 @@
       "ownerOperator": "Municipal",
       "contactLines": [],
       "source": {
-        "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
       }
     },
     {
@@ -2380,7 +2435,7 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
@@ -2433,7 +2488,7 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
@@ -2485,7 +2540,7 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
@@ -2533,14 +2588,17 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
       "name": "LINKÖPING/MALMEN",
       "icao": "ESCF",
       "detailsInAd2": true,
-      "arp": null,
+      "arp": {
+        "lat": 58.39611111111111,
+        "lon": 15.521944444444445
+      },
       "location": null,
       "elevationFt": null,
       "runways": [
@@ -2570,15 +2628,18 @@
       "ownerOperator": "FM/Swedish Armed Forces",
       "contactLines": [],
       "source": {
-        "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
       }
     },
     {
       "name": "LINKÖPING/SAAB",
       "icao": "ESSL",
       "detailsInAd2": true,
-      "arp": null,
+      "arp": {
+        "lat": 58.406388888888884,
+        "lon": 15.679722222222221
+      },
       "location": null,
       "elevationFt": null,
       "runways": [
@@ -2602,8 +2663,8 @@
       "ownerOperator": "Private",
       "contactLines": [],
       "source": {
-        "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
       }
     },
     {
@@ -2646,14 +2707,17 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
       "name": "LJUNGBYHED",
       "icao": "ESTL",
       "detailsInAd2": true,
-      "arp": null,
+      "arp": {
+        "lat": 56.08527777777778,
+        "lon": 13.206944444444444
+      },
       "location": null,
       "elevationFt": null,
       "runways": [
@@ -2683,8 +2747,8 @@
       "ownerOperator": "Municipal",
       "contactLines": [],
       "source": {
-        "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
       }
     },
     {
@@ -2726,7 +2790,7 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
@@ -2770,14 +2834,17 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
       "name": "LULEÅ/KALLAX",
       "icao": "ESPA",
       "detailsInAd2": true,
-      "arp": null,
+      "arp": {
+        "lat": 65.54333333333334,
+        "lon": 22.12361111111111
+      },
       "location": null,
       "elevationFt": null,
       "runways": [
@@ -2801,15 +2868,18 @@
       "ownerOperator": "Swedavia AB",
       "contactLines": [],
       "source": {
-        "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
       }
     },
     {
       "name": "LYCKSELE",
       "icao": "ESNL",
       "detailsInAd2": true,
-      "arp": null,
+      "arp": {
+        "lat": 64.5475,
+        "lon": 18.717777777777776
+      },
       "location": null,
       "elevationFt": null,
       "runways": [
@@ -2833,15 +2903,18 @@
       "ownerOperator": "Municipal",
       "contactLines": [],
       "source": {
-        "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
       }
     },
     {
       "name": "MALMÖ",
       "icao": "ESMS",
       "detailsInAd2": true,
-      "arp": null,
+      "arp": {
+        "lat": 55.54833333333333,
+        "lon": 13.353333333333333
+      },
       "location": null,
       "elevationFt": null,
       "runways": [
@@ -2871,8 +2944,8 @@
       "ownerOperator": "Swedavia AB",
       "contactLines": [],
       "source": {
-        "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
       }
     },
     {
@@ -2914,7 +2987,7 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
@@ -2954,7 +3027,7 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
@@ -2992,14 +3065,17 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
       "name": "MORA/SILJAN",
       "icao": "ESKM",
       "detailsInAd2": true,
-      "arp": null,
+      "arp": {
+        "lat": 60.95861111111111,
+        "lon": 14.510555555555555
+      },
       "location": null,
       "elevationFt": null,
       "runways": [
@@ -3023,8 +3099,8 @@
       "ownerOperator": "Municipal",
       "contactLines": [],
       "source": {
-        "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
       }
     },
     {
@@ -3065,14 +3141,17 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
-      "name": "NORRKÖPING/",
-      "icao": "KUNGSÄNGEN",
+      "name": "NORRKÖPING/KUNGSÄNGEN",
+      "icao": "ESSP",
       "detailsInAd2": true,
-      "arp": null,
+      "arp": {
+        "lat": 58.586111111111116,
+        "lon": 16.24638888888889
+      },
       "location": null,
       "elevationFt": null,
       "runways": [
@@ -3102,8 +3181,8 @@
       "ownerOperator": "Municipal",
       "contactLines": [],
       "source": {
-        "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
       }
     },
     {
@@ -3152,7 +3231,7 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
@@ -3199,7 +3278,7 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
@@ -3242,7 +3321,7 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
@@ -3285,7 +3364,7 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
@@ -3329,14 +3408,17 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
       "name": "PAJALA",
       "icao": "ESUP",
       "detailsInAd2": true,
-      "arp": null,
+      "arp": {
+        "lat": 67.24583333333334,
+        "lon": 23.06888888888889
+      },
       "location": null,
       "elevationFt": null,
       "runways": [
@@ -3360,8 +3442,8 @@
       "ownerOperator": "Municipal",
       "contactLines": [],
       "source": {
-        "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
       }
     },
     {
@@ -3403,7 +3485,7 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
@@ -3445,14 +3527,17 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
       "name": "RONNEBY",
       "icao": "ESDF",
       "detailsInAd2": true,
-      "arp": null,
+      "arp": {
+        "lat": 56.266666666666666,
+        "lon": 15.265
+      },
       "location": null,
       "elevationFt": null,
       "runways": [
@@ -3476,8 +3561,8 @@
       "ownerOperator": "FM/Swedish Armed Forces",
       "contactLines": [],
       "source": {
-        "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
       }
     },
     {
@@ -3517,7 +3602,7 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
@@ -3559,7 +3644,7 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
@@ -3606,7 +3691,7 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
@@ -3647,14 +3732,17 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
       "name": "SKELLEFTEÅ",
       "icao": "ESNS",
       "detailsInAd2": true,
-      "arp": null,
+      "arp": {
+        "lat": 64.62472222222222,
+        "lon": 21.076944444444443
+      },
       "location": null,
       "elevationFt": null,
       "runways": [
@@ -3678,8 +3766,8 @@
       "ownerOperator": "Municipal",
       "contactLines": [],
       "source": {
-        "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
       }
     },
     {
@@ -3720,7 +3808,7 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
@@ -3762,7 +3850,7 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
@@ -3801,7 +3889,7 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
@@ -3841,14 +3929,17 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
       "name": "STOCKHOLM/ARLANDA",
       "icao": "ESSA",
       "detailsInAd2": true,
-      "arp": null,
+      "arp": {
+        "lat": 59.651944444444446,
+        "lon": 17.91861111111111
+      },
       "location": null,
       "elevationFt": null,
       "runways": [
@@ -3884,15 +3975,18 @@
       "ownerOperator": "Swedavia AB",
       "contactLines": [],
       "source": {
-        "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
       }
     },
     {
       "name": "STOCKHOLM/BROMMA",
       "icao": "ESSB",
       "detailsInAd2": true,
-      "arp": null,
+      "arp": {
+        "lat": 59.35444444444445,
+        "lon": 17.942222222222224
+      },
       "location": null,
       "elevationFt": null,
       "runways": [
@@ -3916,15 +4010,18 @@
       "ownerOperator": "Swedavia AB",
       "contactLines": [],
       "source": {
-        "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
       }
     },
     {
       "name": "STOCKHOLM/SKAVSTA",
       "icao": "ESKN",
       "detailsInAd2": true,
-      "arp": null,
+      "arp": {
+        "lat": 58.78861111111111,
+        "lon": 16.90361111111111
+      },
       "location": null,
       "elevationFt": null,
       "runways": [
@@ -3954,8 +4051,8 @@
       "ownerOperator": "Private",
       "contactLines": [],
       "source": {
-        "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
       }
     },
     {
@@ -4007,14 +4104,17 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
       "name": "STOCKHOLM/VÄSTERÅS",
       "icao": "ESOW",
       "detailsInAd2": true,
-      "arp": null,
+      "arp": {
+        "lat": 59.589444444444446,
+        "lon": 16.63361111111111
+      },
       "location": null,
       "elevationFt": null,
       "runways": [
@@ -4038,8 +4138,8 @@
       "ownerOperator": "Municipal",
       "contactLines": [],
       "source": {
-        "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
       }
     },
     {
@@ -4078,7 +4178,7 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
@@ -4119,7 +4219,7 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
@@ -4162,7 +4262,7 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
@@ -4232,14 +4332,17 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
       "name": "SUNDSVALL-TIMRÅ",
       "icao": "ESNN",
       "detailsInAd2": true,
-      "arp": null,
+      "arp": {
+        "lat": 62.529444444444444,
+        "lon": 17.442777777777778
+      },
       "location": null,
       "elevationFt": null,
       "runways": [
@@ -4263,8 +4366,8 @@
       "ownerOperator": "Municipal",
       "contactLines": [],
       "source": {
-        "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
       }
     },
     {
@@ -4305,14 +4408,17 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
       "name": "SVEG",
       "icao": "ESND",
       "detailsInAd2": true,
-      "arp": null,
+      "arp": {
+        "lat": 62.047777777777775,
+        "lon": 14.424166666666666
+      },
       "location": null,
       "elevationFt": null,
       "runways": [
@@ -4336,15 +4442,18 @@
       "ownerOperator": "Municipal",
       "contactLines": [],
       "source": {
-        "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
       }
     },
     {
       "name": "SÅTENÄS",
       "icao": "ESIB",
       "detailsInAd2": true,
-      "arp": null,
+      "arp": {
+        "lat": 58.42833333333333,
+        "lon": 12.71111111111111
+      },
       "location": null,
       "elevationFt": null,
       "runways": [
@@ -4374,8 +4483,8 @@
       "ownerOperator": "FM/Swedish Armed Forces",
       "contactLines": [],
       "source": {
-        "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
       }
     },
     {
@@ -4415,14 +4524,17 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
       "name": "SÄLEN/SCANDINAVIAN MOUNTAINS",
       "icao": "ESKS",
       "detailsInAd2": true,
-      "arp": null,
+      "arp": {
+        "lat": 61.164722222222224,
+        "lon": 12.83388888888889
+      },
       "location": null,
       "elevationFt": null,
       "runways": [
@@ -4446,8 +4558,8 @@
       "ownerOperator": "Private",
       "contactLines": [],
       "source": {
-        "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
       }
     },
     {
@@ -4491,7 +4603,7 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
@@ -4533,7 +4645,7 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
@@ -4574,14 +4686,17 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
       "name": "TORSBY",
       "icao": "ESST",
       "detailsInAd2": true,
-      "arp": null,
+      "arp": {
+        "lat": 60.15472222222222,
+        "lon": 12.993611111111111
+      },
       "location": null,
       "elevationFt": null,
       "runways": [
@@ -4605,8 +4720,8 @@
       "ownerOperator": "Municipal",
       "contactLines": [],
       "source": {
-        "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
       }
     },
     {
@@ -4648,7 +4763,7 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
@@ -4689,14 +4804,17 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
       "name": "UMEÅ",
       "icao": "ESNU",
       "detailsInAd2": true,
-      "arp": null,
+      "arp": {
+        "lat": 63.793055555555554,
+        "lon": 20.279999999999998
+      },
       "location": null,
       "elevationFt": null,
       "runways": [
@@ -4720,15 +4838,18 @@
       "ownerOperator": "Swedavia AB",
       "contactLines": [],
       "source": {
-        "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
       }
     },
     {
       "name": "UPPSALA",
       "icao": "ESCM",
       "detailsInAd2": true,
-      "arp": null,
+      "arp": {
+        "lat": 59.900277777777774,
+        "lon": 17.592499999999998
+      },
       "location": null,
       "elevationFt": null,
       "runways": [
@@ -4758,8 +4879,8 @@
       "ownerOperator": "FM/Swedish Armed Forces",
       "contactLines": [],
       "source": {
-        "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
       }
     },
     {
@@ -4809,7 +4930,7 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
@@ -4853,14 +4974,17 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
       "name": "VIDSEL",
       "icao": "ESPE",
       "detailsInAd2": true,
-      "arp": null,
+      "arp": {
+        "lat": 65.87527777777777,
+        "lon": 20.15
+      },
       "location": null,
       "elevationFt": null,
       "runways": [
@@ -4884,15 +5008,18 @@
       "ownerOperator": "FM/Swedish Armed Forces",
       "contactLines": [],
       "source": {
-        "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
       }
     },
     {
       "name": "VILHELMINA",
       "icao": "ESNV",
       "detailsInAd2": true,
-      "arp": null,
+      "arp": {
+        "lat": 64.5786111111111,
+        "lon": 16.83972222222222
+      },
       "location": null,
       "elevationFt": null,
       "runways": [
@@ -4916,15 +5043,18 @@
       "ownerOperator": "Municipal",
       "contactLines": [],
       "source": {
-        "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
       }
     },
     {
       "name": "VISBY",
       "icao": "ESSV",
       "detailsInAd2": true,
-      "arp": null,
+      "arp": {
+        "lat": 57.66277777777778,
+        "lon": 18.34611111111111
+      },
       "location": null,
       "elevationFt": null,
       "runways": [
@@ -4954,8 +5084,8 @@
       "ownerOperator": "Swedavia AB",
       "contactLines": [],
       "source": {
-        "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
       }
     },
     {
@@ -5000,7 +5130,7 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
@@ -5047,7 +5177,7 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
@@ -5090,12 +5220,12 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
-      "name": "VÄSTERÅS/",
-      "icao": "JOHANNISBERG",
+      "name": "VÄSTERÅS/JOHANNISBERG",
+      "icao": "ESSX",
       "detailsInAd2": false,
       "arp": {
         "raw": "593433N 0163011E",
@@ -5142,14 +5272,17 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
       "name": "VÄXJÖ/KRONOBERG",
       "icao": "ESMX",
       "detailsInAd2": true,
-      "arp": null,
+      "arp": {
+        "lat": 56.930277777777775,
+        "lon": 14.72888888888889
+      },
       "location": null,
       "elevationFt": null,
       "runways": [
@@ -5173,8 +5306,8 @@
       "ownerOperator": "Municipal",
       "contactLines": [],
       "source": {
-        "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
       }
     },
     {
@@ -5217,7 +5350,7 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
@@ -5257,14 +5390,17 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
       "name": "ÅRE ÖSTERSUND",
       "icao": "ESNZ",
       "detailsInAd2": true,
-      "arp": null,
+      "arp": {
+        "lat": 63.19444444444444,
+        "lon": 14.500277777777777
+      },
       "location": null,
       "elevationFt": null,
       "runways": [
@@ -5288,8 +5424,8 @@
       "ownerOperator": "Swedavia AB",
       "contactLines": [],
       "source": {
-        "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
       }
     },
     {
@@ -5328,7 +5464,7 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
@@ -5370,7 +5506,7 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
@@ -5411,14 +5547,17 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
       "name": "ÄNGELHOLM",
       "icao": "ESTA",
       "detailsInAd2": true,
-      "arp": null,
+      "arp": {
+        "lat": 56.29111111111111,
+        "lon": 12.855
+      },
       "location": null,
       "elevationFt": null,
       "runways": [
@@ -5442,8 +5581,8 @@
       "ownerOperator": "Private",
       "contactLines": [],
       "source": {
-        "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
       }
     },
     {
@@ -5483,14 +5622,17 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
       "name": "ÖREBRO",
       "icao": "ESOE",
       "detailsInAd2": true,
-      "arp": null,
+      "arp": {
+        "lat": 59.22805555555556,
+        "lon": 15.04
+      },
       "location": null,
       "elevationFt": null,
       "runways": [
@@ -5514,8 +5656,8 @@
       "ownerOperator": "Municipal",
       "contactLines": [],
       "source": {
-        "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
       }
     },
     {
@@ -5555,14 +5697,17 @@
       ],
       "source": {
         "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
       }
     },
     {
       "name": "ÖRNSKÖLDSVIK",
       "icao": "ESNO",
       "detailsInAd2": true,
-      "arp": null,
+      "arp": {
+        "lat": 63.407777777777774,
+        "lon": 18.9925
+      },
       "location": null,
       "elevationFt": null,
       "runways": [
@@ -5586,8 +5731,8 @@
       "ownerOperator": "Municipal",
       "contactLines": [],
       "source": {
-        "document": "LFV AD 1.1",
-        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/AMC/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
       }
     }
   ]

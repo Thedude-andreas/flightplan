@@ -561,6 +561,31 @@
   gap: 0.15rem;
 }
 
+.flightplan-page .fp-airport-label {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+.flightplan-page .fp-airport-label span {
+  display: inline-block;
+  padding: 0.12rem 0.36rem;
+  border-radius: 999px;
+  background: rgba(248, 252, 255, 0.92);
+  border: 1px solid rgba(31, 107, 255, 0.28);
+  color: #1147b8;
+  font-family: 'Space Grotesk', 'Inter', sans-serif;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1.15;
+  box-shadow: 0 1px 4px rgba(18, 42, 92, 0.14);
+}
+
+.flightplan-page .fp-airport-label::before {
+  display: none;
+}
+
 .flightplan-page .fp-leaflet-map .leaflet-interactive:focus {
   outline: none;
 }

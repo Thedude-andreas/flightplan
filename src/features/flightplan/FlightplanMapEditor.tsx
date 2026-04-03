@@ -52,6 +52,31 @@ const midpointIcon = divIcon({
   iconSize: [14, 14],
   iconAnchor: [7, 7],
 })
+const airportLabelMinZoom = 8
+const maxVisibleAirspaceLowerFt = 9500
+
+function parseAirspaceAltitudeFeet(value: string | null) {
+  if (!value) {
+    return null
+  }
+
+  const normalized = value.trim().toUpperCase()
+  if (normalized === 'GND') {
+    return 0
+  }
+
+  const flightLevelMatch = normalized.match(/^FL\s*(\d+)$/)
+  if (flightLevelMatch) {
+    return Number(flightLevelMatch[1]) * 100
+  }
+
+  const feetMatch = normalized.match(/^(\d+)$/)
+  if (feetMatch) {
+    return Number(feetMatch[1])
+  }
+
+  return null
+}
 
 function midpoint(a: FlightPlanInput['routeLegs'][number]['from'], b: FlightPlanInput['routeLegs'][number]['to']) {
   return {
@@ -79,6 +104,20 @@ function MapClickHandler({
   return null
 }
 
+function MapZoomHandler({
+  onZoomChange,
+}: {
+  onZoomChange: (zoom: number) => void
+}) {
+  useMapEvents({
+    zoomend(event) {
+      onZoomChange(event.target.getZoom())
+    },
+  })
+
+  return null
+}
+
 export function FlightplanMapEditor({
   plan,
   derived,
@@ -90,6 +129,7 @@ export function FlightplanMapEditor({
 }) {
   const [basemap, setBasemap] = useState<BasemapKey>('topo')
   const [showAirspaces, setShowAirspaces] = useState(true)
+  const [mapZoom, setMapZoom] = useState(7)
   const [dragPreviewWaypoints, setDragPreviewWaypoints] = useState<ReturnType<typeof legsToWaypoints> | null>(null)
   const [midpointInsertIndex, setMidpointInsertIndex] = useState<number | null>(null)
   const suppressNextMapClick = useRef(false)
@@ -116,18 +156,23 @@ export function FlightplanMapEditor({
   const airspaceGeoJson = useMemo(
     () => ({
       type: 'FeatureCollection' as const,
-      features: swedishAirspaces.map((airspace) => ({
-        type: 'Feature' as const,
-        properties: {
-          id: airspace.id,
-          kind: airspace.kind,
-          name: airspace.name,
-          lower: airspace.lower,
-          upper: airspace.upper,
-          positionIndicator: airspace.positionIndicator,
-        },
-        geometry: airspace.geometry,
-      })),
+      features: swedishAirspaces
+        .filter((airspace) => {
+          const lowerFeet = parseAirspaceAltitudeFeet(airspace.lower)
+          return lowerFeet == null || lowerFeet < maxVisibleAirspaceLowerFt
+        })
+        .map((airspace) => ({
+          type: 'Feature' as const,
+          properties: {
+            id: airspace.id,
+            kind: airspace.kind,
+            name: airspace.name,
+            lower: airspace.lower,
+            upper: airspace.upper,
+            positionIndicator: airspace.positionIndicator,
+          },
+          geometry: airspace.geometry,
+        })),
     }),
     [],
   )
@@ -223,6 +268,7 @@ export function FlightplanMapEditor({
         <MapContainer center={center} zoom={7} scrollWheelZoom className="fp-leaflet-map">
           <TileLayer attribution={basemaps[basemap].attribution} url={basemaps[basemap].url} />
           <MapClickHandler onAddPoint={addPointToEnd} shouldSuppressClick={shouldSuppressClick} />
+          <MapZoomHandler onZoomChange={setMapZoom} />
 
           {showAirspaces ? (
             <GeoJSON
@@ -285,6 +331,17 @@ export function FlightplanMapEditor({
                 fillOpacity: 0.9,
               }}
             >
+              {airport.icao && mapZoom >= airportLabelMinZoom ? (
+                <Tooltip
+                  permanent
+                  direction="top"
+                  offset={[0, -10]}
+                  opacity={1}
+                  className="fp-airport-label"
+                >
+                  <span>{airport.icao}</span>
+                </Tooltip>
+              ) : null}
               <Tooltip direction="top" offset={[0, -6]} opacity={0.95}>
                 <div className="fp-airport-tooltip">
                   <strong>{airport.icao}</strong>
