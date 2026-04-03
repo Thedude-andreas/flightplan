@@ -197,10 +197,6 @@ export function FlightplanMapEditor({
   return (
     <section className="fp-map-editor">
       <div className="fp-map-toolbar">
-        <div>
-          <p className="fp-panel-eyebrow">Karteditor</p>
-          <h3>Magenta färdlinje med redigerbara waypoints</h3>
-        </div>
         <div className="fp-map-controls">
           <label className="fp-basemap-control">
             Kartlager
@@ -266,6 +262,12 @@ export function FlightplanMapEditor({
                 layer.bindTooltip(`<div class="fp-airspace-tooltip">${lines.join('')}</div>`, {
                   sticky: true,
                   opacity: 0.95,
+                })
+                layer.on('click', (event) => {
+                  const clicked = event as LeafletMouseEvent
+                  clicked.originalEvent?.preventDefault?.()
+                  clicked.originalEvent?.stopPropagation?.()
+                  addPointToEnd(clicked.latlng.lat, clicked.latlng.lng)
                 })
               }}
             />
@@ -345,12 +347,24 @@ export function FlightplanMapEditor({
                 </div>
               </Tooltip>
               <Popup className="fp-waypoint-popup" autoPan closeButton>
-                <div className="fp-waypoint-popup__content">
+                <div
+                  className="fp-waypoint-popup__content"
+                  onClick={(event) => event.stopPropagation()}
+                  onMouseDown={(event) => event.stopPropagation()}
+                >
                   <strong>{point.name}</strong>
                   <span>{formatCoordinateDms(point.lat, 'lat')} {formatCoordinateDms(point.lon, 'lon')}</span>
                   <button
                     type="button"
-                    onClick={() => removeWaypoint(index)}
+                    onClick={(event) => {
+                      event.preventDefault()
+                      event.stopPropagation()
+                      removeWaypoint(index)
+                    }}
+                    onMouseDown={(event) => {
+                      event.preventDefault()
+                      event.stopPropagation()
+                    }}
                     disabled={waypoints.length <= 2}
                   >
                     Ta bort waypoint

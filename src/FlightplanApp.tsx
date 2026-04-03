@@ -9,7 +9,7 @@ import { FlightplanMapEditor } from './features/flightplan/FlightplanMapEditor'
 import type { AircraftProfile, FlightPlanInput, RouteLegInput } from './features/flightplan/types'
 
 type EditorPanel = 'route' | 'fuel' | 'weightBalance' | 'performance' | 'aircraft'
-type WorkspaceTab = 'create' | 'print' | 'settings'
+type WorkspaceTab = 'flightplan' | 'map' | 'print' | 'settings'
 type RouteRow = Record<string, string | number>
 type RowContextMenuState = { x: number; y: number; rowIndex: number } | null
 
@@ -125,7 +125,7 @@ function createAircraftDraft(source?: AircraftProfile, seed = 1): AircraftProfil
 export function FlightplanApp() {
   const [plan, setPlan] = useState<FlightPlanInput>(initialFlightPlan)
   const [activePanel, setActivePanel] = useState<EditorPanel | null>(null)
-  const [activeTab, setActiveTab] = useState<WorkspaceTab>('create')
+  const [activeTab, setActiveTab] = useState<WorkspaceTab>('flightplan')
   const [aircraftOptions, setAircraftOptions] = useState<AircraftProfile[]>(aircraftProfiles)
   const [settingsIndex, setSettingsIndex] = useState(0)
   const [rowContextMenu, setRowContextMenu] = useState<RowContextMenuState>(null)
@@ -309,8 +309,11 @@ export function FlightplanApp() {
       </header>
 
       <div className="fp-tabs fp-no-print" role="tablist" aria-label="Arbetsyta">
-        <button type="button" className={activeTab === 'create' ? 'is-active' : ''} onClick={() => setActiveTab('create')}>
-          Skapa
+        <button type="button" className={activeTab === 'flightplan' ? 'is-active' : ''} onClick={() => setActiveTab('flightplan')}>
+          Driftfärdplan
+        </button>
+        <button type="button" className={activeTab === 'map' ? 'is-active' : ''} onClick={() => setActiveTab('map')}>
+          Karta
         </button>
         <button type="button" className={activeTab === 'print' ? 'is-active' : ''} onClick={() => setActiveTab('print')}>
           Skriv ut
@@ -321,7 +324,7 @@ export function FlightplanApp() {
       </div>
 
       <main className="fp-workspace" onClick={() => setRowContextMenu(null)}>
-        {activeTab === 'create' && (
+        {activeTab === 'flightplan' && (
           <div className="fp-tab-panel">
             <section className="fp-document-sheet">
               <FlightPlanDocument
@@ -339,19 +342,12 @@ export function FlightplanApp() {
                 }}
               />
             </section>
+          </div>
+        )}
 
+        {activeTab === 'map' && (
+          <div className="fp-tab-panel">
             <section className="fp-map-sheet fp-live-map-sheet">
-              <div className="fp-map-header">
-                <div>
-                  <p className="fp-eyebrow">Livekarta</p>
-                  <h2>Bygg rutten direkt på kartan</h2>
-                </div>
-                <div className="fp-map-meta">
-                  <span>{plan.header.departureAerodrome}</span>
-                  <span>{plan.header.destinationAerodrome}</span>
-                  <span>{formatNumber(derived.totals.distanceNm, 1)} nm</span>
-                </div>
-              </div>
               <FlightplanMapEditor plan={plan} derived={derived} onRouteLegsChange={replaceRouteLegs} />
             </section>
           </div>
