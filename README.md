@@ -29,6 +29,33 @@ npm run build
 npm run lint
 ```
 
+## Deploy
+
+Production is served from `webroots/www/flightplan` on the remote host.
+
+The deploy script now treats:
+
+- `DEPLOY_PATH=webroots/www` as the explicit production webroot
+- `DEPLOY_PATH=.` as a legacy value and remaps it to `webroots/www`
+
+Publish with:
+
+```bash
+npm run deploy
+```
+
+Required deploy variables are loaded from `../AMC/.env`:
+
+```bash
+DEPLOY_HOST=...
+DEPLOY_PORT=22
+DEPLOY_USER=...
+DEPLOY_PASS=...
+DEPLOY_PATH=webroots/www
+```
+
+Do not point `DEPLOY_PATH` at the SSH home directory when publishing this app. That uploads files outside the live webroot and the public site will remain unchanged.
+
 ## Auth and Supabase
 
 The app now contains:
