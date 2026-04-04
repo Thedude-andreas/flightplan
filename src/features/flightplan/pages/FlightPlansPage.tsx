@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { getErrorMessage } from '../../../lib/supabase/errors'
 import { createFlightPlan, deleteFlightPlan, listFlightPlans } from '../api/flightPlansRepository'
 import type { FlightPlanRecord } from '../persistenceTypes'
-import { createInitialFlightPlan } from '../data'
+import { createEmptyFlightPlan } from '../data'
 
 function formatDateTime(value: string) {
   return new Intl.DateTimeFormat('sv-SE', {
@@ -58,7 +58,7 @@ export function FlightPlansPage() {
     try {
       const created = await createFlightPlan({
         name: createDefaultPlanName(),
-        payload: createInitialFlightPlan(),
+        payload: createEmptyFlightPlan(),
       })
 
       setPlans((current) => [created, ...current])

@@ -3,12 +3,12 @@ import type { PointerEvent as ReactPointerEvent, ReactNode } from 'react'
 import './features/flightplan/flightplan.css'
 import { aircraftProfiles, createInitialFlightPlan } from './features/flightplan/data'
 import { calculateFlightPlan, formatNumber, formatTimeFromMinutes } from './features/flightplan/calculations'
-import { formatCoordinateDms, parseCoordinateDms, snapCoordinate } from './features/flightplan/coordinates'
+import { snapCoordinate } from './features/flightplan/coordinates'
 import { legsToWaypoints, waypointsToLegs } from './features/flightplan/gazetteer'
 import { FlightplanMapEditor } from './features/flightplan/FlightplanMapEditor'
-import type { AircraftProfile, FlightPlanInput, RouteLegInput } from './features/flightplan/types'
+import type { AircraftProfile, FlightPlanInput } from './features/flightplan/types'
 
-type EditorPanel = 'route' | 'fuel' | 'weightBalance' | 'performance' | 'aircraft'
+type EditorPanel = 'fuel' | 'weightBalance' | 'performance' | 'aircraft'
 type WorkspaceTab = 'flightplan' | 'map' | 'print' | 'settings'
 type RouteRow = Record<string, string | number>
 type RowContextMenuState = { x: number; y: number; rowIndex: number } | null
@@ -53,6 +53,19 @@ function createRouteRows(
   derived: ReturnType<typeof calculateFlightPlan>,
   targetLength?: number,
 ): RouteRow[] {
+  const hasPendingStartPoint =
+    plan.routeLegs.length === 1 &&
+    plan.routeLegs[0].from.lat === plan.routeLegs[0].to.lat &&
+    plan.routeLegs[0].from.lon === plan.routeLegs[0].to.lon
+
+  if (hasPendingStartPoint) {
+    if (!targetLength) {
+      return []
+    }
+
+    return Array.from({ length: targetLength }, (_, index) => emptyRouteRow(index))
+  }
+
   const rows: RouteRow[] = derived.routeLegs.map((leg, index) => ({
     index,
     wind: leg.windText,
@@ -168,6 +181,7 @@ export function FlightplanApp({
   )
   const [settingsIndex, setSettingsIndex] = useState(0)
   const [rowContextMenu, setRowContextMenu] = useState<RowContextMenuState>(null)
+  const [focusedLegIndex, setFocusedLegIndex] = useState<number | null>(null)
 
   const derived = calculateFlightPlan(plan, aircraftOptions)
   const routeRows = useMemo(() => createRouteRows(plan, derived), [plan, derived])
@@ -220,13 +234,6 @@ export function FlightplanApp({
     }))
   }
 
-  const updateLeg = (index: number, updater: (leg: RouteLegInput) => RouteLegInput) => {
-    setPlan((current) => ({
-      ...current,
-      routeLegs: current.routeLegs.map((leg, legIndex) => (legIndex === index ? updater(leg) : leg)),
-    }))
-  }
-
   const replaceRouteLegs = (routeLegs: FlightPlanInput['routeLegs']) => {
     setPlan((current) => ({
       ...current,
@@ -256,14 +263,6 @@ export function FlightplanApp({
         ].slice(0, 13),
       }
     })
-  }
-
-  const removeRouteLeg = (index: number) => {
-    setRowContextMenu(null)
-    setPlan((current) => ({
-      ...current,
-      routeLegs: current.routeLegs.filter((_, legIndex) => legIndex !== index),
-    }))
   }
 
   const removeWaypointFromRoute = (waypointIndex: number) => {
@@ -377,6 +376,10 @@ export function FlightplanApp({
                 routeRows={routeRows}
                 onHeaderChange={updateHeader}
                 onSectionSelect={setActivePanel}
+                onRouteSegmentSelect={(rowIndex) => {
+                  setFocusedLegIndex(rowIndex)
+                  setActiveTab('map')
+                }}
                 onOpenAircraftPicker={() => setActivePanel('aircraft')}
                 onRadioNavChange={updateRadioNav}
                 onAddRouteRow={addRouteLeg}
@@ -392,7 +395,12 @@ export function FlightplanApp({
         {activeTab === 'map' && (
           <div className="fp-tab-panel">
             <section className="fp-map-sheet fp-live-map-sheet">
-              <FlightplanMapEditor plan={plan} derived={derived} onRouteLegsChange={replaceRouteLegs} />
+              <FlightplanMapEditor
+                plan={plan}
+                derived={derived}
+                onRouteLegsChange={replaceRouteLegs}
+                focusedLegIndex={focusedLegIndex}
+              />
             </section>
           </div>
         )}
@@ -406,6 +414,10 @@ export function FlightplanApp({
                 routeRows={printRouteRows}
                 onHeaderChange={updateHeader}
                 onSectionSelect={setActivePanel}
+                onRouteSegmentSelect={(rowIndex) => {
+                  setFocusedLegIndex(rowIndex)
+                  setActiveTab('map')
+                }}
                 onOpenAircraftPicker={() => setActivePanel('aircraft')}
                 onRadioNavChange={updateRadioNav}
               />
@@ -640,57 +652,6 @@ export function FlightplanApp({
       {activePanel && (
         <div className="fp-overlay-shell fp-no-print" onClick={() => setActivePanel(null)}>
           <section className="fp-overlay-panel" onClick={(event) => event.stopPropagation()}>
-            {activePanel === 'route' && (
-              <section className="fp-panel-card fp-overlay-card">
-                <div className="fp-panel-header">
-                  <div>
-                    <p className="fp-panel-eyebrow">Rutteditor</p>
-                    <h2>Koordinater och vind per ben</h2>
-                  </div>
-                  <div className="fp-overlay-actions">
-                    <button type="button" onClick={addRouteLeg} disabled={plan.routeLegs.length >= 13}>
-                      Lägg till ben
-                    </button>
-                    <button type="button" onClick={() => setActivePanel(null)}>
-                      Stäng
-                    </button>
-                  </div>
-                </div>
-                <FlightplanMapEditor plan={plan} derived={derived} onRouteLegsChange={replaceRouteLegs} />
-                <div className="fp-route-editor">
-                  {plan.routeLegs.map((leg, index) => (
-                    <div className="fp-route-leg-card" key={`${leg.from.name}-${leg.to.name}-${index}`}>
-                      <div className="fp-route-leg-header">
-                        <strong>Ben {index + 1}</strong>
-                        <button
-                          type="button"
-                          onClick={() => removeRouteLeg(index)}
-                          disabled={plan.routeLegs.length === 1}
-                        >
-                          Ta bort
-                        </button>
-                      </div>
-                      <div className="fp-input-grid fp-two-col">
-                        <EditorInput label="Från" value={leg.from.name} onChange={(value) => updateLeg(index, (current) => ({ ...current, from: { ...current.from, name: value } }))} />
-                        <EditorInput label="Till" value={leg.to.name} onChange={(value) => updateLeg(index, (current) => ({ ...current, to: { ...current.to, name: value } }))} />
-                        <EditorCoordinate label="Från lat" axis="lat" value={leg.from.lat} onChange={(value) => updateLeg(index, (current) => ({ ...current, from: { ...current.from, lat: value } }))} />
-                        <EditorCoordinate label="Från lon" axis="lon" value={leg.from.lon} onChange={(value) => updateLeg(index, (current) => ({ ...current, from: { ...current.from, lon: value } }))} />
-                        <EditorCoordinate label="Till lat" axis="lat" value={leg.to.lat} onChange={(value) => updateLeg(index, (current) => ({ ...current, to: { ...current.to, lat: value } }))} />
-                        <EditorCoordinate label="Till lon" axis="lon" value={leg.to.lon} onChange={(value) => updateLeg(index, (current) => ({ ...current, to: { ...current.to, lon: value } }))} />
-                        <EditorNumber label="Vindriktning" value={leg.windDirection} onChange={(value) => updateLeg(index, (current) => ({ ...current, windDirection: value }))} />
-                        <EditorNumber label="Vind kt" value={leg.windSpeedKt} onChange={(value) => updateLeg(index, (current) => ({ ...current, windSpeedKt: value }))} />
-                        <EditorNumber label="TAS kt" value={leg.tasKt} onChange={(value) => updateLeg(index, (current) => ({ ...current, tasKt: value }))} />
-                        <EditorNumber label="Variation" value={leg.variation} onChange={(value) => updateLeg(index, (current) => ({ ...current, variation: value }))} />
-                        <EditorInput label="Alt/FL" value={leg.altitude} onChange={(value) => updateLeg(index, (current) => ({ ...current, altitude: value }))} />
-                        <EditorInput label="VOR/NDB" value={leg.navRef} onChange={(value) => updateLeg(index, (current) => ({ ...current, navRef: value }))} />
-                      </div>
-                      <EditorInput label="Notering" value={leg.notes} onChange={(value) => updateLeg(index, (current) => ({ ...current, notes: value }))} />
-                    </div>
-                  ))}
-                </div>
-              </section>
-            )}
-
             {activePanel === 'aircraft' && (
               <section className="fp-panel-card fp-overlay-card">
                 <div className="fp-panel-header">
@@ -878,44 +839,6 @@ function EditorNumber({
   )
 }
 
-function EditorCoordinate({
-  label,
-  axis,
-  value,
-  onChange,
-}: {
-  label: string
-  axis: 'lat' | 'lon'
-  value: number
-  onChange: (value: number) => void
-}) {
-  const [draft, setDraft] = useState(() => formatCoordinateDms(value, axis))
-
-  useEffect(() => {
-    setDraft(formatCoordinateDms(value, axis))
-  }, [axis, value])
-
-  return (
-    <label>
-      {label}
-      <input
-        value={draft}
-        onChange={(event) => setDraft(event.target.value)}
-        onBlur={() => {
-          const parsed = parseCoordinateDms(draft, axis)
-          if (parsed === null) {
-            setDraft(formatCoordinateDms(value, axis))
-            return
-          }
-
-          onChange(parsed)
-          setDraft(formatCoordinateDms(parsed, axis))
-        }}
-      />
-    </label>
-  )
-}
-
 function SeatBox({
   title,
   value,
@@ -942,6 +865,7 @@ function FlightPlanDocument({
   routeRows,
   onHeaderChange,
   onSectionSelect,
+  onRouteSegmentSelect,
   onOpenAircraftPicker,
   onRadioNavChange,
   onAddRouteRow,
@@ -952,6 +876,7 @@ function FlightPlanDocument({
   routeRows: RouteRow[]
   onHeaderChange: (key: keyof FlightPlanInput['header'], value: string) => void
   onSectionSelect: (panel: EditorPanel) => void
+  onRouteSegmentSelect: (rowIndex: number) => void
   onOpenAircraftPicker: () => void
   onRadioNavChange: (index: number, key: 'name' | 'frequency', value: string) => void
   onAddRouteRow?: () => void
@@ -1044,7 +969,16 @@ function FlightPlanDocument({
                 onPointerMove={clearPressTimer}
               >
                 <td>{row.wind}</td><td>{row.tas}</td><td className="fp-highlight-cell">{row.tt}</td><td>{row.wca}</td><td>{row.th}</td><td>{row.variation}</td><td className="fp-highlight-cell">{row.mh}</td><td>{row.altitude}</td>
-                <td className="fp-highlight-cell fp-route-link" onClick={() => onSectionSelect('route')}>{row.segment}</td>
+                <td
+                  className="fp-highlight-cell fp-route-link"
+                  onClick={() => {
+                    if (typeof row.index === 'number' && row.index < plan.routeLegs.length) {
+                      onRouteSegmentSelect(row.index)
+                    }
+                  }}
+                >
+                  {row.segment}
+                </td>
                 <td>{row.navRef}</td><td>{row.gs}</td><td>{row.distInt}</td><td>{row.distAcc}</td><td>{row.timeInt}</td><td>{row.timeAcc}</td><td>{row.notes}</td>
               </tr>
             ))}

@@ -548,6 +548,25 @@
   min-height: 68vh;
 }
 
+.flightplan-page .fp-map-empty-hint {
+  position: absolute;
+  top: 18px;
+  left: 18px;
+  z-index: 500;
+  max-width: min(320px, calc(100% - 36px));
+  padding: 0.8rem 1rem;
+  border: 1px solid rgba(22, 56, 80, 0.16);
+  border-radius: 999px;
+  background: rgba(255, 253, 248, 0.94);
+  color: #163850;
+  font-family: 'Space Grotesk', 'Inter', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  box-shadow: 0 10px 24px rgba(22, 56, 80, 0.12);
+  backdrop-filter: blur(6px);
+  pointer-events: none;
+}
+
 .flightplan-page .fp-leaflet-map {
   height: min(78vh, 980px);
   width: 100%;

@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   CircleMarker,
   GeoJSON,
@@ -9,6 +9,7 @@ import {
   TileLayer,
   Tooltip,
   useMapEvents,
+  useMap,
 } from 'react-leaflet'
 import L, { divIcon, type DragEndEvent, type LeafletMouseEvent } from 'leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -85,6 +86,15 @@ function midpoint(a: FlightPlanInput['routeLegs'][number]['from'], b: FlightPlan
   }
 }
 
+function isPlaceholderLeg(legs: FlightPlanInput['routeLegs']) {
+  if (legs.length !== 1) {
+    return false
+  }
+
+  const [leg] = legs
+  return leg.from.lat === leg.to.lat && leg.from.lon === leg.to.lon
+}
+
 function MapClickHandler({
   onAddPoint,
   shouldSuppressClick,
@@ -118,14 +128,49 @@ function MapZoomHandler({
   return null
 }
 
+function FocusLegHandler({
+  plan,
+  focusedLegIndex,
+}: {
+  plan: FlightPlanInput
+  focusedLegIndex: number | null
+}) {
+  const map = useMap()
+
+  useEffect(() => {
+    if (focusedLegIndex == null) {
+      return
+    }
+
+    const leg = plan.routeLegs[focusedLegIndex]
+    if (!leg) {
+      return
+    }
+
+    const bounds = L.latLngBounds(
+      [leg.from.lat, leg.from.lon],
+      [leg.to.lat, leg.to.lon],
+    )
+
+    map.fitBounds(bounds.pad(0.45), {
+      animate: true,
+      duration: 0.7,
+    })
+  }, [focusedLegIndex, map, plan.routeLegs])
+
+  return null
+}
+
 export function FlightplanMapEditor({
   plan,
   derived,
   onRouteLegsChange,
+  focusedLegIndex = null,
 }: {
   plan: FlightPlanInput
   derived: FlightPlanDerived
   onRouteLegsChange: (legs: FlightPlanInput['routeLegs']) => void
+  focusedLegIndex?: number | null
 }) {
   const [basemap, setBasemap] = useState<BasemapKey>('topo')
   const [showAirspaces, setShowAirspaces] = useState(true)
@@ -134,10 +179,17 @@ export function FlightplanMapEditor({
   const [midpointInsertIndex, setMidpointInsertIndex] = useState<number | null>(null)
   const suppressNextMapClick = useRef(false)
   const lastMidpointDragPosition = useRef<{ lat: number; lon: number } | null>(null)
-  const waypoints = useMemo(() => legsToWaypoints(plan.routeLegs), [plan.routeLegs])
+  const hasPendingStartPoint = useMemo(() => isPlaceholderLeg(plan.routeLegs), [plan.routeLegs])
+  const waypoints = useMemo(() => {
+    if (hasPendingStartPoint) {
+      return plan.routeLegs.length > 0 ? [plan.routeLegs[0].from] : []
+    }
+
+    return legsToWaypoints(plan.routeLegs)
+  }, [hasPendingStartPoint, plan.routeLegs])
   const displayWaypoints = dragPreviewWaypoints ?? waypoints
   const previewRouteLegs = useMemo(
-    () => waypointsToLegs(displayWaypoints, plan.routeLegs, derived.aircraft.cruiseTasKt),
+    () => (displayWaypoints.length < 2 ? [] : waypointsToLegs(displayWaypoints, plan.routeLegs, derived.aircraft.cruiseTasKt)),
     [derived.aircraft.cruiseTasKt, displayWaypoints, plan.routeLegs],
   )
   const previewDerived = useMemo(
@@ -196,8 +248,33 @@ export function FlightplanMapEditor({
   const addPointToEnd = (lat: number, lon: number) => {
     const nextPoint = pointWithNearestName(lat, lon)
     if (waypoints.length === 0) {
+      onRouteLegsChange([
+        {
+          from: nextPoint,
+          to: nextPoint,
+          windDirection: 220,
+          windSpeedKt: 15,
+          tasKt: derived.aircraft.cruiseTasKt,
+          variation: 6,
+          altitude: '',
+          navRef: '',
+          notes: '',
+        },
+      ])
       return
     }
+
+    if (isPlaceholderLeg(plan.routeLegs)) {
+      onRouteLegsChange([
+        {
+          ...plan.routeLegs[0],
+          from: { ...plan.routeLegs[0].from },
+          to: nextPoint,
+        },
+      ])
+      return
+    }
+
     setWaypoints([...waypoints, nextPoint])
   }
 
@@ -265,10 +342,21 @@ export function FlightplanMapEditor({
       </div>
 
       <div className="fp-map-canvas">
+        {waypoints.length === 0 && (
+          <div className="fp-map-empty-hint">
+            Klicka i kartan för att välja startpunkten
+          </div>
+        )}
+        {hasPendingStartPoint && (
+          <div className="fp-map-empty-hint">
+            Startpunkt vald. Klicka igen i kartan för nästa waypoint.
+          </div>
+        )}
         <MapContainer center={center} zoom={7} scrollWheelZoom className="fp-leaflet-map">
           <TileLayer attribution={basemaps[basemap].attribution} url={basemaps[basemap].url} />
           <MapClickHandler onAddPoint={addPointToEnd} shouldSuppressClick={shouldSuppressClick} />
           <MapZoomHandler onZoomChange={setMapZoom} />
+          <FocusLegHandler plan={plan} focusedLegIndex={focusedLegIndex} />
 
           {showAirspaces ? (
             <GeoJSON

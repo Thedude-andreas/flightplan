@@ -151,4 +151,18 @@ export function createInitialFlightPlan(): FlightPlanInput {
   }
 }
 
+export function createEmptyFlightPlan(): FlightPlanInput {
+  const plan = createInitialFlightPlan()
+
+  return {
+    ...plan,
+    header: {
+      ...plan.header,
+      departureAerodrome: '',
+      destinationAerodrome: '',
+    },
+    routeLegs: [],
+  }
+}
+
 export const initialFlightPlan = createInitialFlightPlan()

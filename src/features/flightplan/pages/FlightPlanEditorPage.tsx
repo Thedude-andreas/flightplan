@@ -7,7 +7,7 @@ import { clearDraft, loadDraft, saveDraft } from '../../../lib/storage/draftStor
 import { getErrorMessage } from '../../../lib/supabase/errors'
 import type { DraftEnvelope, SaveState } from '../../../shared/types/persistence'
 import { createFlightPlan, getFlightPlanById, updateFlightPlan } from '../api/flightPlansRepository'
-import { createInitialFlightPlan } from '../data'
+import { createEmptyFlightPlan, createInitialFlightPlan } from '../data'
 import type { FlightPlanInput } from '../types'
 
 type FlightPlanDraftValue = {
@@ -169,7 +169,7 @@ export function FlightPlanEditorPage() {
         } else {
           const storedDraft = loadDraft<FlightPlanDraftValue>(createDraftKey(user.id, null))
 
-          const nextPlan = storedDraft?.value.plan ?? createInitialFlightPlan()
+          const nextPlan = storedDraft?.value.plan ?? createEmptyFlightPlan()
           const nextName = storedDraft?.value.name ?? createDefaultPlanName()
           setInitialPlan(nextPlan)
           setCurrentPlan(nextPlan)
