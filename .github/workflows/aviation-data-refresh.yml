@@ -29,7 +29,14 @@ jobs:
         run: npm ci
 
       - name: Refresh Swedish aviation data
-        run: npm run aviation:se:refresh
+        run: |
+          npm run aviation:se:fetch
+          npm run aviation:se:extract
+          npm run aviation:se:manifest
+          npm run aviation:se:airports
+          npm run aviation:se:airspaces
+          npm run aviation:se:radio-nav
+          npm run aviation:se:build
 
       - name: Validate Swedish aviation data
         run: npm run aviation:se:validate
@@ -47,7 +54,6 @@ jobs:
         run: |
           if git diff --quiet -- \
             data/aviation/se/normalized \
-            public/flightplan-data/places.se.json \
             src/features/flightplan/generated; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
           else
@@ -66,5 +72,4 @@ jobs:
           delete-branch: true
           add-paths: |
             data/aviation/se/normalized
-            public/flightplan-data/places.se.json
             src/features/flightplan/generated

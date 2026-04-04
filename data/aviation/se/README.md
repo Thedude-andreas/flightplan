@@ -222,6 +222,8 @@ Its intended flow is:
 
 This keeps automated source refresh separate from production deployment.
 
+The scheduled workflow intentionally excludes `aviation:se:places`. Place-name data changes infrequently and is treated as a manual refresh path rather than nightly operational data.
+
 ## Parsing Roadmap
 - `AD 2` -> airports, runways, frequencies, elevation
 - `ENR 2` -> permanent airspaces

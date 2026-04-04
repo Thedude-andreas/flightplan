@@ -257,10 +257,12 @@ The repo now includes:
 
 The workflow is designed to:
 
-- refresh LFV and place-name data
+- refresh LFV-derived aviation data
 - validate the output
 - build a markdown diff report
 - open or update a PR instead of pushing data directly to live
+
+Place-name updates are intentionally excluded from the nightly workflow. Run `npm run aviation:se:places` manually when you want to refresh the Swedish gazetteer.
 
 Official source:
 
