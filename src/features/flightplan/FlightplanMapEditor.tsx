@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   CircleMarker,
+  FeatureGroup,
   GeoJSON,
   MapContainer,
   Marker,
@@ -11,7 +12,7 @@ import {
   useMapEvents,
   useMap,
 } from 'react-leaflet'
-import L, { divIcon, type DragEndEvent, type LeafletMouseEvent } from 'leaflet'
+import L, { divIcon, type LeafletMouseEvent } from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 
 import { calculateFlightPlan, formatTimeFromMinutes } from './calculations'
@@ -47,14 +48,10 @@ const waypointIcon = divIcon({
   iconAnchor: [9, 9],
 })
 
-const midpointIcon = divIcon({
-  className: 'fp-midpoint-icon',
-  html: '<span>+</span>',
-  iconSize: [14, 14],
-  iconAnchor: [7, 7],
-})
+const routeLineWeight = 6
 const airportLabelMinZoom = 8
 const airportMarkerRadiusPx = 4
+const directionArrowWaypointClearancePx = 22
 const maxVisibleAirspaceLowerFt = 9500
 
 function parseAirspaceAltitudeFeet(value: string | null) {
@@ -85,6 +82,44 @@ function midpoint(a: FlightPlanInput['routeLegs'][number]['from'], b: FlightPlan
     lat: (a.lat + b.lat) / 2,
     lon: (a.lon + b.lon) / 2,
   }
+}
+
+function projectedMidpoint(
+  map: L.Map | null,
+  a: FlightPlanInput['routeLegs'][number]['from'],
+  b: FlightPlanInput['routeLegs'][number]['to'],
+) {
+  if (!map) {
+    return midpoint(a, b)
+  }
+
+  const fromPoint = map.latLngToLayerPoint([a.lat, a.lon])
+  const toPoint = map.latLngToLayerPoint([b.lat, b.lon])
+  const centerPoint = L.point(
+    (fromPoint.x + toPoint.x) / 2,
+    (fromPoint.y + toPoint.y) / 2,
+  )
+  const centerLatLng = map.layerPointToLatLng(centerPoint)
+
+  return {
+    lat: centerLatLng.lat,
+    lon: centerLatLng.lng,
+  }
+}
+
+function createChevronIcon(rotationDeg: number) {
+  return divIcon({
+    className: 'fp-direction-icon',
+    html: `
+      <svg viewBox="0 0 16 16" aria-hidden="true">
+        <g transform="rotate(${rotationDeg - 90} 8 8)">
+          <path d="M5 4.5 L11 8 L5 11.5" />
+        </g>
+      </svg>
+    `,
+    iconSize: [16, 16],
+    iconAnchor: [8, 8],
+  })
 }
 
 function isPlaceholderLeg(legs: FlightPlanInput['routeLegs']) {
@@ -176,6 +211,35 @@ function MapInstanceHandler({
   return null
 }
 
+function RouteInsertDragHandler({
+  activeSegmentIndex,
+  onMove,
+  onEnd,
+}: {
+  activeSegmentIndex: number | null
+  onMove: (lat: number, lon: number) => void
+  onEnd: (lat: number, lon: number) => void
+}) {
+  useMapEvents({
+    mousemove(event) {
+      if (activeSegmentIndex == null) {
+        return
+      }
+
+      onMove(event.latlng.lat, event.latlng.lng)
+    },
+    mouseup(event) {
+      if (activeSegmentIndex == null) {
+        return
+      }
+
+      onEnd(event.latlng.lat, event.latlng.lng)
+    },
+  })
+
+  return null
+}
+
 export function FlightplanMapEditor({
   plan,
   derived,
@@ -192,9 +256,8 @@ export function FlightplanMapEditor({
   const [mapZoom, setMapZoom] = useState(7)
   const [mapInstance, setMapInstance] = useState<L.Map | null>(null)
   const [dragPreviewWaypoints, setDragPreviewWaypoints] = useState<ReturnType<typeof legsToWaypoints> | null>(null)
-  const [midpointInsertIndex, setMidpointInsertIndex] = useState<number | null>(null)
+  const [activeSegmentInsertIndex, setActiveSegmentInsertIndex] = useState<number | null>(null)
   const suppressNextMapClick = useRef(false)
-  const lastMidpointDragPosition = useRef<{ lat: number; lon: number } | null>(null)
   const hasPendingStartPoint = useMemo(() => isPlaceholderLeg(plan.routeLegs), [plan.routeLegs])
   const waypoints = useMemo(() => {
     if (hasPendingStartPoint) {
@@ -247,7 +310,7 @@ export function FlightplanMapEditor({
 
   const setWaypoints = (nextWaypoints: typeof waypoints) => {
     setDragPreviewWaypoints(null)
-    setMidpointInsertIndex(null)
+    setActiveSegmentInsertIndex(null)
     const nextLegs = waypointsToLegs(nextWaypoints, plan.routeLegs, derived.aircraft.cruiseTasKt)
     onRouteLegsChange(nextLegs)
   }
@@ -348,11 +411,66 @@ export function FlightplanMapEditor({
     setWaypoints(next)
   }
 
+  const startSegmentInsertDrag = (segmentIndex: number, lat: number, lon: number) => {
+    suppressNextMapClick.current = true
+    setActiveSegmentInsertIndex(segmentIndex + 1)
+
+    if (mapInstance) {
+      mapInstance.dragging.disable()
+    }
+
+    previewInsertWaypointAt(segmentIndex + 1, lat, lon)
+  }
+
+  const updateSegmentInsertDrag = (lat: number, lon: number) => {
+    if (activeSegmentInsertIndex == null) {
+      return
+    }
+
+    setDragPreviewWaypoints((current) => {
+      if (!current) {
+        const next = [...waypoints]
+        next.splice(activeSegmentInsertIndex, 0, resolveRoutePoint(lat, lon))
+        return next
+      }
+
+      return current.map((point, pointIndex) =>
+        pointIndex === activeSegmentInsertIndex ? resolveRoutePoint(lat, lon) : point,
+      )
+    })
+  }
+
+  const endSegmentInsertDrag = (lat: number, lon: number) => {
+    if (activeSegmentInsertIndex == null) {
+      return
+    }
+
+    if (mapInstance) {
+      mapInstance.dragging.enable()
+    }
+
+    insertWaypointAt(activeSegmentInsertIndex, lat, lon)
+  }
+
   const removeWaypoint = (index: number) => {
     if (waypoints.length <= 2) {
       return
     }
     setWaypoints(waypoints.filter((_, pointIndex) => pointIndex !== index))
+  }
+
+  const shouldShowDirectionArrow = (leg: typeof previewRouteLegs[number]) => {
+    if (!mapInstance) {
+      return true
+    }
+
+    const arrowPoint = projectedMidpoint(mapInstance, leg.from, leg.to)
+    const arrowLayerPoint = mapInstance.latLngToLayerPoint([arrowPoint.lat, arrowPoint.lon])
+
+    return !displayWaypoints.some((waypoint) => {
+      const waypointLayerPoint = mapInstance.latLngToLayerPoint([waypoint.lat, waypoint.lon])
+      return arrowLayerPoint.distanceTo(waypointLayerPoint) < directionArrowWaypointClearancePx
+    })
   }
 
   return (
@@ -396,6 +514,11 @@ export function FlightplanMapEditor({
           <MapInstanceHandler onReady={setMapInstance} />
           <MapClickHandler onAddPoint={addPointToEnd} shouldSuppressClick={shouldSuppressClick} />
           <MapZoomHandler onZoomChange={setMapZoom} />
+          <RouteInsertDragHandler
+            activeSegmentIndex={activeSegmentInsertIndex}
+            onMove={updateSegmentInsertDrag}
+            onEnd={endSegmentInsertDrag}
+          />
           <FocusLegHandler plan={plan} focusedLegIndex={focusedLegIndex} />
 
           {showAirspaces ? (
@@ -481,25 +604,45 @@ export function FlightplanMapEditor({
           ))}
 
           {previewRouteLegs.map((leg, index) => (
-            <Polyline
-              key={`segment-${index}`}
-              positions={[
-                [leg.from.lat, leg.from.lon],
-                [leg.to.lat, leg.to.lon],
-              ]}
-              pathOptions={{ color: '#ff35c4', weight: 4 }}
-            >
-              <Tooltip sticky opacity={1} className="fp-segment-tooltip">
-                <div>
-                  <strong>{getRoutePointLabel(leg.from)} → {getRoutePointLabel(leg.to)}</strong>
-                  <span>TT {previewDerived.routeLegs[index]?.trueTrack ?? '—'}°</span>
-                  <span>MH {previewDerived.routeLegs[index]?.magneticHeading ?? '—'}°</span>
-                  <span>GS {previewDerived.routeLegs[index]?.groundSpeedKt ?? '—'} kt</span>
-                  <span>Dist {previewDerived.routeLegs[index]?.distanceNm ?? '—'} nm</span>
-                  <span>Tid {formatTimeFromMinutes(previewDerived.routeLegs[index]?.legTimeMinutes ?? 0)}</span>
-                </div>
-              </Tooltip>
-            </Polyline>
+            <FeatureGroup key={`segment-${index}`}>
+              <Polyline
+                positions={[
+                  [leg.from.lat, leg.from.lon],
+                  [leg.to.lat, leg.to.lon],
+                ]}
+                pathOptions={{ color: '#ff35c4', weight: routeLineWeight }}
+                eventHandlers={{
+                  mousedown: (event) => {
+                    event.originalEvent.preventDefault()
+                    event.originalEvent.stopPropagation()
+                    startSegmentInsertDrag(index, event.latlng.lat, event.latlng.lng)
+                  },
+                }}
+              >
+                <Tooltip sticky opacity={1} className="fp-segment-tooltip">
+                  <div>
+                    <strong>{getRoutePointLabel(leg.from)} → {getRoutePointLabel(leg.to)}</strong>
+                    <span>TT {previewDerived.routeLegs[index]?.trueTrack ?? '—'}°</span>
+                    <span>MH {previewDerived.routeLegs[index]?.magneticHeading ?? '—'}°</span>
+                    <span>GS {previewDerived.routeLegs[index]?.groundSpeedKt ?? '—'} kt</span>
+                    <span>Dist {previewDerived.routeLegs[index]?.distanceNm ?? '—'} nm</span>
+                    <span>Tid {formatTimeFromMinutes(previewDerived.routeLegs[index]?.legTimeMinutes ?? 0)}</span>
+                  </div>
+                </Tooltip>
+              </Polyline>
+              {shouldShowDirectionArrow(leg) ? (
+                <Marker
+                  position={(() => {
+                    const point = projectedMidpoint(mapInstance, leg.from, leg.to)
+                    return [point.lat, point.lon] as [number, number]
+                  })()}
+                  icon={createChevronIcon(previewDerived.routeLegs[index]?.trueTrack ?? 0)}
+                  interactive={false}
+                  keyboard={false}
+                  zIndexOffset={200}
+                />
+              ) : null}
+            </FeatureGroup>
           ))}
 
           {displayWaypoints.map((point, index) => (
@@ -558,70 +701,6 @@ export function FlightplanMapEditor({
               </Popup>
             </Marker>
           ))}
-
-          {plan.routeLegs.map((leg, index) => {
-            const mid = midpoint(leg.from, leg.to)
-            return (
-              <Marker
-                key={`midpoint-${index}`}
-                position={[mid.lat, mid.lon]}
-                icon={midpointIcon}
-                draggable
-                eventHandlers={{
-                  dragstart: (event) => {
-                    suppressNextMapClick.current = true
-                    setMidpointInsertIndex(index + 1)
-                    const marker = event.target as L.Marker
-                    const latLng = marker.getLatLng()
-                    lastMidpointDragPosition.current = { lat: latLng.lat, lon: latLng.lng }
-                    previewInsertWaypointAt(index + 1, latLng.lat, latLng.lng)
-                  },
-                  drag: (event) => {
-                    const marker = event.target as L.Marker
-                    const latLng = marker.getLatLng()
-                    lastMidpointDragPosition.current = { lat: latLng.lat, lon: latLng.lng }
-                    setDragPreviewWaypoints((current) => {
-                      if (!current) {
-                        const next = [...waypoints]
-                        next.splice(index + 1, 0, resolveRoutePoint(latLng.lat, latLng.lng))
-                        return next
-                      }
-
-                      return current.map((point, pointIndex) =>
-                        pointIndex === index + 1 ? resolveRoutePoint(latLng.lat, latLng.lng) : point,
-                      )
-                    })
-                  },
-                  dragend: (event: DragEndEvent) => {
-                    const marker = event.target as L.Marker
-                    const markerLatLng = marker.getLatLng()
-                    const latLng = lastMidpointDragPosition.current ?? { lat: markerLatLng.lat, lon: markerLatLng.lng }
-                    const insertIndex = midpointInsertIndex ?? index + 1
-
-                    if (dragPreviewWaypoints) {
-                      const next = dragPreviewWaypoints.map((point, pointIndex) =>
-                        pointIndex === insertIndex ? resolveRoutePoint(latLng.lat, latLng.lon) : point,
-                      )
-                      lastMidpointDragPosition.current = null
-                      setWaypoints(next)
-                      return
-                    }
-
-                    lastMidpointDragPosition.current = null
-                    insertWaypointAt(insertIndex, latLng.lat, latLng.lon)
-                  },
-                  click: (event: LeafletMouseEvent) => {
-                    const { lat, lng } = event.latlng
-                    insertWaypointAt(index + 1, lat, lng)
-                  },
-                }}
-              >
-                <Tooltip direction="top" offset={[0, -8]} opacity={0.95}>
-                  Dra eller klicka för ny waypoint
-                </Tooltip>
-              </Marker>
-            )
-          })}
         </MapContainer>
 
       </div>

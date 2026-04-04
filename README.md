@@ -9,6 +9,17 @@ The app is built as a standalone React/Vite project and contains:
 - fuel, STOL and weight-and-balance calculations
 - Swedish LFV/AIP ingestion scripts for airport reference data
 
+## Map editing
+
+The map editor currently supports:
+
+- click in the map to place the first waypoint and continue the route in click order
+- drag any existing waypoint to move it
+- drag directly on a route leg to insert a new waypoint
+- snap to airport positions only when the click or drag lands on the airport marker itself
+- ICAO labels only for waypoints that are actually snapped to airports, otherwise coordinates are shown
+- direction arrows centered on the rendered route line, with arrows hidden automatically when they become too close to waypoints at the current zoom level
+
 ## Development
 
 ```bash
