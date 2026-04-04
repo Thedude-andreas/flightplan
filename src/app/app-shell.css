@@ -348,7 +348,8 @@
 }
 
 .editor-toolbar__title {
-  width: min(100%, 520px);
+  width: min(100%, 980px);
+  max-width: calc(100vw - 420px);
   margin-top: 8px;
   border: none;
   padding: 0;
@@ -460,6 +461,10 @@
 
   .editor-toolbar__main {
     flex-direction: column;
+  }
+
+  .editor-toolbar__title {
+    max-width: 100%;
   }
 
   .editor-toolbar__error {

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getErrorMessage } from '../../../lib/supabase/errors'
-import { createFlightPlan, deleteFlightPlan, listFlightPlans } from '../api/flightPlansRepository'
+import { createFlightPlan, deleteFlightPlan, listFlightPlans, updateFlightPlan } from '../api/flightPlansRepository'
 import type { FlightPlanRecord } from '../persistenceTypes'
 import { createEmptyFlightPlan } from '../data'
 
@@ -33,6 +33,8 @@ export function FlightPlansPage() {
   const [error, setError] = useState('')
   const [copySource, setCopySource] = useState<FlightPlanRecord | null>(null)
   const [copyName, setCopyName] = useState('')
+  const [renameSource, setRenameSource] = useState<FlightPlanRecord | null>(null)
+  const [renameName, setRenameName] = useState('')
 
   async function loadPlans() {
     setLoading(true)
@@ -74,6 +76,11 @@ export function FlightPlansPage() {
     setCopyName(createCopyName(plan.name))
   }
 
+  function openRenameDialog(plan: FlightPlanRecord) {
+    setRenameSource(plan)
+    setRenameName(plan.name)
+  }
+
   async function handleSaveCopy() {
     if (!copySource || !copyName.trim()) {
       setError('Ange ett namn innan du sparar kopian.')
@@ -110,13 +117,43 @@ export function FlightPlansPage() {
     }
   }
 
+  async function handleRename() {
+    if (!renameSource || !renameName.trim()) {
+      setError('Ange ett namn innan du byter namn på färdplanen.')
+      return
+    }
+
+    setError('')
+
+    try {
+      const updated = await updateFlightPlan(
+        renameSource.id,
+        {
+          name: renameName.trim(),
+          aircraftProfileId: renameSource.aircraftProfileId,
+          status: renameSource.status,
+          visibility: renameSource.visibility,
+          payload: renameSource.payload,
+        },
+        renameSource.updatedAt,
+      )
+
+      setPlans((current) =>
+        current.map((plan) => (plan.id === updated.id ? updated : plan)),
+      )
+      setRenameSource(null)
+      setRenameName('')
+    } catch (nextError) {
+      setError(getErrorMessage(nextError, 'Kunde inte byta namn på färdplanen.'))
+    }
+  }
+
   return (
     <section className="app-panel">
       <div className="app-panel__header">
         <div>
           <p className="app-eyebrow">Färdplaner</p>
           <h1>Mina färdplaner</h1>
-          <p>Första Supabase-listan för sparade färdplaner. Editorn är fortfarande separat från save-flödet.</p>
         </div>
         <div className="resource-list__actions">
           <button type="button" onClick={handleCreateDraftPlan} disabled={creating}>
@@ -155,6 +192,9 @@ export function FlightPlansPage() {
                 <Link to={`/app/flightplans/${plan.id}`} className="button-link">
                   Öppna
                 </Link>
+                <button type="button" onClick={() => openRenameDialog(plan)}>
+                  Byt namn
+                </button>
                 <button type="button" onClick={() => openSaveCopyDialog(plan)}>
                   Spara kopia
                 </button>
@@ -182,6 +222,27 @@ export function FlightPlansPage() {
               </button>
               <button type="button" onClick={handleSaveCopy}>
                 Spara kopia
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {renameSource && (
+        <div className="dialog-backdrop" onClick={() => setRenameSource(null)}>
+          <section className="dialog-card" onClick={(event) => event.stopPropagation()}>
+            <h2>Byt namn</h2>
+            <p>Uppdatera namnet på färdplanen.</p>
+            <label className="dialog-field">
+              <span>Namn</span>
+              <input value={renameName} onChange={(event) => setRenameName(event.target.value)} autoFocus />
+            </label>
+            <div className="dialog-actions">
+              <button type="button" className="button-link" onClick={() => setRenameSource(null)}>
+                Avbryt
+              </button>
+              <button type="button" onClick={handleRename}>
+                Spara namn
               </button>
             </div>
           </section>
