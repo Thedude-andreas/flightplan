@@ -4,7 +4,7 @@ import { AuthProvider } from '../features/auth/AuthProvider'
 
 export function AppProviders({ children }: { children: ReactNode }) {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={import.meta.env.BASE_URL}>
       <AuthProvider>{children}</AuthProvider>
     </BrowserRouter>
   )
