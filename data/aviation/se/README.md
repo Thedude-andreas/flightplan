@@ -19,12 +19,17 @@ This directory is the Swedish-first aviation data workspace for `AMC` and `Fligh
   - `airspaces.se.json` - normalized airspaces
   - `places.se.json` - normalized Swedish place gazetteer for waypoint labels
   - `navaids.se.json` - normalized navaids/frequencies
+  - `airspace-frequencies.se.json` - normalized ENR 2.1 airspace frequencies
+  - `airport-frequencies.se.json` - normalized AD 2.18 airport ATS frequencies
+  - `acc-sectors.se.json` - normalized ENR 2.2 ACC sector polygons and frequencies
+  - `radio-nav.se.json` - combined radio/NAV dataset used by the app
   - `aviation.se.index.json` - summary entry point
 
 ## Workflow
 ```bash
 npm run aviation:se:airports
 npm run aviation:se:airspaces
+npm run aviation:se:radio-nav
 npm run aviation:se:places
 npm run aviation:se:build
 ```
@@ -39,6 +44,7 @@ npm run aviation:se:extract
 npm run aviation:se:manifest
 npm run aviation:se:airports
 npm run aviation:se:airspaces
+npm run aviation:se:radio-nav
 npm run aviation:se:places
 npm run aviation:se:build
 ```
@@ -67,8 +73,15 @@ npm run aviation:se:build
 - `aviation:se:places`
   Downloads the Sweden dump from GeoNames and filters it into a local gazetteer of settlements, lakes, islands, water features and mountains used for non-airport waypoint labels.
 
+- `aviation:se:radio-nav`
+  Parses:
+  - `AD 2.18` ATS communication facilities for airport `TWR`, `GND`, `APP`, `ATIS`, `AFIS`, `PAR`
+  - `ENR 2.1` frequencies for `FIR`, `TMA`, `TIA`, `TIZ`
+  - `ENR 2.2` ACC sector polygons and frequencies for route-based `Sweden Control`
+  - LFV WFS navaid layers for `VOR`, `DME`, `DMEV`, `NDB`
+
 - `aviation:se:build`
-  Rebuilds the normalized index file and placeholder `navaids` output.
+  Rebuilds the normalized index file and derived outputs for `navaids`, `airport-frequencies`, `airspace-frequencies` and `acc-sectors`.
 
 ## Outputs Used By The App
 
@@ -92,6 +105,11 @@ Index builder output:
 
 - `normalized/aviation.se.index.json`
 - `normalized/navaids.se.json`
+- `normalized/airspace-frequencies.se.json`
+- `normalized/airport-frequencies.se.json`
+- `normalized/acc-sectors.se.json`
+- `normalized/radio-nav.se.json`
+- `src/features/flightplan/generated/radio-nav.se.ts`
 
 ## Updating Airports
 
@@ -142,6 +160,26 @@ Typical command:
 
 ```bash
 npm run aviation:se:places
+```
+
+## Updating Radio/NAV Data
+
+The radio/NAV parser is implemented in `scripts/aviation-se/parse-lfv-radio-nav.mjs`.
+
+Important behavior:
+
+- airport frequencies come from `AD 2.18`
+- crossed `Sweden CTL` sectors come from `ENR 2.2 ACC-sectors`
+- crossed `TMA`, `TIA`, `TIZ` frequencies come from `ENR 2.1`
+- navaid frequencies come from LFV WFS
+- `121.500` and `By directive from TWR` airport rows are excluded from standard autofill
+- COM frequencies are formatted as `MHz`
+- DME channels are formatted as `CH XX`
+
+Typical command:
+
+```bash
+npm run aviation:se:radio-nav
 ```
 
 ## Verification Checklist

@@ -109,7 +109,7 @@ const initialFlightPlanTemplate: FlightPlanInput = {
       notes: 'Kustlinje',
     },
   ],
-  radioNav: Array.from({ length: 8 }, (_, index) => ({
+  radioNav: Array.from({ length: 12 }, (_, index) => ({
     name: index === 0 ? 'Stockholm Radio' : 'Funktion',
     frequency: index === 0 ? '124.700' : 'Frekvens',
   })),

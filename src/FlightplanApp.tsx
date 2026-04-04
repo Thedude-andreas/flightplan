@@ -6,7 +6,8 @@ import { calculateFlightPlan, formatNumber, formatTimeFromMinutes } from './feat
 import { snapCoordinate } from './features/flightplan/coordinates'
 import { getRoutePointLabel, legsToWaypoints, useGazetteerVersion, waypointsToLegs } from './features/flightplan/gazetteer'
 import { FlightplanMapEditor } from './features/flightplan/FlightplanMapEditor'
-import type { AircraftProfile, FlightPlanInput } from './features/flightplan/types'
+import { buildSuggestedRadioNav, mergeRadioNavEntries } from './features/flightplan/radioNav'
+import type { AircraftProfile, FlightPlanInput, RadioNavEntry } from './features/flightplan/types'
 
 type EditorPanel = 'fuel' | 'weightBalance' | 'performance' | 'aircraft'
 type WorkspaceTab = 'flightplan' | 'map' | 'print' | 'settings'
@@ -187,6 +188,11 @@ export function FlightplanApp({
   const derived = calculateFlightPlan(plan, aircraftOptions)
   const routeRows = useMemo(() => createRouteRows(plan, derived), [plan, derived])
   const printRouteRows = useMemo(() => createRouteRows(plan, derived, 13), [plan, derived])
+  const suggestedRadioNav = useMemo(() => buildSuggestedRadioNav(plan), [plan])
+  const effectiveRadioNav = useMemo(
+    () => mergeRadioNavEntries(plan.radioNav, suggestedRadioNav),
+    [plan.radioNav, suggestedRadioNav],
+  )
 
   useEffect(() => {
     onPlanChange?.(plan)
@@ -291,9 +297,10 @@ export function FlightplanApp({
   const updateRadioNav = (index: number, key: 'name' | 'frequency', value: string) => {
     setPlan((current) => ({
       ...current,
-      radioNav: current.radioNav.map((entry, entryIndex) =>
-        entryIndex === index ? { ...entry, [key]: value } : entry,
-      ),
+      radioNav: Array.from({ length: Math.max(current.radioNav.length, index + 1) }, (_, entryIndex) => {
+        const entry = current.radioNav[entryIndex] ?? { name: '', frequency: '' }
+        return entryIndex === index ? { ...entry, [key]: value } : entry
+      }),
     }))
   }
 
@@ -375,6 +382,7 @@ export function FlightplanApp({
                 plan={plan}
                 derived={derived}
                 routeRows={routeRows}
+                radioNavEntries={effectiveRadioNav}
                 onHeaderChange={updateHeader}
                 onSectionSelect={setActivePanel}
                 onRouteSegmentSelect={(rowIndex) => {
@@ -413,6 +421,7 @@ export function FlightplanApp({
                 plan={plan}
                 derived={derived}
                 routeRows={printRouteRows}
+                radioNavEntries={effectiveRadioNav}
                 onHeaderChange={updateHeader}
                 onSectionSelect={setActivePanel}
                 onRouteSegmentSelect={(rowIndex) => {
@@ -864,6 +873,7 @@ function FlightPlanDocument({
   plan,
   derived,
   routeRows,
+  radioNavEntries,
   onHeaderChange,
   onSectionSelect,
   onRouteSegmentSelect,
@@ -875,6 +885,7 @@ function FlightPlanDocument({
   plan: FlightPlanInput
   derived: ReturnType<typeof calculateFlightPlan>
   routeRows: RouteRow[]
+  radioNavEntries: RadioNavEntry[]
   onHeaderChange: (key: keyof FlightPlanInput['header'], value: string) => void
   onSectionSelect: (panel: EditorPanel) => void
   onRouteSegmentSelect: (rowIndex: number) => void
@@ -1007,7 +1018,7 @@ function FlightPlanDocument({
 
         <div className="fp-subtable">
           <div className="fp-subtable-title">RADIO/NAV</div>
-          {plan.radioNav.map((entry, index) => (
+          {radioNavEntries.map((entry, index) => (
             <div className="fp-radio-row" key={index}>
               <input value={entry.name} onChange={(event) => onRadioNavChange(index, 'name', event.target.value)} />
               <input value={entry.frequency} onChange={(event) => onRadioNavChange(index, 'frequency', event.target.value)} />

@@ -1,0 +1,1391 @@
+[
+  {
+    "id": "FIR-1",
+    "kind": "FIR",
+    "name": "SWEDEN FIR",
+    "positionIndicator": "ESAA",
+    "unit": "MALMÖ ACC",
+    "callSign": "SWEDEN CONTROL",
+    "frequencies": [
+      "124.155",
+      "124.405",
+      "124.855",
+      "127.755",
+      "128.055",
+      "128.180",
+      "128.630",
+      "131.280",
+      "132.765",
+      "133.260",
+      "133.805",
+      "134.455",
+      "134.980",
+      "135.805",
+      "135.985",
+      "278.600"
+    ]
+  },
+  {
+    "id": "FIR-2",
+    "kind": "FIR",
+    "name": "SWEDEN FIR",
+    "positionIndicator": "ESAA",
+    "unit": "STOCKHOLM ACC",
+    "callSign": "SWEDEN CONTROL",
+    "frequencies": [
+      "118.205",
+      "118.280",
+      "118.405",
+      "124.430",
+      "127.530",
+      "129.180",
+      "131.055",
+      "131.130",
+      "132.155",
+      "132.480",
+      "133.705"
+    ]
+  },
+  {
+    "id": "TMA-3",
+    "kind": "TMA",
+    "name": "ARVIDSJAUR TMA B",
+    "positionIndicator": "ESNX",
+    "unit": "ARVIDSJAUR TWR\\/AFIS",
+    "callSign": "ARVIDSJAUR TOWER\\/INFORMATION",
+    "frequencies": [
+      "122.730"
+    ]
+  },
+  {
+    "id": "TMA-4",
+    "kind": "TMA",
+    "name": "ARVIDSJAUR TMA C",
+    "positionIndicator": "ESNX",
+    "unit": "ARVIDSJAUR TWR\\/AFIS",
+    "callSign": "ARVIDSJAUR TOWER\\/INFORMATION",
+    "frequencies": [
+      "122.730"
+    ]
+  },
+  {
+    "id": "TMA-5",
+    "kind": "TMA",
+    "name": "BORLÄNGE TMA A",
+    "positionIndicator": "ESSD",
+    "unit": "BORLÄNGE TWR",
+    "callSign": "BORLÄNGE TOWER",
+    "frequencies": [
+      "127.305"
+    ]
+  },
+  {
+    "id": "TMA-6",
+    "kind": "TMA",
+    "name": "BORLÄNGE TMA B",
+    "positionIndicator": "ESSD",
+    "unit": "BORLÄNGE TWR",
+    "callSign": "BORLÄNGE TOWER",
+    "frequencies": [
+      "127.305"
+    ]
+  },
+  {
+    "id": "TMA-7",
+    "kind": "TMA",
+    "name": "GÖTEBORG TMA",
+    "positionIndicator": "ESGG",
+    "unit": "GÖTEBORG APP",
+    "callSign": "GÖTEBORG APPROACH",
+    "frequencies": [
+      "124.205",
+      "124.680"
+    ]
+  },
+  {
+    "id": "TMA-8",
+    "kind": "TMA",
+    "name": "GÖTEBORG TMA A",
+    "positionIndicator": "ESGG",
+    "unit": "GÖTEBORG APP",
+    "callSign": "GÖTEBORG APPROACH",
+    "frequencies": [
+      "124.205",
+      "124.680"
+    ]
+  },
+  {
+    "id": "TMA-9",
+    "kind": "TMA",
+    "name": "GÖTEBORG TMA B",
+    "positionIndicator": "ESGG",
+    "unit": "GÖTEBORG APP",
+    "callSign": "GÖTEBORG APPROACH",
+    "frequencies": [
+      "124.205",
+      "124.680"
+    ]
+  },
+  {
+    "id": "TMA-13",
+    "kind": "TMA",
+    "name": "HAGSHULT TMA A",
+    "positionIndicator": "ESMV",
+    "unit": "HAGSHULT APP",
+    "callSign": "HAGSHULT APPROACH",
+    "frequencies": [
+      "121.150"
+    ]
+  },
+  {
+    "id": "TMA-14",
+    "kind": "TMA",
+    "name": "HAGSHULT TMA B",
+    "positionIndicator": "ESMV",
+    "unit": "HAGSHULT APP",
+    "callSign": "HAGSHULT APPROACH",
+    "frequencies": [
+      "121.150"
+    ]
+  },
+  {
+    "id": "TMA-15",
+    "kind": "TMA",
+    "name": "HALMSTAD TMA A",
+    "positionIndicator": "ESMT",
+    "unit": "HALMSTAD TWR",
+    "callSign": "HALMSTAD TOWER",
+    "frequencies": [
+      "135.055"
+    ]
+  },
+  {
+    "id": "TMA-16",
+    "kind": "TMA",
+    "name": "HALMSTAD TMA B",
+    "positionIndicator": "ESMT",
+    "unit": "HALMSTAD TWR",
+    "callSign": "HALMSTAD TOWER",
+    "frequencies": [
+      "135.055"
+    ]
+  },
+  {
+    "id": "TMA-17",
+    "kind": "TMA",
+    "name": "HALMSTAD TMA C",
+    "positionIndicator": "ESMT",
+    "unit": "HALMSTAD TWR",
+    "callSign": "HALMSTAD TOWER",
+    "frequencies": [
+      "135.055"
+    ]
+  },
+  {
+    "id": "TMA-19",
+    "kind": "TMA",
+    "name": "JÖNKÖPING TMA A",
+    "positionIndicator": "ESGJ",
+    "unit": "JÖNKÖPING TWR",
+    "callSign": "JÖNKÖPING TOWER",
+    "frequencies": [
+      "118.255"
+    ]
+  },
+  {
+    "id": "TMA-20",
+    "kind": "TMA",
+    "name": "JÖNKÖPING TMA B",
+    "positionIndicator": "ESGJ",
+    "unit": "JÖNKÖPING TWR",
+    "callSign": "JÖNKÖPING TOWER",
+    "frequencies": [
+      "118.255"
+    ]
+  },
+  {
+    "id": "TMA-21",
+    "kind": "TMA",
+    "name": "JÖNKÖPING TMA C",
+    "positionIndicator": "ESGJ",
+    "unit": "JÖNKÖPING TWR",
+    "callSign": "JÖNKÖPING TOWER",
+    "frequencies": [
+      "118.255"
+    ]
+  },
+  {
+    "id": "TMA-22",
+    "kind": "TMA",
+    "name": "KALMAR TMA A",
+    "positionIndicator": "ESMQ",
+    "unit": "KALMAR TWR",
+    "callSign": "KALMAR TOWER",
+    "frequencies": [
+      "130.805"
+    ]
+  },
+  {
+    "id": "TMA-23",
+    "kind": "TMA",
+    "name": "KALMAR TMA B",
+    "positionIndicator": "ESMQ",
+    "unit": "KALMAR TWR",
+    "callSign": "KALMAR TOWER",
+    "frequencies": [
+      "130.805"
+    ]
+  },
+  {
+    "id": "TMA-24",
+    "kind": "TMA",
+    "name": "KARLSBORG TMA",
+    "positionIndicator": "ESIA",
+    "unit": "KARLSBORG APP",
+    "callSign": "KARLSBORG APPROACH",
+    "frequencies": [
+      "132.050"
+    ]
+  },
+  {
+    "id": "TMA-25",
+    "kind": "TMA",
+    "name": "KARLSTAD TMA A",
+    "positionIndicator": "ESOK",
+    "unit": "KARLSTAD TWR",
+    "callSign": "KARLSTAD TOWER",
+    "frequencies": [
+      "119.455"
+    ]
+  },
+  {
+    "id": "TMA-26",
+    "kind": "TMA",
+    "name": "KARLSTAD TMA B",
+    "positionIndicator": "ESOK",
+    "unit": "KARLSTAD TWR",
+    "callSign": "KARLSTAD TOWER",
+    "frequencies": [
+      "119.455"
+    ]
+  },
+  {
+    "id": "TMA-27",
+    "kind": "TMA",
+    "name": "KARLSTAD TMA C",
+    "positionIndicator": "ESOK",
+    "unit": "KARLSTAD TWR",
+    "callSign": "KARLSTAD TOWER",
+    "frequencies": [
+      "119.455"
+    ]
+  },
+  {
+    "id": "TMA-28",
+    "kind": "TMA",
+    "name": "KIRUNA TMA A",
+    "positionIndicator": "ESNQ",
+    "unit": "KIRUNA TWR",
+    "callSign": "KIRUNA TOWER",
+    "frequencies": [
+      "130.155"
+    ]
+  },
+  {
+    "id": "TMA-29",
+    "kind": "TMA",
+    "name": "KIRUNA TMA B",
+    "positionIndicator": "ESNQ",
+    "unit": "KIRUNA TWR",
+    "callSign": "KIRUNA TOWER",
+    "frequencies": [
+      "130.155"
+    ]
+  },
+  {
+    "id": "TMA-30",
+    "kind": "TMA",
+    "name": "KRISTIANSTAD TMA A",
+    "positionIndicator": "ESMK",
+    "unit": "KRISTIANSTAD TWR",
+    "callSign": "KRISTIANSTAD TOWER",
+    "frequencies": [
+      "129.355"
+    ]
+  },
+  {
+    "id": "TMA-31",
+    "kind": "TMA",
+    "name": "KRISTIANSTAD TMA B",
+    "positionIndicator": "ESMK",
+    "unit": "KRISTIANSTAD TWR",
+    "callSign": "KRISTIANSTAD TOWER",
+    "frequencies": [
+      "129.355"
+    ]
+  },
+  {
+    "id": "TMA-32",
+    "kind": "TMA",
+    "name": "KRISTIANSTAD TMA C",
+    "positionIndicator": "ESMK",
+    "unit": "KRISTIANSTAD TWR",
+    "callSign": "KRISTIANSTAD TOWER",
+    "frequencies": [
+      "129.355"
+    ]
+  },
+  {
+    "id": "TMA-33",
+    "kind": "TMA",
+    "name": "KRONOBERG TMA A",
+    "positionIndicator": "ESMX",
+    "unit": "VÄXJÖ\\/KRONOBERG TWR",
+    "callSign": "KRONOBERG TOWER",
+    "frequencies": [
+      "118.155"
+    ]
+  },
+  {
+    "id": "TMA-34",
+    "kind": "TMA",
+    "name": "KRONOBERG TMA B",
+    "positionIndicator": "ESMX",
+    "unit": "VÄXJÖ\\/KRONOBERG TWR",
+    "callSign": "KRONOBERG TOWER",
+    "frequencies": [
+      "118.155"
+    ]
+  },
+  {
+    "id": "TMA-35",
+    "kind": "TMA",
+    "name": "KRONOBERG TMA C",
+    "positionIndicator": "ESMX",
+    "unit": "VÄXJÖ\\/KRONOBERG TWR",
+    "callSign": "KRONOBERG TOWER",
+    "frequencies": [
+      "118.155"
+    ]
+  },
+  {
+    "id": "TMA-36",
+    "kind": "TMA",
+    "name": "LJUNGBYHED TMA A",
+    "positionIndicator": "ESTL",
+    "unit": "LJUNGBYHED APP",
+    "callSign": "LJUNGBYHED APPROACH",
+    "frequencies": [
+      "129.555"
+    ]
+  },
+  {
+    "id": "TMA-37",
+    "kind": "TMA",
+    "name": "LJUNGBYHED TMA B",
+    "positionIndicator": "ESTL",
+    "unit": "LJUNGBYHED APP",
+    "callSign": "LJUNGBYHED APPROACH",
+    "frequencies": [
+      "129.555"
+    ]
+  },
+  {
+    "id": "TMA-38",
+    "kind": "TMA",
+    "name": "LJUNGBYHED TMA C",
+    "positionIndicator": "ESTL",
+    "unit": "LJUNGBYHED APP",
+    "callSign": "LJUNGBYHED APPROACH",
+    "frequencies": [
+      "129.555"
+    ]
+  },
+  {
+    "id": "TMA-40",
+    "kind": "TMA",
+    "name": "LULEÅ TMA A",
+    "positionIndicator": "ESPA",
+    "unit": "KALLAX APP",
+    "callSign": "KALLAX APPROACH",
+    "frequencies": [
+      "125.450"
+    ]
+  },
+  {
+    "id": "TMA-41",
+    "kind": "TMA",
+    "name": "LULEÅ TMA B",
+    "positionIndicator": "ESPA",
+    "unit": "KALLAX APP",
+    "callSign": "KALLAX APPROACH",
+    "frequencies": [
+      "125.450"
+    ]
+  },
+  {
+    "id": "TMA-42",
+    "kind": "TMA",
+    "name": "LULEÅ TMA C",
+    "positionIndicator": "ESPA",
+    "unit": "KALLAX APP",
+    "callSign": "KALLAX APPROACH",
+    "frequencies": [
+      "125.450"
+    ]
+  },
+  {
+    "id": "TMA-43",
+    "kind": "TMA",
+    "name": "LULEÅ TMA D",
+    "positionIndicator": "ESPA",
+    "unit": "KALLAX APP",
+    "callSign": "KALLAX APPROACH",
+    "frequencies": [
+      "125.450"
+    ]
+  },
+  {
+    "id": "TMA-44",
+    "kind": "TMA",
+    "name": "LULEÅ TMA E",
+    "positionIndicator": "ESPA",
+    "unit": "KALLAX APP",
+    "callSign": "KALLAX APPROACH",
+    "frequencies": [
+      "125.450"
+    ]
+  },
+  {
+    "id": "TMA-45",
+    "kind": "TMA",
+    "name": "MALMÖ TMA A",
+    "positionIndicator": "ESMS",
+    "unit": "MALMÖ ACC",
+    "callSign": "SWEDEN CONTROL",
+    "frequencies": [
+      "134.980"
+    ]
+  },
+  {
+    "id": "TMA-46",
+    "kind": "TMA",
+    "name": "MALMÖ TMA B",
+    "positionIndicator": "ESMS",
+    "unit": "MALMÖ ACC",
+    "callSign": "SWEDEN CONTROL",
+    "frequencies": [
+      "131.280"
+    ]
+  },
+  {
+    "id": "TMA-47",
+    "kind": "TMA",
+    "name": "MALMÖ TMA C",
+    "positionIndicator": "ESMS",
+    "unit": "MALMÖ ACC",
+    "callSign": "SWEDEN CONTROL",
+    "frequencies": [
+      "134.980"
+    ]
+  },
+  {
+    "id": "TMA-48",
+    "kind": "TMA",
+    "name": "MALMÖ TMA D",
+    "positionIndicator": "ESMS",
+    "unit": "MALMÖ ACC",
+    "callSign": "SWEDEN CONTROL",
+    "frequencies": [
+      "134.980"
+    ]
+  },
+  {
+    "id": "TMA-49",
+    "kind": "TMA",
+    "name": "MALMÖ TMA E",
+    "positionIndicator": "ESMS",
+    "unit": "MALMÖ ACC",
+    "callSign": "SWEDEN CONTROL",
+    "frequencies": [
+      "131.280",
+      "134.980"
+    ]
+  },
+  {
+    "id": "TMA-50",
+    "kind": "TMA",
+    "name": "MALMÖ TMA F",
+    "positionIndicator": "ESMS",
+    "unit": "MALMÖ ACC",
+    "callSign": "SWEDEN CONTROL",
+    "frequencies": [
+      "134.980"
+    ]
+  },
+  {
+    "id": "TMA-51",
+    "kind": "TMA",
+    "name": "ROENNE TMA A",
+    "positionIndicator": "EKRN",
+    "unit": null,
+    "callSign": null,
+    "frequencies": [
+      "134.980",
+      "118.330"
+    ]
+  },
+  {
+    "id": "TMA-52",
+    "kind": "TMA",
+    "name": "ROENNE TMA B",
+    "positionIndicator": "EKRN",
+    "unit": "ROENNE TWR",
+    "callSign": "ROENNE TOWER",
+    "frequencies": [
+      "118.330"
+    ]
+  },
+  {
+    "id": "TMA-53",
+    "kind": "TMA",
+    "name": "RONNEBY TMA",
+    "positionIndicator": "ESDF",
+    "unit": "RONNEBY APP",
+    "callSign": "RONNEBY APPROACH",
+    "frequencies": [
+      "128.450"
+    ]
+  },
+  {
+    "id": "TMA-54",
+    "kind": "TMA",
+    "name": "SKELLEFTEÅ TMA A",
+    "positionIndicator": "ESNS",
+    "unit": "SKELLEFTEÅ TWR",
+    "callSign": "SKELLEFTEÅ TOWER",
+    "frequencies": [
+      "122.055"
+    ]
+  },
+  {
+    "id": "TMA-55",
+    "kind": "TMA",
+    "name": "SKELLEFTEÅ TMA B",
+    "positionIndicator": "ESNS",
+    "unit": "SKELLEFTEÅ TWR",
+    "callSign": "SKELLEFTEÅ TOWER",
+    "frequencies": [
+      "122.055"
+    ]
+  },
+  {
+    "id": "TMA-56",
+    "kind": "TMA",
+    "name": "SKELLEFTEÅ TMA C",
+    "positionIndicator": "ESNS",
+    "unit": "SKELLEFTEÅ TWR",
+    "callSign": "SKELLEFTEÅ TOWER",
+    "frequencies": [
+      "122.055"
+    ]
+  },
+  {
+    "id": "TMA-57",
+    "kind": "TMA",
+    "name": "STOCKHOLM TMA A",
+    "positionIndicator": "ESSA",
+    "unit": "STOCKHOLM APP",
+    "callSign": "STOCKHOLM APPROACH",
+    "frequencies": [
+      "123.755"
+    ]
+  },
+  {
+    "id": "TMA-58",
+    "kind": "TMA",
+    "name": "STOCKHOLM TMA B",
+    "positionIndicator": "ESSA",
+    "unit": "STOCKHOLM APP",
+    "callSign": "STOCKHOLM APPROACH",
+    "frequencies": [
+      "126.655"
+    ]
+  },
+  {
+    "id": "TMA-59",
+    "kind": "TMA",
+    "name": "STOCKHOLM TMA C",
+    "positionIndicator": "ESSA",
+    "unit": "STOCKHOLM APP",
+    "callSign": "STOCKHOLM APPROACH",
+    "frequencies": [
+      "120.155",
+      "126.655"
+    ]
+  },
+  {
+    "id": "TMA-60",
+    "kind": "TMA",
+    "name": "STOCKHOLM TMA D",
+    "positionIndicator": "ESSA",
+    "unit": "STOCKHOLM APP",
+    "callSign": "STOCKHOLM APPROACH",
+    "frequencies": [
+      "120.155",
+      "123.755"
+    ]
+  },
+  {
+    "id": "TMA-61",
+    "kind": "TMA",
+    "name": "STOCKHOLM TMA E",
+    "positionIndicator": "ESSA",
+    "unit": "STOCKHOLM APP",
+    "callSign": "STOCKHOLM APPROACH",
+    "frequencies": [
+      "123.755"
+    ]
+  },
+  {
+    "id": "TMA-62",
+    "kind": "TMA",
+    "name": "STOCKHOLM TMA F",
+    "positionIndicator": "ESSA",
+    "unit": "STOCKHOLM APP",
+    "callSign": "STOCKHOLM APPROACH",
+    "frequencies": [
+      "120.155",
+      "123.755"
+    ]
+  },
+  {
+    "id": "TMA-63",
+    "kind": "TMA",
+    "name": "STOCKHOLM TMA G",
+    "positionIndicator": "ESSA",
+    "unit": "STOCKHOLM APP",
+    "callSign": "STOCKHOLM APPROACH",
+    "frequencies": [
+      "120.155",
+      "123.755"
+    ]
+  },
+  {
+    "id": "TMA-64",
+    "kind": "TMA",
+    "name": "STOCKHOLM TMA H",
+    "positionIndicator": "ESSA",
+    "unit": "STOCKHOLM APP",
+    "callSign": "STOCKHOLM APPROACH",
+    "frequencies": [
+      "120.155",
+      "123.755"
+    ]
+  },
+  {
+    "id": "TMA-65",
+    "kind": "TMA",
+    "name": "STOCKHOLM TMA I",
+    "positionIndicator": "ESSA",
+    "unit": "STOCKHOLM APP",
+    "callSign": "STOCKHOLM APPROACH",
+    "frequencies": [
+      "120.155"
+    ]
+  },
+  {
+    "id": "TMA-66",
+    "kind": "TMA",
+    "name": "STOCKHOLM TMA K",
+    "positionIndicator": "ESSA",
+    "unit": "STOCKHOLM ACC",
+    "callSign": "SWEDEN CONTROL",
+    "frequencies": [
+      "132.480"
+    ]
+  },
+  {
+    "id": "TMA-67",
+    "kind": "TMA",
+    "name": "STOCKHOLM TMA L",
+    "positionIndicator": "ESSA",
+    "unit": "STOCKHOLM ACC",
+    "callSign": "SWEDEN CONTROL",
+    "frequencies": [
+      "132.480",
+      "133.705"
+    ]
+  },
+  {
+    "id": "TMA-68",
+    "kind": "TMA",
+    "name": "SECTOR UPPSALA",
+    "positionIndicator": "ESSA",
+    "unit": "UPPSALA TWR",
+    "callSign": "UPPSALA TOWER",
+    "frequencies": [
+      "119.200"
+    ]
+  },
+  {
+    "id": "TMA-69",
+    "kind": "TMA",
+    "name": "SECTOR VÄSTERÅS",
+    "positionIndicator": "ESSA",
+    "unit": "STOCKHOLM\\/VÄSTERÅS TWR",
+    "callSign": "VÄSTERÅS TOWER",
+    "frequencies": [
+      "130.605"
+    ]
+  },
+  {
+    "id": "TMA-70",
+    "kind": "TMA",
+    "name": "SUNDSVALL TMA A",
+    "positionIndicator": "ESNN",
+    "unit": "SUNDSVALL-TIMRÅ TWR",
+    "callSign": "SUNDSVALL TOWER",
+    "frequencies": [
+      "129.555"
+    ]
+  },
+  {
+    "id": "TMA-71",
+    "kind": "TMA",
+    "name": "SUNDSVALL TMA B",
+    "positionIndicator": "ESNN",
+    "unit": "SUNDSVALL-TIMRÅ TWR",
+    "callSign": "SUNDSVALL TOWER",
+    "frequencies": [
+      "129.555"
+    ]
+  },
+  {
+    "id": "TMA-72",
+    "kind": "TMA",
+    "name": "SUNDSVALL TMA C",
+    "positionIndicator": "ESNN",
+    "unit": "SUNDSVALL-TIMRÅ TWR",
+    "callSign": "SUNDSVALL TOWER",
+    "frequencies": [
+      "129.555"
+    ]
+  },
+  {
+    "id": "TMA-73",
+    "kind": "TMA",
+    "name": "SUNDSVALL TMA D",
+    "positionIndicator": "ESNN",
+    "unit": "SUNDSVALL-TIMRÅ TWR",
+    "callSign": "SUNDSVALL TOWER",
+    "frequencies": [
+      "129.555"
+    ]
+  },
+  {
+    "id": "TMA-74",
+    "kind": "TMA",
+    "name": "SÄLEN TMA A",
+    "positionIndicator": "ESKS",
+    "unit": "SÄLEN TWR",
+    "callSign": "SÄLEN TOWER",
+    "frequencies": [
+      "124.460"
+    ]
+  },
+  {
+    "id": "TMA-75",
+    "kind": "TMA",
+    "name": "SÄLEN TMA B",
+    "positionIndicator": "ESKS",
+    "unit": "SÄLEN TWR",
+    "callSign": "SÄLEN TOWER",
+    "frequencies": [
+      "124.460"
+    ]
+  },
+  {
+    "id": "TMA-76",
+    "kind": "TMA",
+    "name": "SÄLEN TMA C",
+    "positionIndicator": "ESKS",
+    "unit": "SÄLEN TWR",
+    "callSign": "SÄLEN TOWER",
+    "frequencies": [
+      "124.460"
+    ]
+  },
+  {
+    "id": "TMA-77",
+    "kind": "TMA",
+    "name": "UMEÅ TMA A",
+    "positionIndicator": "ESNU",
+    "unit": "UMEÅ TWR",
+    "callSign": "UMEÅ TOWER",
+    "frequencies": [
+      "119.805"
+    ]
+  },
+  {
+    "id": "TMA-78",
+    "kind": "TMA",
+    "name": "UMEÅ TMA B",
+    "positionIndicator": "ESNU",
+    "unit": "UMEÅ TWR",
+    "callSign": "UMEÅ TOWER",
+    "frequencies": [
+      "119.805"
+    ]
+  },
+  {
+    "id": "TMA-79",
+    "kind": "TMA",
+    "name": "UMEÅ TMA C",
+    "positionIndicator": "ESNU",
+    "unit": "UMEÅ TWR",
+    "callSign": "UMEÅ TOWER",
+    "frequencies": [
+      "119.805"
+    ]
+  },
+  {
+    "id": "TMA-80",
+    "kind": "TMA",
+    "name": "VIDSEL TMA A",
+    "positionIndicator": "ESPE",
+    "unit": "VIDSEL APP",
+    "callSign": "VIDSEL APPROACH",
+    "frequencies": [
+      "124.150"
+    ]
+  },
+  {
+    "id": "TMA-81",
+    "kind": "TMA",
+    "name": "VIDSEL TMA B",
+    "positionIndicator": "ESPE",
+    "unit": "VIDSEL APP",
+    "callSign": "VIDSEL APPROACH",
+    "frequencies": [
+      "124.150"
+    ]
+  },
+  {
+    "id": "TMA-82",
+    "kind": "TMA",
+    "name": "VIDSEL TMA C",
+    "positionIndicator": "ESPE",
+    "unit": "VIDSEL APP",
+    "callSign": "VIDSEL APPROACH",
+    "frequencies": [
+      "124.150"
+    ]
+  },
+  {
+    "id": "TMA-83",
+    "kind": "TMA",
+    "name": "VISBY TMA A",
+    "positionIndicator": "ESSV",
+    "unit": "VISBY APP",
+    "callSign": "VISBY APPROACH",
+    "frequencies": [
+      "126.155"
+    ]
+  },
+  {
+    "id": "TMA-84",
+    "kind": "TMA",
+    "name": "VISBY TMA B",
+    "positionIndicator": "ESSV",
+    "unit": "VISBY APP",
+    "callSign": "VISBY APPROACH",
+    "frequencies": [
+      "126.155"
+    ]
+  },
+  {
+    "id": "TMA-85",
+    "kind": "TMA",
+    "name": "ÄNGELHOLM TMA A",
+    "positionIndicator": "ESTA",
+    "unit": "ÄNGELHOLM APP",
+    "callSign": "ÄNGELHOLM APPROACH",
+    "frequencies": [
+      "132.455"
+    ]
+  },
+  {
+    "id": "TMA-86",
+    "kind": "TMA",
+    "name": "ÄNGELHOLM TMA B",
+    "positionIndicator": "ESTA",
+    "unit": "ÄNGELHOLM APP",
+    "callSign": "ÄNGELHOLM APPROACH",
+    "frequencies": [
+      "132.455"
+    ]
+  },
+  {
+    "id": "TMA-87",
+    "kind": "TMA",
+    "name": "ÄNGELHOLM TMA C",
+    "positionIndicator": "ESTA",
+    "unit": "ÄNGELHOLM APP",
+    "callSign": "ÄNGELHOLM APPROACH",
+    "frequencies": [
+      "132.455"
+    ]
+  },
+  {
+    "id": "TMA-90",
+    "kind": "TMA",
+    "name": "ÖREBRO TMA A",
+    "positionIndicator": "ESOE",
+    "unit": "ÖREBRO TWR",
+    "callSign": "ÖREBRO TOWER",
+    "frequencies": [
+      "120.280"
+    ]
+  },
+  {
+    "id": "TMA-91",
+    "kind": "TMA",
+    "name": "ÖREBRO TMA B",
+    "positionIndicator": "ESOE",
+    "unit": "ÖREBRO TWR",
+    "callSign": "ÖREBRO TOWER",
+    "frequencies": [
+      "120.280"
+    ]
+  },
+  {
+    "id": "TMA-92",
+    "kind": "TMA",
+    "name": "ÖREBRO TMA C",
+    "positionIndicator": "ESOE",
+    "unit": "ÖREBRO TWR",
+    "callSign": "ÖREBRO TOWER",
+    "frequencies": [
+      "120.280"
+    ]
+  },
+  {
+    "id": "TMA-93",
+    "kind": "TMA",
+    "name": "SECTOR TIVEDEN",
+    "positionIndicator": "ESOE",
+    "unit": "ÖREBRO TWR",
+    "callSign": "ÖREBRO TOWER",
+    "frequencies": [
+      "120.280"
+    ]
+  },
+  {
+    "id": "TMA-94",
+    "kind": "TMA",
+    "name": "ÖRNSKÖLDSVIK TMA A",
+    "positionIndicator": "ESNO",
+    "unit": "ÖRNSKÖLDSVIK TWR",
+    "callSign": "ÖVIK TOWER",
+    "frequencies": [
+      "122.255"
+    ]
+  },
+  {
+    "id": "TMA-95",
+    "kind": "TMA",
+    "name": "ÖRNSKÖLDSVIK TMA B",
+    "positionIndicator": "ESNO",
+    "unit": "ÖRNSKÖLDSVIK TWR",
+    "callSign": "ÖVIK TOWER",
+    "frequencies": [
+      "122.255"
+    ]
+  },
+  {
+    "id": "TMA-96",
+    "kind": "TMA",
+    "name": "ÖRNSKÖLDSVIK TMA C",
+    "positionIndicator": "ESNO",
+    "unit": "ÖRNSKÖLDSVIK TWR",
+    "callSign": "ÖVIK TOWER",
+    "frequencies": [
+      "122.255"
+    ]
+  },
+  {
+    "id": "TMA-97",
+    "kind": "TMA",
+    "name": "ÖRNSKÖLDSVIK TMA D",
+    "positionIndicator": "ESNO",
+    "unit": "ÖRNSKÖLDSVIK TWR",
+    "callSign": "ÖVIK TOWER",
+    "frequencies": [
+      "122.255"
+    ]
+  },
+  {
+    "id": "TMA-98",
+    "kind": "TMA",
+    "name": "ÖSTERSUND TMA A",
+    "positionIndicator": "ESNZ",
+    "unit": "ÖSTERSUND TWR",
+    "callSign": "ÖSTERSUND TOWER",
+    "frequencies": [
+      "135.655"
+    ]
+  },
+  {
+    "id": "TMA-99",
+    "kind": "TMA",
+    "name": "ÖSTERSUND TMA B",
+    "positionIndicator": "ESNZ",
+    "unit": "ÖSTERSUND TWR",
+    "callSign": "ÖSTERSUND TOWER",
+    "frequencies": [
+      "135.655"
+    ]
+  },
+  {
+    "id": "TMA-100",
+    "kind": "TMA",
+    "name": "ÖSTERSUND TMA C",
+    "positionIndicator": "ESNZ",
+    "unit": "ÖSTERSUND TWR",
+    "callSign": "ÖSTERSUND TOWER",
+    "frequencies": [
+      "135.655"
+    ]
+  },
+  {
+    "id": "TMA-101",
+    "kind": "TMA",
+    "name": "ÖSTERSUND TMA D",
+    "positionIndicator": "ESNZ",
+    "unit": "ÖSTERSUND TWR",
+    "callSign": "ÖSTERSUND TOWER",
+    "frequencies": [
+      "135.655"
+    ]
+  },
+  {
+    "id": "TMA-102",
+    "kind": "TMA",
+    "name": "ÖSTERSUND TMA E",
+    "positionIndicator": "ESNZ",
+    "unit": "ÖSTERSUND TWR",
+    "callSign": "ÖSTERSUND TOWER",
+    "frequencies": [
+      "135.655"
+    ]
+  },
+  {
+    "id": "TMA-103",
+    "kind": "TMA",
+    "name": "ÖSTGÖTA TMA",
+    "positionIndicator": "ESSP",
+    "unit": "STOCKHOLM ACC",
+    "callSign": "SWEDEN CONTROL",
+    "frequencies": [
+      "118.405"
+    ]
+  },
+  {
+    "id": "TMA-104",
+    "kind": "TMA",
+    "name": "ÖSTGÖTA TMA A",
+    "positionIndicator": "ESSP",
+    "unit": "ÖSTGÖTA APP",
+    "callSign": "ÖSTGÖTA APPROACH",
+    "frequencies": [
+      "132.955"
+    ]
+  },
+  {
+    "id": "TMA-105",
+    "kind": "TMA",
+    "name": "ÖSTGÖTA TMA B",
+    "positionIndicator": "ESSP",
+    "unit": "ÖSTGÖTA APP",
+    "callSign": "ÖSTGÖTA APPROACH",
+    "frequencies": [
+      "132.955"
+    ]
+  },
+  {
+    "id": "TMA-106",
+    "kind": "TMA",
+    "name": "SECTOR LINKÖPING",
+    "positionIndicator": "ESCF",
+    "unit": "LINKÖPING\\/SAAB TWR",
+    "callSign": "SAAB TOWER",
+    "frequencies": [
+      "118.805"
+    ]
+  },
+  {
+    "id": "TMA-107",
+    "kind": "TMA",
+    "name": "SECTOR NORRKÖPING",
+    "positionIndicator": "ESSP",
+    "unit": "NORRKÖPING\\/KUNGSÄNGEN TWR",
+    "callSign": "KUNGSÄNGEN TOWER",
+    "frequencies": [
+      "120.355"
+    ]
+  },
+  {
+    "id": "TIA-109",
+    "kind": "TIA",
+    "name": "ARVIDSJAUR TIA\\/RMZ B",
+    "positionIndicator": "ESNX",
+    "unit": "ARVIDSJAUR TWR\\/AFIS",
+    "callSign": "ARVIDSJAUR TOWER\\/INFORMATION",
+    "frequencies": [
+      "122.730"
+    ]
+  },
+  {
+    "id": "TIA-110",
+    "kind": "TIA",
+    "name": "ESKILSTUNA TIA\\/RMZ",
+    "positionIndicator": "ESSU",
+    "unit": "ESKILSTUNA AFIS",
+    "callSign": "ESKILSTUNA INFORMATION",
+    "frequencies": [
+      "126.855"
+    ]
+  },
+  {
+    "id": "TIA-111",
+    "kind": "TIA",
+    "name": "GÄLLIVARE TIA\\/RMZ",
+    "positionIndicator": "ESNG",
+    "unit": "GÄLLIVARE AFIS",
+    "callSign": "GÄLLIVARE INFORMATION",
+    "frequencies": [
+      "122.330"
+    ]
+  },
+  {
+    "id": "TIA-112",
+    "kind": "TIA",
+    "name": "HAGFORS TIA\\/RMZ",
+    "positionIndicator": "ESOH",
+    "unit": "HAGFORS AFIS",
+    "callSign": "HAGFORS INFORMATION",
+    "frequencies": [
+      "122.230"
+    ]
+  },
+  {
+    "id": "TIA-113",
+    "kind": "TIA",
+    "name": "HEMAVAN TIA\\/RMZ",
+    "positionIndicator": "ESUT",
+    "unit": "HEMAVAN AFIS",
+    "callSign": "HEMAVAN INFORMATION",
+    "frequencies": [
+      "122.980"
+    ]
+  },
+  {
+    "id": "TIA-114",
+    "kind": "TIA",
+    "name": "KRAMFORS TIA\\/RMZ",
+    "positionIndicator": "ESNK",
+    "unit": "KRAMFORS AFIS",
+    "callSign": "KRAMFORS INFORMATION",
+    "frequencies": [
+      "122.155"
+    ]
+  },
+  {
+    "id": "TIA-115",
+    "kind": "TIA",
+    "name": "LYCKSELE TIA\\/RMZ",
+    "positionIndicator": "ESNL",
+    "unit": "LYCKSELE AFIS",
+    "callSign": "LYCKSELE INFORMATION",
+    "frequencies": [
+      "122.230"
+    ]
+  },
+  {
+    "id": "TIA-116",
+    "kind": "TIA",
+    "name": "MORA TIA\\/RMZ",
+    "positionIndicator": "ESKM",
+    "unit": "MORA\\/SILJAN AFIS",
+    "callSign": "MORA INFORMATION",
+    "frequencies": [
+      "119.055"
+    ]
+  },
+  {
+    "id": "TIA-117",
+    "kind": "TIA",
+    "name": "PAJALA TIA\\/RMZ",
+    "positionIndicator": "ESUP",
+    "unit": "PAJALA AFIS",
+    "callSign": "PAJALA INFORMATION",
+    "frequencies": [
+      "118.380"
+    ]
+  },
+  {
+    "id": "TIA-118",
+    "kind": "TIA",
+    "name": "SVEG TIA\\/RMZ",
+    "positionIndicator": "ESND",
+    "unit": "SVEG AFIS",
+    "callSign": "SVEG INFORMATION",
+    "frequencies": [
+      "122.205"
+    ]
+  },
+  {
+    "id": "TIA-119",
+    "kind": "TIA",
+    "name": "TORSBY TIA\\/RMZ A",
+    "positionIndicator": "ESST",
+    "unit": "TORSBY AFIS",
+    "callSign": "TORSBY INFORMATION",
+    "frequencies": [
+      "122.055"
+    ]
+  },
+  {
+    "id": "TIA-120",
+    "kind": "TIA",
+    "name": "TORSBY TIA\\/RMZ B",
+    "positionIndicator": "ESST",
+    "unit": "TORSBY AFIS",
+    "callSign": "TORSBY INFORMATION",
+    "frequencies": [
+      "122.055"
+    ]
+  },
+  {
+    "id": "TIZ-1",
+    "kind": "TIZ",
+    "name": "ESKILSTUNA TIZ\\/RMZ",
+    "positionIndicator": "ESSU",
+    "unit": "ESKILSTUNA AFIS",
+    "callSign": "ESKILSTUNA INFORMATION",
+    "frequencies": [
+      "126.855"
+    ]
+  },
+  {
+    "id": "TIZ-2",
+    "kind": "TIZ",
+    "name": "GÄLLIVARE TIZ\\/RMZ",
+    "positionIndicator": "ESNG",
+    "unit": "GÄLLIVARE AFIS",
+    "callSign": "GÄLLIVARE INFORMATION",
+    "frequencies": [
+      "122.330"
+    ]
+  },
+  {
+    "id": "TIZ-3",
+    "kind": "TIZ",
+    "name": "HAGFORS TIZ\\/RMZ",
+    "positionIndicator": "ESOH",
+    "unit": "HAGFORS AFIS",
+    "callSign": "HAGFORS INFORMATION",
+    "frequencies": [
+      "122.230"
+    ]
+  },
+  {
+    "id": "TIZ-4",
+    "kind": "TIZ",
+    "name": "HEMAVAN TIZ\\/RMZ",
+    "positionIndicator": "ESUT",
+    "unit": "HEMAVAN AFIS",
+    "callSign": "HEMAVAN INFORMATION",
+    "frequencies": [
+      "122.980"
+    ]
+  },
+  {
+    "id": "TIZ-5",
+    "kind": "TIZ",
+    "name": "KRAMFORS TIZ\\/RMZ",
+    "positionIndicator": "ESNK",
+    "unit": "KRAMFORS AFIS",
+    "callSign": "KRAMFORS INFORMATION",
+    "frequencies": [
+      "122.155"
+    ]
+  },
+  {
+    "id": "TIZ-6",
+    "kind": "TIZ",
+    "name": "LYCKSELE TIZ\\/RMZ",
+    "positionIndicator": "ESNL",
+    "unit": "LYCKSELE AFIS",
+    "callSign": "LYCKSELE INFORMATION",
+    "frequencies": [
+      "122.230"
+    ]
+  },
+  {
+    "id": "TIZ-7",
+    "kind": "TIZ",
+    "name": "MORA TIZ\\/RMZ",
+    "positionIndicator": "ESKM",
+    "unit": "MORA\\/SILJAN AFIS",
+    "callSign": "MORA INFORMATION",
+    "frequencies": [
+      "119.055"
+    ]
+  },
+  {
+    "id": "TIZ-8",
+    "kind": "TIZ",
+    "name": "PAJALA TIZ\\/RMZ",
+    "positionIndicator": "ESUP",
+    "unit": "PAJALA AFIS",
+    "callSign": "PAJALA INFORMATION",
+    "frequencies": [
+      "118.380"
+    ]
+  },
+  {
+    "id": "TIZ-9",
+    "kind": "TIZ",
+    "name": "SVEG TIZ\\/RMZ",
+    "positionIndicator": "ESND",
+    "unit": "SVEG AFIS",
+    "callSign": "SVEG INFORMATION",
+    "frequencies": [
+      "122.205"
+    ]
+  },
+  {
+    "id": "TIZ-10",
+    "kind": "TIZ",
+    "name": "TORSBY TIZ\\/RMZ A",
+    "positionIndicator": "ESST",
+    "unit": "TORSBY AFIS",
+    "callSign": "TORSBY INFORMATION",
+    "frequencies": [
+      "122.055"
+    ]
+  },
+  {
+    "id": "TIZ-11",
+    "kind": "TIZ",
+    "name": "TORSBY TIZ\\/RMZ B",
+    "positionIndicator": "ESST",
+    "unit": "TORSBY AFIS",
+    "callSign": "TORSBY INFORMATION",
+    "frequencies": [
+      "122.055"
+    ]
+  }
+]
