@@ -1,5 +1,6 @@
 import type { FlightPlanInput, RadioNavEntry, RoutePointInput } from './types'
 import { swedishAirspaces } from './generated/airspaces.se'
+import { swedishAirports } from './generated/airports.se'
 import {
   swedishAirspaceFrequencies,
   swedishAirportFrequencies,
@@ -16,6 +17,7 @@ const maxAirportEntriesPerEndpoint = 2
 const maxRouteAirspaceEntries = 5
 const maxNavaidEntries = 3
 const earthRadiusNm = 3440.065
+const endpointAirportFallbackRadiusNm = 12
 
 function degToRad(value: number) {
   return (value * Math.PI) / 180
@@ -167,6 +169,34 @@ function formatNavaidEntry(navaid: SwedishNavaid): RadioNavEntry {
   }
 }
 
+function normalizeEntryName(value: string) {
+  return value
+    .replace(/\bINFORMATION\b/gi, 'INFO')
+    .replace(/\bAPPROACH\b/gi, 'APP')
+    .replace(/\bCONTROL\b/gi, 'CTL')
+    .replace(/\bTOWER\b/gi, 'TWR')
+    .replace(/\bGROUND\b/gi, 'GND')
+    .replace(/\bCLEARANCE DELIVERY\b/gi, 'DEL')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toUpperCase()
+}
+
+function normalizeEntryFrequency(value: string) {
+  const trimmed = value.replace(/\s+/g, ' ').trim().toUpperCase()
+  const numeric = trimmed.match(/^(\d{3}\.\d{2,3})(?:\s*(MHZ|KHZ))?$/i)
+  if (numeric) {
+    const [, frequency, unit] = numeric
+    return `${frequency} ${unit ?? ''}`.trim()
+  }
+
+  return trimmed
+}
+
+function createEntryKey(entry: RadioNavEntry) {
+  return `${normalizeEntryName(entry.name)}|${normalizeEntryFrequency(entry.frequency)}`
+}
+
 function sampleLegPoints(from: RoutePointInput, to: RoutePointInput) {
   return [
     from,
@@ -202,7 +232,7 @@ function dedupeEntries(entries: RadioNavEntry[]) {
   const unique: RadioNavEntry[] = []
 
   for (const entry of entries) {
-    const key = `${entry.name}|${entry.frequency}`
+    const key = createEntryKey(entry)
     if (!entry.name || !entry.frequency || seen.has(key)) {
       continue
     }
@@ -248,7 +278,14 @@ function isGroundService(record: SwedishAirportFrequency) {
 
 function isTowerService(record: SwedishAirportFrequency) {
   const text = `${record.kind} ${record.unit}`.toUpperCase()
-  return text.includes('TWR') || text.includes('TOWER') || text.includes('AFIS') || text.includes('INFORMATION')
+  return (
+    text.includes('TWR') ||
+    text.includes('TOWER') ||
+    text.includes('AFIS') ||
+    text.includes('INFORMATION') ||
+    /\bINFO\b/.test(text) ||
+    text.includes('RADIO')
+  )
 }
 
 function findAirspaceRadioRecords(airspace: (typeof swedishAirspaces)[number]) {
@@ -287,9 +324,13 @@ function buildEndpointEntries(icao: string) {
   if (directAirportRecords.length > 0) {
     const groundRecords = directAirportRecords.filter((record) => isGroundService(record))
     const towerRecords = directAirportRecords.filter((record) => isTowerService(record) && !isGroundService(record))
+    const fallbackRecords = directAirportRecords.filter(
+      (record) => !isGroundService(record) && !isTowerService(record),
+    )
     const picked = [
       ...groundRecords.sort((a, b) => preferAirportService(b) - preferAirportService(a)).slice(0, 1),
       ...towerRecords.sort((a, b) => preferAirportService(b) - preferAirportService(a)).slice(0, 1),
+      ...fallbackRecords.sort((a, b) => preferAirportService(b) - preferAirportService(a)).slice(0, 1),
     ]
 
     return dedupeEntries(picked.flatMap(formatAirportEntry)).slice(0, maxAirportEntriesPerEndpoint)
@@ -299,6 +340,42 @@ function buildEndpointEntries(icao: string) {
     0,
     maxAirportEntriesPerEndpoint,
   )
+}
+
+function inferAirportIcaoFromPoint(point: RoutePointInput | null | undefined) {
+  if (!point) {
+    return ''
+  }
+
+  const nearestAirport = swedishAirports
+    .map((airport) => ({
+      icao: airport.icao ?? '',
+      distance: distanceNm(point.lat, point.lon, airport.lat, airport.lon),
+    }))
+    .filter((airport) => airport.icao)
+    .sort((a, b) => a.distance - b.distance)[0]
+
+  if (!nearestAirport || nearestAirport.distance > endpointAirportFallbackRadiusNm) {
+    return ''
+  }
+
+  return nearestAirport.icao
+}
+
+function resolveEndpointIcao(headerIcao: string, fallbackPoint: RoutePointInput | null | undefined) {
+  const normalizedHeaderIcao = headerIcao.trim().toUpperCase()
+  if (normalizedHeaderIcao) {
+    return normalizedHeaderIcao
+  }
+
+  return inferAirportIcaoFromPoint(fallbackPoint)
+}
+
+export function inferFlightplanEndpointIcaos(plan: FlightPlanInput) {
+  return {
+    departureIcao: inferAirportIcaoFromPoint(plan.routeLegs[0]?.from),
+    destinationIcao: inferAirportIcaoFromPoint(plan.routeLegs[plan.routeLegs.length - 1]?.to),
+  }
 }
 
 function buildSwedenControlEntries(plan: FlightPlanInput) {
@@ -379,14 +456,34 @@ function findSuggestedNavaids(plan: FlightPlanInput) {
   return entries.slice(0, maxNavaidEntries)
 }
 
+const knownAutoEntryKeys = new Set<string>([
+  ...swedishAirspaceFrequencies.flatMap(formatAirspaceEntry),
+  ...swedishAirportFrequencies
+    .filter((record) => !isDirectiveOnlyService(record))
+    .flatMap(formatAirportEntry),
+  ...swedishNavaids.map(formatNavaidEntry),
+  ...swedishAccSectors.flatMap((sector) => {
+    const suffix = sector.sectorName.match(/ACC sector\s+(.+)$/i)?.[1] ?? sector.sectorCode
+    const label = `Sweden CTL ${suffix}`.trim()
+    return sector.frequencies.map((frequency) => ({
+      name: label,
+      frequency: /^\d{3}\.\d{3}$/.test(frequency) ? `${frequency} MHz` : frequency,
+    }))
+  }),
+].map(createEntryKey))
+
+function isAutoManagedEntry(entry: RadioNavEntry) {
+  return knownAutoEntryKeys.has(createEntryKey(entry))
+}
+
 export function buildSuggestedRadioNav(plan: FlightPlanInput) {
   const routeEntries: RadioNavEntry[] = []
   const airportEntries: RadioNavEntry[] = []
   const controlEntries: RadioNavEntry[] = []
   const navEntries: RadioNavEntry[] = []
 
-  const departureIcao = plan.header.departureAerodrome.trim().toUpperCase()
-  const destinationIcao = plan.header.destinationAerodrome.trim().toUpperCase()
+  const departureIcao = resolveEndpointIcao(plan.header.departureAerodrome, plan.routeLegs[0]?.from)
+  const destinationIcao = resolveEndpointIcao(plan.header.destinationAerodrome, plan.routeLegs[plan.routeLegs.length - 1]?.to)
 
   if (departureIcao) {
     airportEntries.push(...buildEndpointEntries(departureIcao))
@@ -414,13 +511,18 @@ export function mergeRadioNavEntries(
   currentEntries: RadioNavEntry[],
   suggestedEntries: RadioNavEntry[],
 ) {
-  return Array.from({ length: Math.max(maxSuggestedEntries, currentEntries.length, suggestedEntries.length) }, (_, index) => {
-    const current = currentEntries[index] ?? { name: '', frequency: '' }
-    const suggested = suggestedEntries[index] ?? { name: '', frequency: '' }
+  const manualEntries = currentEntries.filter((entry) => {
+    const hasPlaceholderName = isPlaceholderName(entry.name)
+    const hasPlaceholderFrequency = isPlaceholderFrequency(entry.frequency)
 
-    return {
-      name: isPlaceholderName(current.name) ? suggested.name : current.name,
-      frequency: isPlaceholderFrequency(current.frequency) ? suggested.frequency : current.frequency,
+    if (hasPlaceholderName && hasPlaceholderFrequency) {
+      return false
     }
-  }).slice(0, maxSuggestedEntries)
+
+    return !isAutoManagedEntry(entry)
+  })
+
+  return dedupeEntries([...suggestedEntries, ...manualEntries])
+    .concat(Array.from({ length: maxSuggestedEntries }, () => ({ name: '', frequency: '' })))
+    .slice(0, maxSuggestedEntries)
 }

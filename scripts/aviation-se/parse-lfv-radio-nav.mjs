@@ -778,6 +778,7 @@ const airspaceFrequencies = [...firRows, ...tmaRows, ...tiaRows]
   .filter((row) => row.frequencies.length > 0)
 
 const currentAirspaces = JSON.parse(readFileSync(resolve('data/aviation/se/normalized/airspaces.se.json'), 'utf8')).airspaces ?? []
+const currentAirports = JSON.parse(readFileSync(resolve('data/aviation/se/normalized/airports.se.json'), 'utf8')).airports ?? []
 const tizByIcao = new Set(
   currentAirspaces.filter((airspace) => airspace.kind === 'TIZ').map((airspace) => airspace.positionIndicator).filter(Boolean),
 )
@@ -797,6 +798,32 @@ const navaids = navaidLayers.flat()
 
 const airportPageEntries = listOfflineAirportPages()
 const airportFrequencies = airportPageEntries.flatMap((entry) => parseAd218Page(entry.icao, readOfflineAirportPage(entry)))
+
+const ad1FallbackAirportFrequencies = currentAirports
+  .filter((airport) => airport.icao && !airport.detailsInAd2)
+  .filter((airport) => Array.isArray(airport.communicationFrequencies))
+  .map((airport) => ({
+    icao: airport.icao,
+    name: airport.name,
+    atsServices: Array.isArray(airport.atsServices) ? airport.atsServices : [],
+    communicationFrequencies: airport.communicationFrequencies
+      .map((frequency) => normalizeFrequency(frequency))
+      .filter((frequency) => frequency && frequency !== '-'),
+  }))
+  .filter((airport) => airport.communicationFrequencies.length > 0)
+  .map((airport, index) => {
+    const service = airport.atsServices.find(Boolean) ?? 'INFO'
+    const unitSuffix = /\b(AFIS|INFORMATION|RADIO)\b/i.test(service) ? service : 'RADIO'
+    return {
+      id: `AD1-${airport.icao}-${index + 1}`,
+      kind: service,
+      positionIndicator: airport.icao,
+      unit: `${airport.name} ${unitSuffix}`.replace(/\s+/g, ' ').trim(),
+      hours: null,
+      remarks: 'LFV AD 1.1 published aerodrome traffic frequency',
+      frequencies: airport.communicationFrequencies,
+    }
+  })
 
 const inferredAirportFrequencies = [...new Map(
   allAirspaceFrequencies
@@ -818,6 +845,7 @@ const inferredAirportFrequencies = [...new Map(
 const airportsWithAd218 = new Set(airportFrequencies.map((record) => record.positionIndicator))
 const mergedAirportFrequencies = [
   ...airportFrequencies,
+  ...ad1FallbackAirportFrequencies.filter((record) => !airportsWithAd218.has(record.positionIndicator)),
   ...inferredAirportFrequencies.filter((record) => !airportsWithAd218.has(record.positionIndicator)),
 ]
 

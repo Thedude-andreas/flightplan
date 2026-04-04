@@ -6,7 +6,11 @@ import { calculateFlightPlan, formatNumber, formatTimeFromMinutes } from './feat
 import { snapCoordinate } from './features/flightplan/coordinates'
 import { getRoutePointLabel, legsToWaypoints, useGazetteerVersion, waypointsToLegs } from './features/flightplan/gazetteer'
 import { FlightplanMapEditor } from './features/flightplan/FlightplanMapEditor'
-import { buildSuggestedRadioNav, mergeRadioNavEntries } from './features/flightplan/radioNav'
+import {
+  buildSuggestedRadioNav,
+  inferFlightplanEndpointIcaos,
+  mergeRadioNavEntries,
+} from './features/flightplan/radioNav'
 import type { AircraftProfile, FlightPlanInput, RadioNavEntry } from './features/flightplan/types'
 
 type EditorPanel = 'fuel' | 'weightBalance' | 'performance' | 'aircraft'
@@ -175,7 +179,29 @@ export function FlightplanApp({
   onPlanChange,
 }: FlightplanAppProps = {}) {
   useGazetteerVersion()
-  const [plan, setPlan] = useState<FlightPlanInput>(() => cloneFlightPlan(initialPlan ?? createInitialFlightPlan()))
+  const normalizePlanRadioNav = (nextPlan: FlightPlanInput): FlightPlanInput => {
+    const inferredEndpoints = inferFlightplanEndpointIcaos(nextPlan)
+    const planWithSyncedEndpoints: FlightPlanInput = {
+      ...nextPlan,
+      header: {
+        ...nextPlan.header,
+        departureAerodrome: inferredEndpoints.departureIcao || nextPlan.header.departureAerodrome,
+        destinationAerodrome: inferredEndpoints.destinationIcao || nextPlan.header.destinationAerodrome,
+      },
+    }
+
+    return {
+      ...planWithSyncedEndpoints,
+      radioNav: mergeRadioNavEntries(
+        planWithSyncedEndpoints.radioNav,
+        buildSuggestedRadioNav(planWithSyncedEndpoints),
+      ),
+    }
+  }
+
+  const [plan, setPlan] = useState<FlightPlanInput>(() =>
+    normalizePlanRadioNav(cloneFlightPlan(initialPlan ?? createInitialFlightPlan())),
+  )
   const [activePanel, setActivePanel] = useState<EditorPanel | null>(null)
   const [activeTab, setActiveTab] = useState<WorkspaceTab>('flightplan')
   const [aircraftOptions, setAircraftOptions] = useState<AircraftProfile[]>(() =>
@@ -198,8 +224,12 @@ export function FlightplanApp({
     onPlanChange?.(plan)
   }, [onPlanChange, plan])
 
+  const updatePlan = (updater: (current: FlightPlanInput) => FlightPlanInput) => {
+    setPlan((current) => normalizePlanRadioNav(updater(current)))
+  }
+
   const updateHeader = (key: keyof FlightPlanInput['header'], value: string) => {
-    setPlan((current) => ({
+    updatePlan((current) => ({
       ...current,
       header: {
         ...current.header,
@@ -212,7 +242,7 @@ export function FlightplanApp({
     key: keyof FlightPlanInput['performance'],
     value: string | number,
   ) => {
-    setPlan((current) => ({
+    updatePlan((current) => ({
       ...current,
       performance: {
         ...current.performance,
@@ -222,7 +252,7 @@ export function FlightplanApp({
   }
 
   const updateFuel = (key: keyof FlightPlanInput['fuel'], value: string | number | undefined) => {
-    setPlan((current) => ({
+    updatePlan((current) => ({
       ...current,
       fuel: {
         ...current.fuel,
@@ -232,7 +262,7 @@ export function FlightplanApp({
   }
 
   const updateWeightBalance = (key: keyof FlightPlanInput['weightBalance'], value: number) => {
-    setPlan((current) => ({
+    updatePlan((current) => ({
       ...current,
       weightBalance: {
         ...current.weightBalance,
@@ -242,14 +272,14 @@ export function FlightplanApp({
   }
 
   const replaceRouteLegs = (routeLegs: FlightPlanInput['routeLegs']) => {
-    setPlan((current) => ({
+    updatePlan((current) => ({
       ...current,
       routeLegs,
     }))
   }
 
   const addRouteLeg = () => {
-    setPlan((current) => {
+    updatePlan((current) => {
       const lastLeg = current.routeLegs[current.routeLegs.length - 1]
       const template = lastLeg ?? current.routeLegs[0]
 
@@ -288,14 +318,14 @@ export function FlightplanApp({
     }
 
     setRowContextMenu(null)
-    setPlan((current) => ({
+    updatePlan((current) => ({
       ...current,
       routeLegs: waypointsToLegs(nextWaypoints, current.routeLegs, derived.aircraft.cruiseTasKt),
     }))
   }
 
   const updateRadioNav = (index: number, key: 'name' | 'frequency', value: string) => {
-    setPlan((current) => ({
+    updatePlan((current) => ({
       ...current,
       radioNav: Array.from({ length: Math.max(current.radioNav.length, index + 1) }, (_, entryIndex) => {
         const entry = current.radioNav[entryIndex] ?? { name: '', frequency: '' }
@@ -323,7 +353,7 @@ export function FlightplanApp({
       const next = current.map((aircraft, aircraftIndex) => (aircraftIndex === index ? nextAircraft : aircraft))
 
       if (plan.aircraftRegistration === previous.registration && nextAircraft.registration !== previous.registration) {
-        setPlan((currentPlan) => ({
+        updatePlan((currentPlan) => ({
           ...currentPlan,
           aircraftRegistration: nextAircraft.registration,
         }))
@@ -682,7 +712,7 @@ export function FlightplanApp({
                         type="button"
                         className={isActive ? 'is-active' : ''}
                         onClick={() => {
-                          setPlan((current) => ({ ...current, aircraftRegistration: aircraft.registration }))
+                          updatePlan((current) => ({ ...current, aircraftRegistration: aircraft.registration }))
                           setActivePanel(null)
                         }}
                       >

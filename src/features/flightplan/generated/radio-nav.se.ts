@@ -5006,6 +5006,908 @@ export const swedishAirportFrequencies: SwedishAirportFrequency[] = [
     ]
   },
   {
+    "id": "AD1-ESGI-1",
+    "kind": "INFO",
+    "positionIndicator": "ESGI",
+    "unit": "ALINGSÅS RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.650"
+    ]
+  },
+  {
+    "id": "AD1-ESMP-2",
+    "kind": "INFO",
+    "positionIndicator": "ESMP",
+    "unit": "ANDERSTORP RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.200"
+    ]
+  },
+  {
+    "id": "AD1-ESQO-3",
+    "kind": "INFO",
+    "positionIndicator": "ESQO",
+    "unit": "ARBOGA RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.150"
+    ]
+  },
+  {
+    "id": "AD1-ESUB-4",
+    "kind": "INFO",
+    "positionIndicator": "ESUB",
+    "unit": "ARBRÅ RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.200"
+    ]
+  },
+  {
+    "id": "AD1-ESKV-5",
+    "kind": "INFO",
+    "positionIndicator": "ESKV",
+    "unit": "ARVIKA RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.350"
+    ]
+  },
+  {
+    "id": "AD1-ESVA-6",
+    "kind": "INFO",
+    "positionIndicator": "ESVA",
+    "unit": "AVESTA RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.550"
+    ]
+  },
+  {
+    "id": "AD1-ESMB-7",
+    "kind": "INFO",
+    "positionIndicator": "ESMB",
+    "unit": "BORGLANDA RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.550"
+    ]
+  },
+  {
+    "id": "AD1-ESGE-8",
+    "kind": "INFO",
+    "positionIndicator": "ESGE",
+    "unit": "BORÅS RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.525"
+    ]
+  },
+  {
+    "id": "AD1-ESVB-9",
+    "kind": "INFO",
+    "positionIndicator": "ESVB",
+    "unit": "BUNGE RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.400"
+    ]
+  },
+  {
+    "id": "AD1-ESKD-10",
+    "kind": "INFO",
+    "positionIndicator": "ESKD",
+    "unit": "DALA-JÄRNA RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.350"
+    ]
+  },
+  {
+    "id": "AD1-ESUY-11",
+    "kind": "INFO",
+    "positionIndicator": "ESUY",
+    "unit": "EDSBYN RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.550"
+    ]
+  },
+  {
+    "id": "AD1-ESMC-12",
+    "kind": "INFO",
+    "positionIndicator": "ESMC",
+    "unit": "EKSJÖ/RÄNNESLÄTT RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.425"
+    ]
+  },
+  {
+    "id": "AD1-ESVL-13",
+    "kind": "INFO",
+    "positionIndicator": "ESVL",
+    "unit": "ENKÖPING/LÅNGTORA RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.525"
+    ]
+  },
+  {
+    "id": "AD1-ESSC-14",
+    "kind": "INFO",
+    "positionIndicator": "ESSC",
+    "unit": "ESKILSTUNA/EKEBY RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.200"
+    ]
+  },
+  {
+    "id": "AD1-ESME-15",
+    "kind": "INFO",
+    "positionIndicator": "ESME",
+    "unit": "ESLÖV RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.150"
+    ]
+  },
+  {
+    "id": "AD1-ESGK-16",
+    "kind": "INFO",
+    "positionIndicator": "ESGK",
+    "unit": "FALKÖPING RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.350"
+    ]
+  },
+  {
+    "id": "AD1-ESTF-17",
+    "kind": "INFO",
+    "positionIndicator": "ESTF",
+    "unit": "FJÄLLBACKA RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.200"
+    ]
+  },
+  {
+    "id": "AD1-ESVG-18",
+    "kind": "INFO",
+    "positionIndicator": "ESVG",
+    "unit": "GAGNEF RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.550"
+    ]
+  },
+  {
+    "id": "AD1-ESUG-19",
+    "kind": "INFO",
+    "positionIndicator": "ESUG",
+    "unit": "GARGNÄS RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.450"
+    ]
+  },
+  {
+    "id": "AD1-ESSZ-20",
+    "kind": "INFO",
+    "positionIndicator": "ESSZ",
+    "unit": "GNESTA/VÄNGSÖ RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.375"
+    ]
+  },
+  {
+    "id": "AD1-ESKG-21",
+    "kind": "INFO",
+    "positionIndicator": "ESKG",
+    "unit": "GRYTTJOM RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.400"
+    ]
+  },
+  {
+    "id": "AD1-ESSK-22",
+    "kind": "INFO",
+    "positionIndicator": "ESSK",
+    "unit": "GÄVLE RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.600"
+    ]
+  },
+  {
+    "id": "AD1-ESGN-23",
+    "kind": "INFO",
+    "positionIndicator": "ESGN",
+    "unit": "GÖTENE/BRÄNNEBRONA RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.400"
+    ]
+  },
+  {
+    "id": "AD1-ESNA-24",
+    "kind": "INFO",
+    "positionIndicator": "ESNA",
+    "unit": "HALLVIKEN RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.550"
+    ]
+  },
+  {
+    "id": "AD1-ESNC-25",
+    "kind": "INFO",
+    "positionIndicator": "ESNC",
+    "unit": "HEDE/HEDLANDA RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.150"
+    ]
+  },
+  {
+    "id": "AD1-ESGH-26",
+    "kind": "INFO",
+    "positionIndicator": "ESGH",
+    "unit": "HERRLJUNGA RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.650"
+    ]
+  },
+  {
+    "id": "AD1-ESSF-27",
+    "kind": "INFO",
+    "positionIndicator": "ESSF",
+    "unit": "HULTSFRED-VIMMERBY RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.550"
+    ]
+  },
+  {
+    "id": "AD1-ESVH-28",
+    "kind": "INFO",
+    "positionIndicator": "ESVH",
+    "unit": "HÄLLEFORS RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.150"
+    ]
+  },
+  {
+    "id": "AD1-ESUH-29",
+    "kind": "INFO",
+    "positionIndicator": "ESUH",
+    "unit": "HÄRNÖSAND/MYRAN RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.450"
+    ]
+  },
+  {
+    "id": "AD1-ESFA-30",
+    "kind": "INFO",
+    "positionIndicator": "ESFA",
+    "unit": "HÄSSLEHOLM/BOKEBERG RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.600"
+    ]
+  },
+  {
+    "id": "AD1-ESMH-31",
+    "kind": "INFO",
+    "positionIndicator": "ESMH",
+    "unit": "HÖGANÄS RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.550"
+    ]
+  },
+  {
+    "id": "AD1-ESUE-32",
+    "kind": "INFO",
+    "positionIndicator": "ESUE",
+    "unit": "IDRE RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "131.505"
+    ]
+  },
+  {
+    "id": "AD1-ESNJ-33",
+    "kind": "TWR",
+    "positionIndicator": "ESNJ",
+    "unit": "JOKKMOKK RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "128.450"
+    ]
+  },
+  {
+    "id": "AD1-ESKK-34",
+    "kind": "INFO",
+    "positionIndicator": "ESKK",
+    "unit": "KARLSKOGA RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.525"
+    ]
+  },
+  {
+    "id": "AD1-ESVK-35",
+    "kind": "INFO",
+    "positionIndicator": "ESVK",
+    "unit": "KATRINEHOLM RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.200"
+    ]
+  },
+  {
+    "id": "AD1-ESVQ-36",
+    "kind": "INFO",
+    "positionIndicator": "ESVQ",
+    "unit": "KÖPING RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.150"
+    ]
+  },
+  {
+    "id": "AD1-ESML-37",
+    "kind": "INFO",
+    "positionIndicator": "ESML",
+    "unit": "LANDSKRONA RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.350"
+    ]
+  },
+  {
+    "id": "AD1-ESGL-38",
+    "kind": "INFO",
+    "positionIndicator": "ESGL",
+    "unit": "LIDKÖPING RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "131.765"
+    ]
+  },
+  {
+    "id": "AD1-ESMG-39",
+    "kind": "INFO",
+    "positionIndicator": "ESMG",
+    "unit": "LJUNGBY/FERINGE RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.015"
+    ]
+  },
+  {
+    "id": "AD1-ESUL-40",
+    "kind": "INFO",
+    "positionIndicator": "ESUL",
+    "unit": "LJUSDAL RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.200"
+    ]
+  },
+  {
+    "id": "AD1-ESSG-41",
+    "kind": "INFO",
+    "positionIndicator": "ESSG",
+    "unit": "LUDVIKA RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.150"
+    ]
+  },
+  {
+    "id": "AD1-ESVM-42",
+    "kind": "INFO",
+    "positionIndicator": "ESVM",
+    "unit": "MALUNG/SKINNLANDA RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.330"
+    ]
+  },
+  {
+    "id": "AD1-ESUI-43",
+    "kind": "INFO",
+    "positionIndicator": "ESUI",
+    "unit": "MELLANSEL RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.400"
+    ]
+  },
+  {
+    "id": "AD1-ESUM-44",
+    "kind": "INFO",
+    "positionIndicator": "ESUM",
+    "unit": "MOHED RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.600"
+    ]
+  },
+  {
+    "id": "AD1-ESSN-45",
+    "kind": "INFO",
+    "positionIndicator": "ESSN",
+    "unit": "NORRTÄLJE RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.325"
+    ]
+  },
+  {
+    "id": "AD1-ESNM-46",
+    "kind": "INFO",
+    "positionIndicator": "ESNM",
+    "unit": "OPTAND RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.550"
+    ]
+  },
+  {
+    "id": "AD1-ESNR-47",
+    "kind": "INFO",
+    "positionIndicator": "ESNR",
+    "unit": "ORSA RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.400"
+    ]
+  },
+  {
+    "id": "AD1-ESMO-48",
+    "kind": "INFO",
+    "positionIndicator": "ESMO",
+    "unit": "OSKARSHAMN RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.350"
+    ]
+  },
+  {
+    "id": "AD1-ESUO-49",
+    "kind": "INFO",
+    "positionIndicator": "ESUO",
+    "unit": "OVIKEN RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.150"
+    ]
+  },
+  {
+    "id": "AD1-ESNP-50",
+    "kind": "INFO",
+    "positionIndicator": "ESNP",
+    "unit": "PITEÅ RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.550"
+    ]
+  },
+  {
+    "id": "AD1-ESUR-51",
+    "kind": "INFO",
+    "positionIndicator": "ESUR",
+    "unit": "RAMSELE RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.600"
+    ]
+  },
+  {
+    "id": "AD1-ESFS-52",
+    "kind": "INFO",
+    "positionIndicator": "ESFS",
+    "unit": "SANDVIK RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.450"
+    ]
+  },
+  {
+    "id": "AD1-ESVS-53",
+    "kind": "INFO",
+    "positionIndicator": "ESVS",
+    "unit": "SILJANSNÄS RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.550"
+    ]
+  },
+  {
+    "id": "AD1-ESMI-54",
+    "kind": "INFO",
+    "positionIndicator": "ESMI",
+    "unit": "SJÖBO SÖVDE RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.650"
+    ]
+  },
+  {
+    "id": "AD1-ESGR-55",
+    "kind": "INFO",
+    "positionIndicator": "ESGR",
+    "unit": "SKÖVDE RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.055"
+    ]
+  },
+  {
+    "id": "AD1-ESMY-56",
+    "kind": "INFO",
+    "positionIndicator": "ESMY",
+    "unit": "SMÅLANDSSTENAR RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.200"
+    ]
+  },
+  {
+    "id": "AD1-ESNB-57",
+    "kind": "INFO",
+    "positionIndicator": "ESNB",
+    "unit": "SOLLEFTEÅ RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.350"
+    ]
+  },
+  {
+    "id": "AD1-ESVE-58",
+    "kind": "INFO",
+    "positionIndicator": "ESVE",
+    "unit": "STEGEBORG RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.550"
+    ]
+  },
+  {
+    "id": "AD1-ESSE-59",
+    "kind": "INFO",
+    "positionIndicator": "ESSE",
+    "unit": "STOCKHOLM/SKÅ-EDEBY RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.200"
+    ]
+  },
+  {
+    "id": "AD1-ESOL-60",
+    "kind": "INFO",
+    "positionIndicator": "ESOL",
+    "unit": "STORVIK/LEMSTANÄS RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.550"
+    ]
+  },
+  {
+    "id": "AD1-ESGS-61",
+    "kind": "INFO",
+    "positionIndicator": "ESGS",
+    "unit": "STRÖMSTAD/NÄSINGE RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.550"
+    ]
+  },
+  {
+    "id": "AD1-ESKC-62",
+    "kind": "INFO",
+    "positionIndicator": "ESKC",
+    "unit": "SUNDBRO RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.350"
+    ]
+  },
+  {
+    "id": "AD1-ESKU-63",
+    "kind": "INFO",
+    "positionIndicator": "ESKU",
+    "unit": "SUNNE RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.200"
+    ]
+  },
+  {
+    "id": "AD1-ESGY-64",
+    "kind": "INFO",
+    "positionIndicator": "ESGY",
+    "unit": "SÄFFLE RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.600"
+    ]
+  },
+  {
+    "id": "AD1-ESNY-65",
+    "kind": "INFO",
+    "positionIndicator": "ESNY",
+    "unit": "SÖDERHAMN RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.525"
+    ]
+  },
+  {
+    "id": "AD1-ESGD-66",
+    "kind": "INFO",
+    "positionIndicator": "ESGD",
+    "unit": "TIDAHOLM/BÄMMELSHED RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.650"
+    ]
+  },
+  {
+    "id": "AD1-ESKT-67",
+    "kind": "INFO",
+    "positionIndicator": "ESKT",
+    "unit": "TIERP RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.400"
+    ]
+  },
+  {
+    "id": "AD1-ESGA-68",
+    "kind": "INFO",
+    "positionIndicator": "ESGA",
+    "unit": "UDDEVALLA/BACKAMO RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.550"
+    ]
+  },
+  {
+    "id": "AD1-ESGU-69",
+    "kind": "INFO",
+    "positionIndicator": "ESGU",
+    "unit": "UDDEVALLA/RÖRKÄRR RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.550"
+    ]
+  },
+  {
+    "id": "AD1-ESGV-70",
+    "kind": "INFO",
+    "positionIndicator": "ESGV",
+    "unit": "VARBERG RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.150"
+    ]
+  },
+  {
+    "id": "AD1-ESTT-71",
+    "kind": "INFO",
+    "positionIndicator": "ESTT",
+    "unit": "VELLINGE RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.400"
+    ]
+  },
+  {
+    "id": "AD1-ESSI-72",
+    "kind": "INFO",
+    "positionIndicator": "ESSI",
+    "unit": "VISINGSÖ RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.500"
+    ]
+  },
+  {
+    "id": "AD1-ESGO-73",
+    "kind": "INFO",
+    "positionIndicator": "ESGO",
+    "unit": "VÅRGÅRDA RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.650"
+    ]
+  },
+  {
+    "id": "AD1-ESSW-74",
+    "kind": "INFO",
+    "positionIndicator": "ESSW",
+    "unit": "VÄSTERVIK RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "131.615"
+    ]
+  },
+  {
+    "id": "AD1-ESSX-75",
+    "kind": "INFO",
+    "positionIndicator": "ESSX",
+    "unit": "VÄSTERÅS/JOHANNISBERG RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.650"
+    ]
+  },
+  {
+    "id": "AD1-ESGC-76",
+    "kind": "INFO",
+    "positionIndicator": "ESGC",
+    "unit": "ÅLLEBERG RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.400"
+    ]
+  },
+  {
+    "id": "AD1-ESUJ-77",
+    "kind": "INFO",
+    "positionIndicator": "ESUJ",
+    "unit": "ÅNGE/TÄLJE RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.150"
+    ]
+  },
+  {
+    "id": "AD1-ESNF-78",
+    "kind": "INFO",
+    "positionIndicator": "ESNF",
+    "unit": "ÅVIKEN/ÅVIKEN FLY CAMP RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.400"
+    ]
+  },
+  {
+    "id": "AD1-ESMU-79",
+    "kind": "INFO",
+    "positionIndicator": "ESMU",
+    "unit": "ÄLMHULT/MÖCKELN RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.600"
+    ]
+  },
+  {
+    "id": "AD1-ESUV-80",
+    "kind": "INFO",
+    "positionIndicator": "ESUV",
+    "unit": "ÄLVSBYN RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.350"
+    ]
+  },
+  {
+    "id": "AD1-ESMZ-81",
+    "kind": "INFO",
+    "positionIndicator": "ESMZ",
+    "unit": "ÖLANDA RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.650"
+    ]
+  },
+  {
+    "id": "AD1-ESGM-82",
+    "kind": "INFO",
+    "positionIndicator": "ESGM",
+    "unit": "ÖRESTEN RADIO",
+    "hours": null,
+    "remarks": "LFV AD 1.1 published aerodrome traffic frequency",
+    "frequencies": [
+      "123.200"
+    ]
+  },
+  {
     "id": "EKRN:TMA:ROENNE TMA A",
     "kind": "TMA",
     "positionIndicator": "EKRN",
