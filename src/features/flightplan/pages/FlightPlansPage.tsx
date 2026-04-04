@@ -157,11 +157,8 @@ export function FlightPlansPage() {
         </div>
         <div className="resource-list__actions">
           <button type="button" onClick={handleCreateDraftPlan} disabled={creating}>
-            {creating ? 'Skapar...' : 'Skapa utkast'}
+            {creating ? 'Skapar...' : 'Skapa ny'}
           </button>
-          <Link to="/app/flightplans/new" className="button-link">
-            Öppna editor
-          </Link>
         </div>
       </div>
 
@@ -172,7 +169,7 @@ export function FlightPlansPage() {
       ) : plans.length === 0 ? (
         <div className="app-card">
           <h2>Inga sparade färdplaner</h2>
-          <p>Skapa ett första utkast i databasen eller gå till editorn för att fortsätta planera.</p>
+          <p>Skapa din första färdplan för att komma igång.</p>
         </div>
       ) : (
         <div className="resource-list">

@@ -18,7 +18,6 @@ export function AppLayout() {
             Dashboard
           </NavLink>
           <NavLink to="/app/flightplans">Färdplaner</NavLink>
-          <NavLink to="/app/flightplans/new">Ny färdplan</NavLink>
           <NavLink to="/app/aircraft">Flygplan</NavLink>
           <NavLink to="/app/account">Konto</NavLink>
         </nav>

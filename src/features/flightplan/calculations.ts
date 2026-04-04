@@ -6,6 +6,7 @@ import type {
   PerformanceDerived,
   WeightBalanceDerived,
 } from './types'
+import { getRoutePointLabel } from './gazetteer'
 
 const earthRadiusNm = 3440.065
 
@@ -79,7 +80,7 @@ function computeLeg(
     legTimeMinutes: round(legTimeMinutes),
     accumulatedDistanceNm: round(accumulatedDistanceNm + distance, 1),
     accumulatedTimeMinutes: round(accumulatedTimeMinutes + legTimeMinutes),
-    segmentName: `${input.from.name} - ${input.to.name}`,
+    segmentName: `${getRoutePointLabel(input.from)} - ${getRoutePointLabel(input.to)}`,
     windText: `${input.windDirection}/${input.windSpeedKt}`,
   }
 }

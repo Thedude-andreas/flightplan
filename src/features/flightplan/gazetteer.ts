@@ -3,6 +3,7 @@ import { swedishAirports } from './generated/airports.se'
 import { formatCoordinateDms, snapCoordinate } from './coordinates'
 
 type GazetteerEntry = {
+  icao: string
   name: string
   lat: number
   lon: number
@@ -11,12 +12,14 @@ type GazetteerEntry = {
 const places: GazetteerEntry[] = swedishAirports
   .filter((airport) => airport.name && airport.icao)
   .map((airport) => ({
+    icao: airport.icao!,
     name: `${airport.name}`,
     lat: airport.lat,
     lon: airport.lon,
   }))
 
 const earthRadiusNm = 3440.065
+const airportDisplayToleranceNm = 0.15
 
 function degToRad(value: number) {
   return (value * Math.PI) / 180
@@ -56,6 +59,33 @@ export function nearestPlaceLabel(lat: number, lon: number) {
   }
 
   return formatCoordinateLabel(lat, lon)
+}
+
+function findNearestAirport(lat: number, lon: number) {
+  let nearest = places[0]
+  let minDistance = Number.POSITIVE_INFINITY
+
+  for (const place of places) {
+    const distance = distanceNm(lat, lon, place.lat, place.lon)
+    if (distance < minDistance) {
+      minDistance = distance
+      nearest = place
+    }
+  }
+
+  return {
+    airport: nearest,
+    distanceNm: minDistance,
+  }
+}
+
+export function getRoutePointLabel(point: RoutePointInput) {
+  const nearest = findNearestAirport(point.lat, point.lon)
+  if (nearest.distanceNm <= airportDisplayToleranceNm) {
+    return nearest.airport.icao
+  }
+
+  return formatCoordinateLabel(point.lat, point.lon)
 }
 
 export function legsToWaypoints(legs: RouteLegInput[]): RoutePointInput[] {
@@ -98,6 +128,6 @@ export function pointWithNearestName(lat: number, lon: number): RoutePointInput 
   return {
     lat: snappedLat,
     lon: snappedLon,
-    name: nearestPlaceLabel(snappedLat, snappedLon),
+    name: formatCoordinateLabel(snappedLat, snappedLon),
   }
 }

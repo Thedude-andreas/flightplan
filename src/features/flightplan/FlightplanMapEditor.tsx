@@ -16,7 +16,7 @@ import 'leaflet/dist/leaflet.css'
 
 import { calculateFlightPlan, formatTimeFromMinutes } from './calculations'
 import { formatCoordinateDms } from './coordinates'
-import { legsToWaypoints, pointWithNearestName, waypointsToLegs } from './gazetteer'
+import { getRoutePointLabel, legsToWaypoints, pointWithNearestName, waypointsToLegs } from './gazetteer'
 import { swedishAirspaces } from './generated/airspaces.se'
 import { swedishAirports } from './generated/airports.se'
 import type { FlightPlanInput, FlightPlanDerived } from './types'
@@ -54,6 +54,7 @@ const midpointIcon = divIcon({
   iconAnchor: [7, 7],
 })
 const airportLabelMinZoom = 8
+const airportMarkerRadiusPx = 4
 const maxVisibleAirspaceLowerFt = 9500
 
 function parseAirspaceAltitudeFeet(value: string | null) {
@@ -161,6 +162,20 @@ function FocusLegHandler({
   return null
 }
 
+function MapInstanceHandler({
+  onReady,
+}: {
+  onReady: (map: L.Map) => void
+}) {
+  const map = useMap()
+
+  useEffect(() => {
+    onReady(map)
+  }, [map, onReady])
+
+  return null
+}
+
 export function FlightplanMapEditor({
   plan,
   derived,
@@ -175,6 +190,7 @@ export function FlightplanMapEditor({
   const [basemap, setBasemap] = useState<BasemapKey>('topo')
   const [showAirspaces, setShowAirspaces] = useState(true)
   const [mapZoom, setMapZoom] = useState(7)
+  const [mapInstance, setMapInstance] = useState<L.Map | null>(null)
   const [dragPreviewWaypoints, setDragPreviewWaypoints] = useState<ReturnType<typeof legsToWaypoints> | null>(null)
   const [midpointInsertIndex, setMidpointInsertIndex] = useState<number | null>(null)
   const suppressNextMapClick = useRef(false)
@@ -245,8 +261,35 @@ export function FlightplanMapEditor({
     return true
   }
 
+  const resolveRoutePoint = (lat: number, lon: number) => {
+    const coordinatePoint = pointWithNearestName(lat, lon)
+
+    if (!mapInstance) {
+      return coordinatePoint
+    }
+
+    const cursorPoint = mapInstance.latLngToLayerPoint([lat, lon])
+
+    for (const airport of swedishAirports) {
+      if (!airport.icao) {
+        continue
+      }
+
+      const airportPoint = mapInstance.latLngToLayerPoint([airport.lat, airport.lon])
+      if (cursorPoint.distanceTo(airportPoint) <= airportMarkerRadiusPx) {
+        return {
+          lat: airport.lat,
+          lon: airport.lon,
+          name: airport.icao,
+        }
+      }
+    }
+
+    return coordinatePoint
+  }
+
   const addPointToEnd = (lat: number, lon: number) => {
-    const nextPoint = pointWithNearestName(lat, lon)
+    const nextPoint = resolveRoutePoint(lat, lon)
     if (waypoints.length === 0) {
       onRouteLegsChange([
         {
@@ -281,31 +324,27 @@ export function FlightplanMapEditor({
   const previewMoveWaypoint = (index: number, lat: number, lon: number) => {
     setDragPreviewWaypoints(
       waypoints.map((point, pointIndex) =>
-        pointIndex === index ? { ...point, lat, lon } : point,
+        pointIndex === index ? resolveRoutePoint(lat, lon) : point,
       ),
     )
   }
 
   const updateWaypoint = (index: number, lat: number, lon: number) => {
     const next = waypoints.map((point, pointIndex) =>
-      pointIndex === index ? pointWithNearestName(lat, lon) : point,
+      pointIndex === index ? resolveRoutePoint(lat, lon) : point,
     )
     setWaypoints(next)
   }
 
   const previewInsertWaypointAt = (index: number, lat: number, lon: number) => {
     const next = [...waypoints]
-    next.splice(index, 0, {
-      name: 'Ny waypoint',
-      lat,
-      lon,
-    })
+    next.splice(index, 0, resolveRoutePoint(lat, lon))
     setDragPreviewWaypoints(next)
   }
 
   const insertWaypointAt = (index: number, lat: number, lon: number) => {
     const next = [...waypoints]
-    next.splice(index, 0, pointWithNearestName(lat, lon))
+    next.splice(index, 0, resolveRoutePoint(lat, lon))
     setWaypoints(next)
   }
 
@@ -354,6 +393,7 @@ export function FlightplanMapEditor({
         )}
         <MapContainer center={center} zoom={7} scrollWheelZoom className="fp-leaflet-map">
           <TileLayer attribution={basemaps[basemap].attribution} url={basemaps[basemap].url} />
+          <MapInstanceHandler onReady={setMapInstance} />
           <MapClickHandler onAddPoint={addPointToEnd} shouldSuppressClick={shouldSuppressClick} />
           <MapZoomHandler onZoomChange={setMapZoom} />
           <FocusLegHandler plan={plan} focusedLegIndex={focusedLegIndex} />
@@ -451,7 +491,7 @@ export function FlightplanMapEditor({
             >
               <Tooltip sticky opacity={1} className="fp-segment-tooltip">
                 <div>
-                  <strong>{leg.from.name} → {leg.to.name}</strong>
+                  <strong>{getRoutePointLabel(leg.from)} → {getRoutePointLabel(leg.to)}</strong>
                   <span>TT {previewDerived.routeLegs[index]?.trueTrack ?? '—'}°</span>
                   <span>MH {previewDerived.routeLegs[index]?.magneticHeading ?? '—'}°</span>
                   <span>GS {previewDerived.routeLegs[index]?.groundSpeedKt ?? '—'} kt</span>
@@ -487,7 +527,7 @@ export function FlightplanMapEditor({
             >
               <Tooltip direction="top" offset={[0, -10]} opacity={1} className="fp-waypoint-tooltip">
                 <div>
-                  <strong>{point.name}</strong>
+                  <strong>{getRoutePointLabel(point)}</strong>
                   <span>{formatCoordinateDms(point.lat, 'lat')} {formatCoordinateDms(point.lon, 'lon')}</span>
                 </div>
               </Tooltip>
@@ -497,7 +537,7 @@ export function FlightplanMapEditor({
                   onClick={(event) => event.stopPropagation()}
                   onMouseDown={(event) => event.stopPropagation()}
                 >
-                  <strong>{point.name}</strong>
+                  <strong>{getRoutePointLabel(point)}</strong>
                   <span>{formatCoordinateDms(point.lat, 'lat')} {formatCoordinateDms(point.lon, 'lon')}</span>
                   <button
                     type="button"
@@ -543,16 +583,12 @@ export function FlightplanMapEditor({
                     setDragPreviewWaypoints((current) => {
                       if (!current) {
                         const next = [...waypoints]
-                        next.splice(index + 1, 0, {
-                          name: 'Ny waypoint',
-                          lat: latLng.lat,
-                          lon: latLng.lng,
-                        })
+                        next.splice(index + 1, 0, resolveRoutePoint(latLng.lat, latLng.lng))
                         return next
                       }
 
                       return current.map((point, pointIndex) =>
-                        pointIndex === index + 1 ? { ...point, lat: latLng.lat, lon: latLng.lng } : point,
+                        pointIndex === index + 1 ? resolveRoutePoint(latLng.lat, latLng.lng) : point,
                       )
                     })
                   },
@@ -564,7 +600,7 @@ export function FlightplanMapEditor({
 
                     if (dragPreviewWaypoints) {
                       const next = dragPreviewWaypoints.map((point, pointIndex) =>
-                        pointIndex === insertIndex ? pointWithNearestName(latLng.lat, latLng.lon) : point,
+                        pointIndex === insertIndex ? resolveRoutePoint(latLng.lat, latLng.lon) : point,
                       )
                       lastMidpointDragPosition.current = null
                       setWaypoints(next)

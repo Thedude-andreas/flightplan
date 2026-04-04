@@ -4,7 +4,7 @@ import './features/flightplan/flightplan.css'
 import { aircraftProfiles, createInitialFlightPlan } from './features/flightplan/data'
 import { calculateFlightPlan, formatNumber, formatTimeFromMinutes } from './features/flightplan/calculations'
 import { snapCoordinate } from './features/flightplan/coordinates'
-import { legsToWaypoints, waypointsToLegs } from './features/flightplan/gazetteer'
+import { getRoutePointLabel, legsToWaypoints, waypointsToLegs } from './features/flightplan/gazetteer'
 import { FlightplanMapEditor } from './features/flightplan/FlightplanMapEditor'
 import type { AircraftProfile, FlightPlanInput } from './features/flightplan/types'
 
@@ -1099,11 +1099,12 @@ function RoutePreview({ legs }: { legs: FlightPlanInput['routeLegs'] }) {
         <polyline fill="none" stroke="#ff35c4" strokeWidth="5" strokeLinejoin="round" strokeLinecap="round" points={polyline} />
         {points.map((point, index) => {
           const projected = project(point.lat, point.lon)
+          const label = getRoutePointLabel(point)
           return (
-            <g key={`${point.name}-${index}`}>
+            <g key={`${label}-${index}`}>
               <circle cx={projected.x} cy={projected.y} r="7" fill="#ff35c4" stroke="#ffffff" strokeWidth="3" />
               <text x={projected.x + 10} y={projected.y - 12} fontSize="16" fill="#3a3228" fontWeight="600">
-                {point.name}
+                {label}
               </text>
             </g>
           )
@@ -1112,8 +1113,8 @@ function RoutePreview({ legs }: { legs: FlightPlanInput['routeLegs'] }) {
 
       <div className="fp-route-legend">
         {legs.map((leg, index) => (
-          <div key={`${leg.from.name}-${leg.to.name}-${index}`}>
-            <strong>{leg.from.name} → {leg.to.name}</strong>
+          <div key={`${getRoutePointLabel(leg.from)}-${getRoutePointLabel(leg.to)}-${index}`}>
+            <strong>{getRoutePointLabel(leg.from)} → {getRoutePointLabel(leg.to)}</strong>
             <span>{leg.altitude} ft · {leg.windDirection}/{leg.windSpeedKt} kt</span>
           </div>
         ))}
