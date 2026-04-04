@@ -15,9 +15,23 @@ type FlightPlanDraftValue = {
   plan: FlightPlanInput
 }
 
+type PersistedSnapshot = {
+  name: string
+  plan: FlightPlanInput
+}
+
 function createDefaultPlanName() {
   const date = new Intl.DateTimeFormat('sv-SE', { dateStyle: 'medium' }).format(new Date())
   return `Ny färdplan ${date}`
+}
+
+function createCopyName(name: string) {
+  const trimmed = name.trim()
+  if (!trimmed) {
+    return 'Ny färdplan kopia'
+  }
+
+  return trimmed.toLowerCase().includes('kopia') ? trimmed : `${trimmed} kopia`
 }
 
 function createDraftKey(userId: string, resourceId: string | null) {
@@ -57,6 +71,10 @@ function getSaveLabel(state: SaveState) {
   }
 }
 
+function serializePlan(plan: FlightPlanInput | null) {
+  return plan ? JSON.stringify(plan) : ''
+}
+
 export function FlightPlanEditorPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -68,9 +86,12 @@ export function FlightPlanEditorPage() {
   const [name, setName] = useState('')
   const [recordId, setRecordId] = useState<string | null>(null)
   const [baseUpdatedAt, setBaseUpdatedAt] = useState<string | null>(null)
+  const [persistedSnapshot, setPersistedSnapshot] = useState<PersistedSnapshot | null>(null)
   const [saveState, setSaveState] = useState<SaveState>('idle')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [copyName, setCopyName] = useState('')
+  const [isCopyDialogOpen, setIsCopyDialogOpen] = useState(false)
 
   const draftKey = useMemo(() => {
     if (!user) {
@@ -79,6 +100,21 @@ export function FlightPlanEditorPage() {
 
     return createDraftKey(user.id, recordId ?? id ?? null)
   }, [id, recordId, user])
+
+  const currentPlanSignature = useMemo(() => serializePlan(currentPlan), [currentPlan])
+  const persistedPlanSignature = useMemo(() => serializePlan(persistedSnapshot?.plan ?? null), [persistedSnapshot])
+  const hasUnsavedChanges = currentPlan && persistedSnapshot
+    ? name.trim() !== persistedSnapshot.name.trim() || currentPlanSignature !== persistedPlanSignature
+    : false
+
+  const displaySaveState: SaveState =
+    saveState === 'saving' || saveState === 'error' || saveState === 'conflict'
+      ? saveState
+      : hasUnsavedChanges
+        ? 'dirty'
+        : recordId
+          ? 'saved'
+          : 'idle'
 
   useEffect(() => {
     let isActive = true
@@ -108,6 +144,10 @@ export function FlightPlanEditorPage() {
             setName(createDefaultPlanName())
             setRecordId(null)
             setBaseUpdatedAt(null)
+            setPersistedSnapshot({
+              name: createDefaultPlanName(),
+              plan: fallbackPlan,
+            })
             setSaveState('error')
             return
           }
@@ -121,16 +161,25 @@ export function FlightPlanEditorPage() {
           setName(matchingDraft?.value.name ?? record.name)
           setRecordId(record.id)
           setBaseUpdatedAt(record.updatedAt)
+          setPersistedSnapshot({
+            name: record.name,
+            plan: record.payload,
+          })
           setSaveState(matchingDraft?.hasUnsavedChanges ? 'dirty' : 'saved')
         } else {
           const storedDraft = loadDraft<FlightPlanDraftValue>(createDraftKey(user.id, null))
 
           const nextPlan = storedDraft?.value.plan ?? createInitialFlightPlan()
+          const nextName = storedDraft?.value.name ?? createDefaultPlanName()
           setInitialPlan(nextPlan)
           setCurrentPlan(nextPlan)
-          setName(storedDraft?.value.name ?? createDefaultPlanName())
+          setName(nextName)
           setRecordId(null)
           setBaseUpdatedAt(storedDraft?.baseUpdatedAt ?? null)
+          setPersistedSnapshot({
+            name: nextName,
+            plan: nextPlan,
+          })
           setSaveState(storedDraft?.hasUnsavedChanges ? 'dirty' : 'idle')
         }
       } catch (nextError) {
@@ -162,9 +211,9 @@ export function FlightPlanEditorPage() {
       return
     }
 
-    const hasUnsavedChanges = saveState === 'dirty' || saveState === 'error' || saveState === 'conflict'
-    saveDraft(draftKey, createDraftEnvelope(name, currentPlan, recordId, baseUpdatedAt, hasUnsavedChanges))
-  }, [baseUpdatedAt, currentPlan, draftKey, name, recordId, saveState])
+    const shouldPersistDraft = hasUnsavedChanges || saveState === 'error' || saveState === 'conflict'
+    saveDraft(draftKey, createDraftEnvelope(name, currentPlan, recordId, baseUpdatedAt, shouldPersistDraft))
+  }, [baseUpdatedAt, currentPlan, draftKey, hasUnsavedChanges, name, recordId, saveState])
 
   async function handleSave() {
     if (!currentPlan || !name.trim()) {
@@ -187,7 +236,14 @@ export function FlightPlanEditorPage() {
           baseUpdatedAt ?? '',
         )
 
+        setInitialPlan(updated.payload)
+        setCurrentPlan(updated.payload)
+        setName(updated.name)
         setBaseUpdatedAt(updated.updatedAt)
+        setPersistedSnapshot({
+          name: updated.name,
+          plan: updated.payload,
+        })
         setSaveState('saved')
         if (draftKey) {
           clearDraft(draftKey)
@@ -204,12 +260,59 @@ export function FlightPlanEditorPage() {
         clearDraft(draftKey)
       }
 
+      setInitialPlan(created.payload)
+      setCurrentPlan(created.payload)
+      setName(created.name)
       setRecordId(created.id)
       setBaseUpdatedAt(created.updatedAt)
+      setPersistedSnapshot({
+        name: created.name,
+        plan: created.payload,
+      })
       setSaveState('saved')
       navigate(`/app/flightplans/${created.id}`, { replace: true })
     } catch (nextError) {
       const message = getErrorMessage(nextError, 'Kunde inte spara färdplanen.')
+      setError(message)
+      setSaveState(message.toLowerCase().includes('konflikt') ? 'conflict' : 'error')
+    }
+  }
+
+  function openSaveCopyDialog() {
+    setCopyName(createCopyName(name))
+    setIsCopyDialogOpen(true)
+  }
+
+  async function handleConfirmSaveCopy() {
+    if (!currentPlan || !copyName.trim()) {
+      setError('Ange ett namn innan du sparar kopian.')
+      setSaveState('error')
+      return
+    }
+
+    setSaveState('saving')
+    setError('')
+
+    try {
+      const created = await createFlightPlan({
+        name: copyName.trim(),
+        payload: currentPlan,
+      })
+
+      setIsCopyDialogOpen(false)
+      setInitialPlan(created.payload)
+      setCurrentPlan(created.payload)
+      setName(created.name)
+      setRecordId(created.id)
+      setBaseUpdatedAt(created.updatedAt)
+      setPersistedSnapshot({
+        name: created.name,
+        plan: created.payload,
+      })
+      setSaveState('saved')
+      navigate(`/app/flightplans/${created.id}`, { replace: true })
+    } catch (nextError) {
+      const message = getErrorMessage(nextError, 'Kunde inte spara kopian.')
       setError(message)
       setSaveState(message.toLowerCase().includes('konflikt') ? 'conflict' : 'error')
     }
@@ -240,7 +343,7 @@ export function FlightPlanEditorPage() {
             />
           </div>
           <div className="editor-toolbar__meta">
-            <span className={`resource-pill resource-pill--${saveState}`}>{getSaveLabel(saveState)}</span>
+            <span className={`resource-pill resource-pill--${displaySaveState}`}>{getSaveLabel(displaySaveState)}</span>
             <span className={`resource-pill ${isOnline ? '' : 'resource-pill--warning'}`}>
               {isOnline ? 'Online' : 'Offline'}
             </span>
@@ -251,7 +354,12 @@ export function FlightPlanEditorPage() {
           <Link to="/app/flightplans" className="button-link">
             Till listan
           </Link>
-          <button type="button" onClick={handleSave} disabled={saveState === 'saving'}>
+          {recordId && (
+            <button type="button" onClick={openSaveCopyDialog} disabled={saveState === 'saving'}>
+              Spara kopia
+            </button>
+          )}
+          <button type="button" onClick={handleSave} disabled={saveState === 'saving' || !hasUnsavedChanges}>
             {saveState === 'saving' ? 'Sparar...' : 'Spara'}
           </button>
         </div>
@@ -263,8 +371,8 @@ export function FlightPlanEditorPage() {
         key={`${recordId ?? 'new'}:${baseUpdatedAt ?? 'draft'}`}
         initialPlan={initialPlan}
         headerSlot={
-          <span className={`resource-pill resource-pill--inline ${saveState === 'dirty' ? 'resource-pill--warning' : ''}`}>
-            {getSaveLabel(saveState)}
+          <span className={`resource-pill resource-pill--inline ${displaySaveState === 'dirty' ? 'resource-pill--warning' : ''}`}>
+            {getSaveLabel(displaySaveState)}
           </span>
         }
         onPlanChange={(nextPlan) => {
@@ -273,9 +381,30 @@ export function FlightPlanEditorPage() {
           }
 
           setCurrentPlan(nextPlan)
-          setSaveState((current) => (current === 'saving' ? current : 'dirty'))
+          setSaveState((current) => (current === 'saving' ? current : current === 'error' || current === 'conflict' ? current : 'idle'))
         }}
       />
+
+      {isCopyDialogOpen && (
+        <div className="dialog-backdrop" onClick={() => setIsCopyDialogOpen(false)}>
+          <section className="dialog-card" onClick={(event) => event.stopPropagation()}>
+            <h2>Spara kopia</h2>
+            <p>Ange namnet på den nya färdplanen innan kopian sparas.</p>
+            <label className="dialog-field">
+              <span>Namn</span>
+              <input value={copyName} onChange={(event) => setCopyName(event.target.value)} autoFocus />
+            </label>
+            <div className="dialog-actions">
+              <button type="button" className="button-link" onClick={() => setIsCopyDialogOpen(false)}>
+                Avbryt
+              </button>
+              <button type="button" onClick={handleConfirmSaveCopy} disabled={saveState === 'saving'}>
+                {saveState === 'saving' ? 'Sparar...' : 'Spara kopia'}
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
     </section>
   )
 }

@@ -104,9 +104,9 @@ export async function createFlightPlan(input: CreateFlightPlanInput) {
   return mapRecord(data as FlightPlanRow)
 }
 
-export async function archiveFlightPlan(id: string) {
+export async function deleteFlightPlan(id: string) {
   const supabase = requireClient()
-  const { error } = await supabase.from('flight_plans').update({ archived_at: new Date().toISOString() }).eq('id', id)
+  const { error } = await supabase.from('flight_plans').delete().eq('id', id)
 
   if (error) {
     throw error

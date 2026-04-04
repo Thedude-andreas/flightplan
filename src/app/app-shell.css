@@ -87,7 +87,10 @@
 
 .button-link,
 .auth-form button,
-.app-card button {
+.app-card button,
+.app-panel button,
+.editor-toolbar__actions button,
+.dialog-actions button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -104,20 +107,29 @@
 
 .button-link--primary,
 .auth-form button,
-.app-card button {
+.app-card button,
+.app-panel button,
+.editor-toolbar__actions button,
+.dialog-actions button {
   background: #163850;
   color: #f7fafc;
 }
 
 .button-link:hover,
 .auth-form button:hover,
-.app-card button:hover {
+.app-card button:hover,
+.app-panel button:hover,
+.editor-toolbar__actions button:hover,
+.dialog-actions button:hover {
   opacity: 0.92;
 }
 
 .button-link:disabled,
 .auth-form button:disabled,
-.app-card button:disabled {
+.app-card button:disabled,
+.app-panel button:disabled,
+.editor-toolbar__actions button:disabled,
+.dialog-actions button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
@@ -350,6 +362,56 @@
 .editor-toolbar__error {
   padding: 0 28px;
   margin: 0;
+}
+
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(18, 32, 42, 0.42);
+  backdrop-filter: blur(6px);
+}
+
+.dialog-card {
+  display: grid;
+  gap: 16px;
+  width: min(100%, 460px);
+  padding: 24px;
+  border-radius: 24px;
+  background: #fff;
+  box-shadow: 0 24px 60px rgba(18, 32, 42, 0.18);
+}
+
+.dialog-card h2,
+.dialog-card p {
+  margin: 0;
+}
+
+.dialog-field {
+  display: grid;
+  gap: 8px;
+}
+
+.dialog-field span {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.dialog-field input {
+  min-height: 48px;
+  border: 1px solid rgba(18, 32, 42, 0.14);
+  border-radius: 14px;
+  padding: 0 14px;
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .account-list {
