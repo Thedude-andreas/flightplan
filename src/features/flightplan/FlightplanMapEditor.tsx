@@ -77,6 +77,135 @@ function parseAirspaceAltitudeFeet(value: string | null) {
   return null
 }
 
+function compareAirspaceAltitude(a: string | null, b: string | null) {
+  const aFeet = parseAirspaceAltitudeFeet(a)
+  const bFeet = parseAirspaceAltitudeFeet(b)
+
+  if (aFeet == null && bFeet == null) {
+    return 0
+  }
+
+  if (aFeet == null) {
+    return 1
+  }
+
+  if (bFeet == null) {
+    return -1
+  }
+
+  return aFeet - bFeet
+}
+
+function pointInRing(lat: number, lon: number, ring: number[][]) {
+  let inside = false
+
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [xi, yi] = ring[i]
+    const [xj, yj] = ring[j]
+    const intersects =
+      yi > lat !== yj > lat &&
+      lon < ((xj - xi) * (lat - yi)) / ((yj - yi) || Number.EPSILON) + xi
+
+    if (intersects) {
+      inside = !inside
+    }
+  }
+
+  return inside
+}
+
+function pointInPolygon(lat: number, lon: number, polygon: number[][][]) {
+  if (polygon.length === 0) {
+    return false
+  }
+
+  if (!pointInRing(lat, lon, polygon[0])) {
+    return false
+  }
+
+  for (const hole of polygon.slice(1)) {
+    if (pointInRing(lat, lon, hole)) {
+      return false
+    }
+  }
+
+  return true
+}
+
+function airspaceContainsPoint(
+  airspace: (typeof swedishAirspaces)[number],
+  lat: number,
+  lon: number,
+) {
+  return geometryContainsPoint(airspace.geometry, lat, lon)
+}
+
+function geometryContainsPoint(
+  geometry: (typeof swedishAirspaces)[number]['geometry'],
+  lat: number,
+  lon: number,
+) {
+  if (geometry.type === 'Polygon') {
+    return pointInPolygon(lat, lon, geometry.coordinates)
+  }
+
+  return geometry.coordinates.some((polygon) => pointInPolygon(lat, lon, polygon))
+}
+
+function getAirspaceDisplayFloorFeet(airspace: (typeof swedishAirspaces)[number]) {
+  const directLower = parseAirspaceAltitudeFeet(airspace.lower)
+  if (directLower != null) {
+    return directLower
+  }
+
+  const sectorFloors = (airspace.tmaSectors ?? [])
+    .map((sector) => parseAirspaceAltitudeFeet(sector.lower))
+    .filter((value): value is number => value != null)
+
+  if (sectorFloors.length === 0) {
+    return null
+  }
+
+  return Math.min(...sectorFloors)
+}
+
+function resolveAirspaceDisplayEntry(
+  airspace: (typeof swedishAirspaces)[number],
+  lat: number,
+  lon: number,
+) {
+  const matchingSector = (airspace.tmaSectors ?? []).find((sector) =>
+    geometryContainsPoint(sector.geometry, lat, lon),
+  )
+
+  return {
+    id: matchingSector ? `${airspace.id}:${matchingSector.id}` : airspace.id,
+    kind: airspace.kind,
+    name: airspace.name,
+    positionIndicator: airspace.positionIndicator,
+    lower: matchingSector?.lower ?? airspace.lower,
+    upper: matchingSector?.upper ?? airspace.upper,
+  }
+}
+
+function formatAirspaceTooltipContent(
+  airspaces: Array<{
+    id: string
+    kind: string
+    name: string | null
+    positionIndicator: string | null
+    lower: string | null
+    upper: string | null
+  }>,
+) {
+  return `<div class="fp-airspace-tooltip">${airspaces.map((airspace) => {
+    const title = `${airspace.kind}${airspace.name ? ` · ${airspace.name}` : ''}`
+    const indicator = airspace.positionIndicator ? `<span>${airspace.positionIndicator}</span>` : ''
+    const levels = `<span>${airspace.lower ?? '—'} till ${airspace.upper ?? '—'}</span>`
+    return `<div class="fp-airspace-tooltip__row"><strong>${title}</strong>${indicator}${levels}</div>`
+  }).join('')}</div>`
+}
+
 function midpoint(a: FlightPlanInput['routeLegs'][number]['from'], b: FlightPlanInput['routeLegs'][number]['to']) {
   return {
     lat: (a.lat + b.lat) / 2,
@@ -289,7 +418,7 @@ export function FlightplanMapEditor({
       type: 'FeatureCollection' as const,
       features: swedishAirspaces
         .filter((airspace) => {
-          const lowerFeet = parseAirspaceAltitudeFeet(airspace.lower)
+          const lowerFeet = getAirspaceDisplayFloorFeet(airspace)
           return lowerFeet == null || lowerFeet < maxVisibleAirspaceLowerFt
         })
         .map((airspace) => ({
@@ -305,6 +434,15 @@ export function FlightplanMapEditor({
           geometry: airspace.geometry,
         })),
     }),
+    [],
+  )
+  const visibleAirspaces = useMemo(
+    () =>
+      swedishAirspaces
+        .filter((airspace) => {
+          const lowerFeet = getAirspaceDisplayFloorFeet(airspace)
+          return lowerFeet == null || lowerFeet < maxVisibleAirspaceLowerFt
+        }),
     [],
   )
 
@@ -529,6 +667,8 @@ export function FlightplanMapEditor({
                 const palette = {
                   CTR: { color: '#cc5d00', fillColor: '#ffb46b' },
                   TMA: { color: '#005db5', fillColor: '#82b8ff' },
+                  TIA: { color: '#0a6b5d', fillColor: '#7ad8c7' },
+                  TIZ: { color: '#0f7a38', fillColor: '#8ae69d' },
                   ATZ: { color: '#007a4d', fillColor: '#7adca8' },
                   TRA: { color: '#8f1e8f', fillColor: '#e59cf4' },
                 } as const
@@ -542,23 +682,26 @@ export function FlightplanMapEditor({
                   fillOpacity: 0.12,
                 }
               }}
-              onEachFeature={(feature, layer) => {
-                const props = feature.properties as {
-                  kind?: string
-                  name?: string
-                  lower?: string
-                  upper?: string
-                  positionIndicator?: string
-                }
-                const lines = [
-                  `<strong>${props.kind ?? 'Luftrum'}${props.name ? ` · ${props.name}` : ''}</strong>`,
-                  props.positionIndicator ? `<span>${props.positionIndicator}</span>` : '',
-                  `<span>${props.lower ?? '—'} till ${props.upper ?? '—'}</span>`,
-                ].filter(Boolean)
-
-                layer.bindTooltip(`<div class="fp-airspace-tooltip">${lines.join('')}</div>`, {
+              onEachFeature={(_feature, layer) => {
+                layer.bindTooltip('', {
                   sticky: true,
                   opacity: 0.95,
+                })
+                layer.on('mouseover mousemove', (event) => {
+                  const pointer = event as LeafletMouseEvent
+                  const matchingAirspaces = visibleAirspaces
+                    .filter((airspace) => airspaceContainsPoint(airspace, pointer.latlng.lat, pointer.latlng.lng))
+                    .map((airspace) => resolveAirspaceDisplayEntry(airspace, pointer.latlng.lat, pointer.latlng.lng))
+                    .sort((a, b) => compareAirspaceAltitude(b.upper, a.upper) || compareAirspaceAltitude(b.lower, a.lower))
+
+                  if (matchingAirspaces.length === 0) {
+                    return
+                  }
+
+                  layer.setTooltipContent(formatAirspaceTooltipContent(matchingAirspaces))
+                  if (!layer.isTooltipOpen()) {
+                    layer.openTooltip(pointer.latlng)
+                  }
                 })
                 layer.on('click', (event) => {
                   const clicked = event as LeafletMouseEvent
