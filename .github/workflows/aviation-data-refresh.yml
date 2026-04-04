@@ -1,0 +1,69 @@
+name: Aviation Data Refresh
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '15 2 * * *'
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Refresh Swedish aviation data
+        run: npm run aviation:se:refresh
+
+      - name: Validate Swedish aviation data
+        run: npm run aviation:se:validate
+
+      - name: Verify app build
+        run: |
+          npm run build
+          npm run lint
+
+      - name: Generate data diff report
+        run: npm run aviation:se:diff-report -- .github/aviation-data-diff.md
+
+      - name: Detect changed files
+        id: changes
+        run: |
+          if git diff --quiet -- \
+            data/aviation/se/normalized \
+            public/flightplan-data/places.se.json \
+            src/features/flightplan/generated; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create pull request
+        if: steps.changes.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: automation/aviation-data-refresh
+          commit-message: Refresh Swedish aviation data
+          title: Refresh Swedish aviation data
+          body-path: .github/aviation-data-diff.md
+          delete-branch: true
+          add-paths: |
+            data/aviation/se/normalized
+            public/flightplan-data/places.se.json
+            src/features/flightplan/generated

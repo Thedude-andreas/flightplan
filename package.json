@@ -20,7 +20,10 @@
     "aviation:se:airspaces": "node ./scripts/aviation-se/parse-lfv-wfs-airspaces.mjs",
     "aviation:se:radio-nav": "node ./scripts/aviation-se/parse-lfv-radio-nav.mjs",
     "aviation:se:places": "node ./scripts/aviation-se/parse-geonames-places.mjs",
-    "aviation:se:build": "node ./scripts/aviation-se/build-reference-data.mjs"
+    "aviation:se:build": "node ./scripts/aviation-se/build-reference-data.mjs",
+    "aviation:se:refresh": "node ./scripts/aviation-se/refresh-aviation-data.mjs",
+    "aviation:se:validate": "node ./scripts/aviation-se/validate-aviation-data.mjs",
+    "aviation:se:diff-report": "node ./scripts/aviation-se/report-aviation-data-diff.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.101.1",

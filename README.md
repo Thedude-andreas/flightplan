@@ -123,6 +123,7 @@ npm run aviation:se:airspaces
 npm run aviation:se:radio-nav
 npm run aviation:se:places
 npm run aviation:se:build
+npm run aviation:se:validate
 ```
 
 ### Update map data
@@ -185,7 +186,13 @@ This parses:
 npm run aviation:se:build
 ```
 
-6. Verify the app still builds cleanly:
+6. Validate the refreshed data:
+
+```bash
+npm run aviation:se:validate
+```
+
+7. Verify the app still builds cleanly:
 
 ```bash
 npm run build
@@ -238,6 +245,22 @@ Filtering and formatting rules:
 - airport frequencies marked `By directive from TWR` are excluded from the standard autofill list
 - COM frequencies are shown as `MHz`
 - DME channels are shown as `CH XX`
+
+### Automated refresh
+
+The repo now includes:
+
+- `npm run aviation:se:refresh` to run the full Swedish data pipeline end to end
+- `npm run aviation:se:validate` to fail fast on suspicious counts or missing key records
+- `npm run aviation:se:diff-report` to summarize normalized data changes against `HEAD`
+- a scheduled GitHub Actions workflow in [`/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/.github/workflows/aviation-data-refresh.yml`](/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/.github/workflows/aviation-data-refresh.yml)
+
+The workflow is designed to:
+
+- refresh LFV and place-name data
+- validate the output
+- build a markdown diff report
+- open or update a PR instead of pushing data directly to live
 
 Official source:
 

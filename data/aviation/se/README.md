@@ -32,6 +32,7 @@ npm run aviation:se:airspaces
 npm run aviation:se:radio-nav
 npm run aviation:se:places
 npm run aviation:se:build
+npm run aviation:se:validate
 ```
 
 Use the commands above for a normal refresh of map data.
@@ -82,6 +83,15 @@ npm run aviation:se:build
 
 - `aviation:se:build`
   Rebuilds the normalized index file and derived outputs for `navaids`, `airport-frequencies`, `airspace-frequencies` and `acc-sectors`.
+
+- `aviation:se:refresh`
+  Runs the full Swedish aviation data pipeline in one command.
+
+- `aviation:se:validate`
+  Checks counts, required airports, required airspace kinds and key radio records before the data is accepted.
+
+- `aviation:se:diff-report`
+  Compares normalized datasets against `HEAD` and emits a short markdown report for PR review.
 
 ## Outputs Used By The App
 
@@ -187,6 +197,7 @@ npm run aviation:se:radio-nav
 After updating airport or airspace data, always run:
 
 ```bash
+npm run aviation:se:validate
 npm run build
 npm run lint
 ```
@@ -197,6 +208,19 @@ Then verify at least:
 - airspace overlays render and toggle correctly
 - non-airport waypoints pick up nearby Swedish place names when relevant
 - `normalized/*.json` and `src/features/flightplan/generated/*.ts` were regenerated as expected
+
+## Automation
+
+The repo now contains a scheduled workflow in `.github/workflows/aviation-data-refresh.yml`.
+
+Its intended flow is:
+
+1. refresh the Swedish aviation datasets
+2. validate the normalized outputs
+3. generate a markdown diff report
+4. open or update a PR with only the generated app-facing datasets
+
+This keeps automated source refresh separate from production deployment.
 
 ## Parsing Roadmap
 - `AD 2` -> airports, runways, frequencies, elevation

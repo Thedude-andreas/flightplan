@@ -1,4 +1,4 @@
-import { createWriteStream, existsSync, mkdirSync, statSync, writeFileSync } from 'node:fs'
+import { createWriteStream, existsSync, mkdirSync, readFileSync, statSync, unlinkSync, writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { request } from 'node:https'
 
@@ -14,7 +14,39 @@ if (process.argv.includes('--skip-if-exists') && existsSync(outputPath)) {
   process.exit(0)
 }
 
-console.log(`Downloading LFV AIP offline package from ${sourceUrl}`)
+const existingMetadata = existsSync(metadataPath)
+  ? JSON.parse(readFileSync(metadataPath, 'utf8'))
+  : null
+
+const probeRemote = (url) =>
+  new Promise((resolvePromise, rejectPromise) => {
+    const req = request(url, { method: 'HEAD' }, (response) => {
+      if (
+        response.statusCode &&
+        response.statusCode >= 300 &&
+        response.statusCode < 400 &&
+        response.headers.location
+      ) {
+        probeRemote(response.headers.location).then(resolvePromise).catch(rejectPromise)
+        return
+      }
+
+      if ((response.statusCode ?? 0) >= 400) {
+        rejectPromise(new Error(`Unexpected HEAD response ${response.statusCode ?? 'unknown'}`))
+        return
+      }
+
+      resolvePromise({
+        sourceUrl: response.responseUrl ?? url,
+        contentLength: Number(response.headers['content-length'] ?? 0),
+        lastModified: response.headers['last-modified'] ?? null,
+        etag: response.headers.etag ?? null,
+      })
+    })
+
+    req.on('error', rejectPromise)
+    req.end()
+  })
 
 const download = (url, destination) =>
   new Promise((resolvePromise, rejectPromise) => {
@@ -80,7 +112,41 @@ const download = (url, destination) =>
     req.end()
   })
 
-download(sourceUrl, outputPath)
+const force = process.argv.includes('--force')
+
+probeRemote(sourceUrl)
+  .catch((error) => {
+    if (force || !existsSync(outputPath)) {
+      throw error
+    }
+
+    console.warn(`HEAD probe failed, keeping existing LFV package: ${error instanceof Error ? error.message : String(error)}`)
+    return null
+  })
+  .then((remoteMetadata) => {
+    const unchanged =
+      !force &&
+      remoteMetadata &&
+      existsSync(outputPath) &&
+      ((existingMetadata?.etag && remoteMetadata.etag && existingMetadata.etag === remoteMetadata.etag) ||
+        (existingMetadata?.lastModified &&
+          remoteMetadata.lastModified &&
+          existingMetadata.lastModified === remoteMetadata.lastModified &&
+          existingMetadata.contentLength === remoteMetadata.contentLength))
+
+    if (unchanged) {
+      const { size } = statSync(outputPath)
+      console.log(`LFV AIP offline package unchanged: ${outputPath} (${size} bytes)`)
+      return
+    }
+
+    if (existsSync(outputPath)) {
+      unlinkSync(outputPath)
+    }
+
+    console.log(`Downloading LFV AIP offline package from ${sourceUrl}`)
+    return download(sourceUrl, outputPath)
+  })
   .then(() => {
     const { size } = statSync(outputPath)
     console.log(`Saved LFV AIP offline package to ${outputPath} (${size} bytes)`)
