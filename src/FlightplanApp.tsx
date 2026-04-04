@@ -181,12 +181,20 @@ export function FlightplanApp({
   useGazetteerVersion()
   const normalizePlanRadioNav = (nextPlan: FlightPlanInput): FlightPlanInput => {
     const inferredEndpoints = inferFlightplanEndpointIcaos(nextPlan)
+    const departureLabel =
+      inferredEndpoints.departureIcao ||
+      (nextPlan.routeLegs[0] ? getRoutePointLabel(nextPlan.routeLegs[0].from) : nextPlan.header.departureAerodrome)
+    const destinationLabel =
+      inferredEndpoints.destinationIcao ||
+      (nextPlan.routeLegs.length > 0
+        ? getRoutePointLabel(nextPlan.routeLegs[nextPlan.routeLegs.length - 1].to)
+        : nextPlan.header.destinationAerodrome)
     const planWithSyncedEndpoints: FlightPlanInput = {
       ...nextPlan,
       header: {
         ...nextPlan.header,
-        departureAerodrome: inferredEndpoints.departureIcao || nextPlan.header.departureAerodrome,
-        destinationAerodrome: inferredEndpoints.destinationIcao || nextPlan.header.destinationAerodrome,
+        departureAerodrome: departureLabel,
+        destinationAerodrome: destinationLabel,
       },
     }
 
