@@ -20,6 +20,8 @@ body {
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  color: #12202a;
+  background: #f2f5f6;
 }
 
 button,
@@ -27,4 +29,8 @@ input,
 select,
 textarea {
   font: inherit;
+}
+
+a {
+  color: inherit;
 }

@@ -16,12 +16,86 @@ npm install
 npm run dev
 ```
 
+Create a local environment file before enabling auth:
+
+```bash
+cp .env.example .env
+```
+
 ## Verification
 
 ```bash
 npm run build
 npm run lint
 ```
+
+## Deploy
+
+Production is served from `webroots/www/flightplan` on the remote host.
+
+The deploy script now treats:
+
+- `DEPLOY_PATH=webroots/www` as the explicit production webroot
+- `DEPLOY_PATH=.` as a legacy value and remaps it to `webroots/www`
+
+Publish with:
+
+```bash
+npm run deploy
+```
+
+Required deploy variables are loaded from `../AMC/.env`:
+
+```bash
+DEPLOY_HOST=...
+DEPLOY_PORT=22
+DEPLOY_USER=...
+DEPLOY_PASS=...
+DEPLOY_PATH=webroots/www
+```
+
+Do not point `DEPLOY_PATH` at the SSH home directory when publishing this app. That uploads files outside the live webroot and the public site will remain unchanged.
+
+## Auth and Supabase
+
+The app now contains:
+
+- public auth routes for login, signup, email verification and password reset
+- a protected `/app` workspace
+- a first Supabase schema migration for users, flight plans and aircraft profiles
+
+Configure Supabase in `.env`:
+
+```bash
+VITE_SUPABASE_URL=...
+VITE_SUPABASE_ANON_KEY=...
+```
+
+`VITE_SUPABASE_ANON_KEY` can contain either the legacy anon key or Supabase's newer publishable key.
+
+Apply the SQL in [`supabase/migrations/20260403_001_auth_and_private_workspace.sql`](/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/supabase/migrations/20260403_001_auth_and_private_workspace.sql) and enable:
+
+- email/password auth
+- email confirmation
+- password reset emails
+
+Redirect URLs to configure in Supabase:
+
+- local dev: `http://localhost:5173/verify-email`
+- local reset: `http://localhost:5173/reset-password`
+
+For local Supabase development:
+
+```bash
+npm run supabase:start
+npm run supabase:status
+```
+
+The local CLI config lives in [`supabase/config.toml`](/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/supabase/config.toml) and is already set up for:
+
+- Vite on port `5173`
+- email confirmation enabled
+- local reset and verification redirects
 
 ## Swedish aviation data
 

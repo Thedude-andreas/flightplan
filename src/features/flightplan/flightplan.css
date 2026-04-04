@@ -59,8 +59,8 @@
   border: 1px solid rgba(255, 255, 255, 0.18);
   background: rgba(255, 255, 255, 0.08);
   color: #fff;
-  padding: 0.65rem 0.95rem;
-  border-radius: 0.7rem;
+  padding: 0.65rem 1.05rem;
+  border-radius: 999px;
 }
 
 .flightplan-page .fp-page-actions select,
@@ -310,8 +310,8 @@
   border: 1px solid #232323;
   background: #f5f2e8;
   color: #151515;
-  padding: 0.45rem 0.8rem;
-  border-radius: 0.55rem;
+  padding: 0.5rem 0.95rem;
+  border-radius: 999px;
 }
 
 .flightplan-page .fp-context-menu {
@@ -332,7 +332,7 @@
   color: #151515;
   text-align: left;
   padding: 0.65rem 0.75rem;
-  border-radius: 0.55rem;
+  border-radius: 999px;
 }
 
 .flightplan-page .fp-context-menu button:hover {
@@ -529,7 +529,7 @@
   border: 1px solid #b8b09d;
   background: #fff;
   color: #151515;
-  border-radius: 0.55rem;
+  border-radius: 999px;
   padding: 0.38rem 0.52rem;
   font-family: 'Space Grotesk', 'Inter', sans-serif;
   font-size: 0.82rem;
@@ -546,6 +546,25 @@
   overflow: hidden;
   background: #f0eadc;
   min-height: 68vh;
+}
+
+.flightplan-page .fp-map-empty-hint {
+  position: absolute;
+  top: 18px;
+  left: 18px;
+  z-index: 500;
+  max-width: min(320px, calc(100% - 36px));
+  padding: 0.8rem 1rem;
+  border: 1px solid rgba(22, 56, 80, 0.16);
+  border-radius: 999px;
+  background: rgba(255, 253, 248, 0.94);
+  color: #163850;
+  font-family: 'Space Grotesk', 'Inter', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  box-shadow: 0 10px 24px rgba(22, 56, 80, 0.12);
+  backdrop-filter: blur(6px);
+  pointer-events: none;
 }
 
 .flightplan-page .fp-leaflet-map {
@@ -623,7 +642,7 @@
   background: #fff1f7;
   color: #7e1847;
   padding: 0.6rem 0.8rem;
-  border-radius: 0.6rem;
+  border-radius: 999px;
   font: inherit;
   font-weight: 700;
 }
