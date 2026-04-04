@@ -4,6 +4,7 @@ import { updatePassword } from '../api/authClient'
 import { AuthFormShell } from '../components/AuthFormShell'
 import { AuthNotice } from '../components/AuthNotice'
 import { useAuth } from '../hooks/useAuth'
+import { getErrorMessage } from '../../../lib/supabase/errors'
 
 export function ResetPasswordPage() {
   const { configured } = useAuth()
@@ -29,7 +30,7 @@ export function ResetPasswordPage() {
       await updatePassword(password)
       setSuccess('Lösenordet är uppdaterat. Du kan nu logga in.')
     } catch (nextError) {
-      setError(nextError instanceof Error ? nextError.message : 'Kunde inte uppdatera lösenord.')
+      setError(getErrorMessage(nextError, 'Kunde inte uppdatera lösenord.'))
     } finally {
       setSubmitting(false)
     }

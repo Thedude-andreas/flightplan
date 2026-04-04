@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { signOut } from '../../auth/api/authClient'
 import { useAuth } from '../../auth/hooks/useAuth'
+import { getErrorMessage } from '../../../lib/supabase/errors'
 
 export function AccountPage() {
   const { user } = useAuth()
@@ -14,7 +15,7 @@ export function AccountPage() {
     try {
       await signOut()
     } catch (nextError) {
-      setError(nextError instanceof Error ? nextError.message : 'Kunde inte logga ut.')
+      setError(getErrorMessage(nextError, 'Kunde inte logga ut.'))
     } finally {
       setSubmitting(false)
     }

@@ -4,6 +4,7 @@ import { signInWithPassword } from '../api/authClient'
 import { AuthFormShell } from '../components/AuthFormShell'
 import { AuthNotice } from '../components/AuthNotice'
 import { useAuth } from '../hooks/useAuth'
+import { getErrorMessage } from '../../../lib/supabase/errors'
 
 type LocationState = {
   from?: string
@@ -29,7 +30,7 @@ export function LoginPage() {
       await signInWithPassword(email, password)
       navigate(state?.from ?? '/app', { replace: true })
     } catch (nextError) {
-      setError(nextError instanceof Error ? nextError.message : 'Kunde inte logga in.')
+      setError(getErrorMessage(nextError, 'Kunde inte logga in.'))
     } finally {
       setSubmitting(false)
     }

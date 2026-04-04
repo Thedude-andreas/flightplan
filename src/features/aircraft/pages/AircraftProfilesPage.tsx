@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { getErrorMessage } from '../../../lib/supabase/errors'
 import { createAircraftProfile, listAircraftProfiles } from '../api/aircraftProfilesRepository'
 import type { AircraftProfileRecord } from '../types'
 import { aircraftProfiles } from '../../flightplan/data'
@@ -24,7 +25,7 @@ export function AircraftProfilesPage() {
     try {
       setProfiles(await listAircraftProfiles())
     } catch (nextError) {
-      setError(nextError instanceof Error ? nextError.message : 'Kunde inte läsa flygplansprofiler.')
+      setError(getErrorMessage(nextError, 'Kunde inte läsa flygplansprofiler.'))
     } finally {
       setLoading(false)
     }
@@ -57,7 +58,7 @@ export function AircraftProfilesPage() {
 
       setProfiles((current) => [created, ...current])
     } catch (nextError) {
-      setError(nextError instanceof Error ? nextError.message : 'Kunde inte skapa flygplansprofil.')
+      setError(getErrorMessage(nextError, 'Kunde inte skapa flygplansprofil.'))
     } finally {
       setCreating(false)
     }

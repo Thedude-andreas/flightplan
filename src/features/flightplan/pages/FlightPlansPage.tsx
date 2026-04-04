@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { getErrorMessage } from '../../../lib/supabase/errors'
 import { archiveFlightPlan, createFlightPlan, listFlightPlans } from '../api/flightPlansRepository'
 import type { FlightPlanRecord } from '../persistenceTypes'
 import { createInitialFlightPlan } from '../data'
@@ -29,7 +30,7 @@ export function FlightPlansPage() {
     try {
       setPlans(await listFlightPlans())
     } catch (nextError) {
-      setError(nextError instanceof Error ? nextError.message : 'Kunde inte läsa färdplaner.')
+      setError(getErrorMessage(nextError, 'Kunde inte läsa färdplaner.'))
     } finally {
       setLoading(false)
     }
@@ -51,7 +52,7 @@ export function FlightPlansPage() {
 
       setPlans((current) => [created, ...current])
     } catch (nextError) {
-      setError(nextError instanceof Error ? nextError.message : 'Kunde inte skapa färdplan.')
+      setError(getErrorMessage(nextError, 'Kunde inte skapa färdplan.'))
     } finally {
       setCreating(false)
     }
@@ -64,7 +65,7 @@ export function FlightPlansPage() {
       await archiveFlightPlan(id)
       setPlans((current) => current.filter((plan) => plan.id !== id))
     } catch (nextError) {
-      setError(nextError instanceof Error ? nextError.message : 'Kunde inte arkivera färdplanen.')
+      setError(getErrorMessage(nextError, 'Kunde inte arkivera färdplanen.'))
     }
   }
 

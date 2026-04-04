@@ -4,6 +4,7 @@ import { signUpWithPassword } from '../api/authClient'
 import { AuthFormShell } from '../components/AuthFormShell'
 import { AuthNotice } from '../components/AuthNotice'
 import { useAuth } from '../hooks/useAuth'
+import { getErrorMessage } from '../../../lib/supabase/errors'
 
 export function SignupPage() {
   const { configured } = useAuth()
@@ -30,7 +31,7 @@ export function SignupPage() {
       await signUpWithPassword(email, password)
       setSuccess('Verifieringsmail skickat. Kontrollera inkorgen innan du loggar in.')
     } catch (nextError) {
-      setError(nextError instanceof Error ? nextError.message : 'Kunde inte skapa konto.')
+      setError(getErrorMessage(nextError, 'Kunde inte skapa konto.'))
     } finally {
       setSubmitting(false)
     }

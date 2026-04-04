@@ -4,6 +4,7 @@ import { FlightplanApp } from '../../../FlightplanApp'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { useNetworkStatus } from '../../../lib/network/useNetworkStatus'
 import { clearDraft, loadDraft, saveDraft } from '../../../lib/storage/draftStorage'
+import { getErrorMessage } from '../../../lib/supabase/errors'
 import type { DraftEnvelope, SaveState } from '../../../shared/types/persistence'
 import { createFlightPlan, getFlightPlanById, updateFlightPlan } from '../api/flightPlansRepository'
 import { createInitialFlightPlan } from '../data'
@@ -137,7 +138,7 @@ export function FlightPlanEditorPage() {
           return
         }
 
-        setError(nextError instanceof Error ? nextError.message : 'Kunde inte ladda färdplanen.')
+        setError(getErrorMessage(nextError, 'Kunde inte ladda färdplanen.'))
         setSaveState('error')
       } finally {
         if (isActive) {
@@ -208,7 +209,7 @@ export function FlightPlanEditorPage() {
       setSaveState('saved')
       navigate(`/app/flightplans/${created.id}`, { replace: true })
     } catch (nextError) {
-      const message = nextError instanceof Error ? nextError.message : 'Kunde inte spara färdplanen.'
+      const message = getErrorMessage(nextError, 'Kunde inte spara färdplanen.')
       setError(message)
       setSaveState(message.toLowerCase().includes('konflikt') ? 'conflict' : 'error')
     }

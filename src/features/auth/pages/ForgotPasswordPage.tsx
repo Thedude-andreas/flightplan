@@ -4,6 +4,7 @@ import { requestPasswordReset } from '../api/authClient'
 import { AuthFormShell } from '../components/AuthFormShell'
 import { AuthNotice } from '../components/AuthNotice'
 import { useAuth } from '../hooks/useAuth'
+import { getErrorMessage } from '../../../lib/supabase/errors'
 
 export function ForgotPasswordPage() {
   const { configured } = useAuth()
@@ -22,7 +23,7 @@ export function ForgotPasswordPage() {
       await requestPasswordReset(email)
       setSuccess('Om adressen finns i systemet har ett återställningsmail skickats.')
     } catch (nextError) {
-      setError(nextError instanceof Error ? nextError.message : 'Kunde inte skicka återställningsmail.')
+      setError(getErrorMessage(nextError, 'Kunde inte skicka återställningsmail.'))
     } finally {
       setSubmitting(false)
     }

@@ -78,3 +78,34 @@ export async function updatePassword(password: string) {
     throw error
   }
 }
+
+export async function ensureOwnProfile() {
+  const supabase = requireClient()
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser()
+
+  if (userError) {
+    throw userError
+  }
+
+  if (!user?.email) {
+    return
+  }
+
+  const { error } = await supabase.from('profiles').upsert(
+    {
+      id: user.id,
+      email: user.email,
+    },
+    {
+      onConflict: 'id',
+      ignoreDuplicates: false,
+    },
+  )
+
+  if (error) {
+    throw error
+  }
+}

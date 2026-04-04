@@ -4,6 +4,7 @@ import { resendVerificationEmail } from '../api/authClient'
 import { AuthFormShell } from '../components/AuthFormShell'
 import { AuthNotice } from '../components/AuthNotice'
 import { useAuth } from '../hooks/useAuth'
+import { getErrorMessage } from '../../../lib/supabase/errors'
 
 export function VerifyEmailPage() {
   const { configured } = useAuth()
@@ -22,7 +23,7 @@ export function VerifyEmailPage() {
       await resendVerificationEmail(email)
       setSuccess('Verifieringsmail skickat igen.')
     } catch (nextError) {
-      setError(nextError instanceof Error ? nextError.message : 'Kunde inte skicka verifieringsmail.')
+      setError(getErrorMessage(nextError, 'Kunde inte skicka verifieringsmail.'))
     } finally {
       setSubmitting(false)
     }

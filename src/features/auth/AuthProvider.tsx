@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { getSupabaseClient, isSupabaseConfigured } from '../../lib/supabase/client'
 import { AuthContext, type AuthContextValue } from './AuthContext'
+import { ensureOwnProfile } from './api/authClient'
 import type { AuthStatus, AuthUser } from './types'
 
 function mapSessionUser(session: Session | null): AuthUser | null {
@@ -49,6 +50,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       setSession(nextSession)
       setStatus(nextSession ? 'authenticated' : 'anonymous')
+
+      if (nextSession) {
+        void ensureOwnProfile().catch((error) => {
+          console.error('Failed to ensure profile row for authenticated user.', error)
+        })
+      }
     })
 
     return () => {
