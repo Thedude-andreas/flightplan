@@ -6,6 +6,7 @@ The app is built as a standalone React/Vite project and contains:
 
 - printable driftfardplan layout for landscape A4
 - route editor with magenta flight line and waypoint editing
+- local Swedish gazetteer for naming non-airport waypoints with nearby settlements, lakes, islands and mountains
 - fuel, STOL and weight-and-balance calculations
 - Swedish LFV/AIP ingestion scripts for airport reference data
 
@@ -118,6 +119,7 @@ npm run aviation:se:extract
 npm run aviation:se:manifest
 npm run aviation:se:airports
 npm run aviation:se:airspaces
+npm run aviation:se:places
 npm run aviation:se:build
 ```
 
@@ -154,13 +156,21 @@ npm run aviation:se:airspaces
 
 This fetches CTR, TMA, ATZ and TRA polygons from LFV Digital AIM WFS.
 
-3. Rebuild the normalized index:
+3. Update place data:
+
+```bash
+npm run aviation:se:places
+```
+
+This downloads and filters the Sweden dump from GeoNames into a reduced local gazetteer used to name non-airport waypoints.
+
+4. Rebuild the normalized index:
 
 ```bash
 npm run aviation:se:build
 ```
 
-4. Verify the app still builds cleanly:
+5. Verify the app still builds cleanly:
 
 ```bash
 npm run build
@@ -183,6 +193,12 @@ Index rebuild regenerates:
 
 - `data/aviation/se/normalized/aviation.se.index.json`
 - `data/aviation/se/normalized/navaids.se.json`
+
+Place updates regenerate:
+
+- `data/aviation/se/normalized/places.se.json`
+- `public/flightplan-data/places.se.json`
+- `src/features/flightplan/generated/places.se.ts`
 
 Do not hand-edit generated files. Re-run the scripts instead.
 

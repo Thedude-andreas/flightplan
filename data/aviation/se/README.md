@@ -17,6 +17,7 @@ This directory is the Swedish-first aviation data workspace for `AMC` and `Fligh
   - `lfv-manifest.json` - discovered file inventory
   - `airports.se.json` - normalized airports/aerodromes
   - `airspaces.se.json` - normalized airspaces
+  - `places.se.json` - normalized Swedish place gazetteer for waypoint labels
   - `navaids.se.json` - normalized navaids/frequencies
   - `aviation.se.index.json` - summary entry point
 
@@ -24,6 +25,7 @@ This directory is the Swedish-first aviation data workspace for `AMC` and `Fligh
 ```bash
 npm run aviation:se:airports
 npm run aviation:se:airspaces
+npm run aviation:se:places
 npm run aviation:se:build
 ```
 
@@ -37,6 +39,7 @@ npm run aviation:se:extract
 npm run aviation:se:manifest
 npm run aviation:se:airports
 npm run aviation:se:airspaces
+npm run aviation:se:places
 npm run aviation:se:build
 ```
 
@@ -61,6 +64,9 @@ npm run aviation:se:build
 - `aviation:se:airspaces`
   Fetches polygon data for `CTR`, `TMA`, `ATZ` and `TRA` from LFV Digital AIM WFS.
 
+- `aviation:se:places`
+  Downloads the Sweden dump from GeoNames and filters it into a local gazetteer of settlements, lakes, islands, water features and mountains used for non-airport waypoint labels.
+
 - `aviation:se:build`
   Rebuilds the normalized index file and placeholder `navaids` output.
 
@@ -75,6 +81,12 @@ Airspace parser output:
 
 - `normalized/airspaces.se.json`
 - `src/features/flightplan/generated/airspaces.se.ts`
+
+Place gazetteer output:
+
+- `normalized/places.se.json`
+- `public/flightplan-data/places.se.json`
+- `src/features/flightplan/generated/places.se.ts`
 
 Index builder output:
 
@@ -115,6 +127,23 @@ Typical command:
 npm run aviation:se:airspaces
 ```
 
+## Updating Place Names
+
+The place parser is implemented in `scripts/aviation-se/parse-geonames-places.mjs`.
+
+Important behavior:
+
+- Data comes from `https://download.geonames.org/export/dump/SE.zip`
+- The parser keeps a reduced Swedish gazetteer for `settlement`, `lake`, `water`, `island` and `mountain`
+- The generated TypeScript file only contains the reduced fields needed by the client
+- Generated place files should never be edited manually
+
+Typical command:
+
+```bash
+npm run aviation:se:places
+```
+
 ## Verification Checklist
 
 After updating airport or airspace data, always run:
@@ -128,7 +157,7 @@ Then verify at least:
 
 - airport markers render on the map
 - airspace overlays render and toggle correctly
-- newly expected airports are present in search / nearest-place naming
+- non-airport waypoints pick up nearby Swedish place names when relevant
 - `normalized/*.json` and `src/features/flightplan/generated/*.ts` were regenerated as expected
 
 ## Parsing Roadmap
@@ -141,4 +170,5 @@ Then verify at least:
 - The LFV offline archive is large, around 927 MB as of March 12, 2026.
 - Airport updates do not require the full offline package if the online LFV eAIP is reachable.
 - Airspace updates currently depend on LFV Digital AIM WFS being reachable.
+- Place-name updates currently depend on the GeoNames Sweden dump being reachable.
 - Normalized files should be treated as generated artifacts from official AIP source, not hand-edited application data.

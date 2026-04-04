@@ -1,15 +1,16 @@
+import { useSyncExternalStore } from 'react'
 import type { RoutePointInput, RouteLegInput } from './types'
 import { swedishAirports } from './generated/airports.se'
 import { formatCoordinateDms, snapCoordinate } from './coordinates'
 
-type GazetteerEntry = {
+type AirportEntry = {
   icao: string
   name: string
   lat: number
   lon: number
 }
 
-const places: GazetteerEntry[] = swedishAirports
+const airports: AirportEntry[] = swedishAirports
   .filter((airport) => airport.name && airport.icao)
   .map((airport) => ({
     icao: airport.icao!,
@@ -20,6 +21,39 @@ const places: GazetteerEntry[] = swedishAirports
 
 const earthRadiusNm = 3440.065
 const airportDisplayToleranceNm = 0.15
+const highResolutionSearchRadiusNm = 2.2
+const placeSearchRadiusNmByKind = {
+  settlement: 8,
+  lake: 6,
+  water: 5,
+  island: 5,
+  mountain: 4,
+} as const
+const kindPreference = {
+  settlement: 0.92,
+  lake: 1,
+  water: 0.96,
+  island: 0.98,
+  mountain: 0.98,
+} as const
+const placesDataUrl = `${import.meta.env.BASE_URL}flightplan-data/places.se.json`
+
+type SwedishPlaceKind = keyof typeof placeSearchRadiusNmByKind
+
+type SwedishPlace = {
+  name: string
+  lat: number
+  lon: number
+  kind: SwedishPlaceKind
+  importance: number
+}
+
+type CompactSwedishPlace = [string, number, number, 's' | 'l' | 'w' | 'i' | 'm', number]
+
+let swedishPlaces: SwedishPlace[] = []
+let placesVersion = 0
+let placesLoadPromise: Promise<void> | null = null
+const placeSubscribers = new Set<() => void>()
 
 function degToRad(value: number) {
   return (value * Math.PI) / 180
@@ -42,30 +76,92 @@ function formatCoordinateLabel(lat: number, lon: number) {
   return `${formatCoordinateDms(lat, 'lat')} ${formatCoordinateDms(lon, 'lon')}`
 }
 
-export function nearestPlaceLabel(lat: number, lon: number) {
-  let nearest = places[0]
-  let minDistance = Number.POSITIVE_INFINITY
+function notifyPlacesUpdated() {
+  placesVersion += 1
+  for (const subscriber of placeSubscribers) {
+    subscriber()
+  }
+}
 
-  for (const place of places) {
-    const distance = distanceNm(lat, lon, place.lat, place.lon)
-    if (distance < minDistance) {
-      minDistance = distance
-      nearest = place
-    }
+function expandPlaceKind(kindCode: CompactSwedishPlace[3]): SwedishPlaceKind {
+  switch (kindCode) {
+    case 's':
+      return 'settlement'
+    case 'l':
+      return 'lake'
+    case 'w':
+      return 'water'
+    case 'i':
+      return 'island'
+    case 'm':
+      return 'mountain'
+  }
+}
+
+export function preloadSwedishPlaces() {
+  if (swedishPlaces.length > 0 || placesLoadPromise) {
+    return placesLoadPromise ?? Promise.resolve()
   }
 
-  if (minDistance <= 18) {
-    return nearest.name
+  placesLoadPromise = fetch(placesDataUrl)
+    .then(async (response) => {
+      if (!response.ok) {
+        throw new Error(`Unable to load place gazetteer (${response.status})`)
+      }
+
+      const nextPlaces = await response.json()
+      if (!Array.isArray(nextPlaces)) {
+        throw new Error('Invalid place gazetteer payload')
+      }
+
+      swedishPlaces = nextPlaces.map((place) => {
+        const [name, lat, lon, kindCode, importance] = place as CompactSwedishPlace
+        return {
+          name,
+          lat,
+          lon,
+          kind: expandPlaceKind(kindCode),
+          importance,
+        }
+      })
+      notifyPlacesUpdated()
+    })
+    .catch((error) => {
+      console.error(error)
+    })
+    .finally(() => {
+      placesLoadPromise = null
+    })
+
+  return placesLoadPromise
+}
+
+export function useGazetteerVersion() {
+  preloadSwedishPlaces()
+  return useSyncExternalStore(
+    (onStoreChange) => {
+      placeSubscribers.add(onStoreChange)
+      return () => placeSubscribers.delete(onStoreChange)
+    },
+    () => placesVersion,
+    () => placesVersion,
+  )
+}
+
+export function nearestPlaceLabel(lat: number, lon: number) {
+  const nearest = findBestNamedPlace(lat, lon)
+  if (nearest) {
+    return nearest.place.name
   }
 
   return formatCoordinateLabel(lat, lon)
 }
 
 function findNearestAirport(lat: number, lon: number) {
-  let nearest = places[0]
+  let nearest = airports[0]
   let minDistance = Number.POSITIVE_INFINITY
 
-  for (const place of places) {
+  for (const place of airports) {
     const distance = distanceNm(lat, lon, place.lat, place.lon)
     if (distance < minDistance) {
       minDistance = distance
@@ -79,10 +175,60 @@ function findNearestAirport(lat: number, lon: number) {
   }
 }
 
+function findBestNamedPlace(lat: number, lon: number) {
+  if (swedishPlaces.length === 0) {
+    return null
+  }
+
+  let nearestMatch = null
+  let nearestDistance = Number.POSITIVE_INFINITY
+  let bestMatch = null
+  let bestScore = Number.NEGATIVE_INFINITY
+
+  for (const place of swedishPlaces) {
+    const distance = distanceNm(lat, lon, place.lat, place.lon)
+    const maxDistance = placeSearchRadiusNmByKind[place.kind]
+    if (distance > maxDistance) {
+      continue
+    }
+
+    if (distance < nearestDistance) {
+      nearestDistance = distance
+      nearestMatch = {
+        place,
+        distanceNm: distance,
+      }
+    }
+
+    const normalizedDistance = 1 - distance / maxDistance
+    const score = normalizedDistance * 0.7 + place.importance * 0.2 + kindPreference[place.kind] * 0.1
+
+    if (score > bestScore) {
+      bestScore = score
+      bestMatch = {
+        place,
+        distanceNm: distance,
+        score,
+      }
+    }
+  }
+
+  if (nearestMatch && nearestMatch.distanceNm <= highResolutionSearchRadiusNm) {
+    return nearestMatch
+  }
+
+  return bestMatch
+}
+
 export function getRoutePointLabel(point: RoutePointInput) {
   const nearest = findNearestAirport(point.lat, point.lon)
   if (nearest.distanceNm <= airportDisplayToleranceNm) {
     return nearest.airport.icao
+  }
+
+  const nearbyPlace = findBestNamedPlace(point.lat, point.lon)
+  if (nearbyPlace) {
+    return nearbyPlace.place.name
   }
 
   return formatCoordinateLabel(point.lat, point.lon)

@@ -4,7 +4,7 @@ import './features/flightplan/flightplan.css'
 import { aircraftProfiles, createInitialFlightPlan } from './features/flightplan/data'
 import { calculateFlightPlan, formatNumber, formatTimeFromMinutes } from './features/flightplan/calculations'
 import { snapCoordinate } from './features/flightplan/coordinates'
-import { getRoutePointLabel, legsToWaypoints, waypointsToLegs } from './features/flightplan/gazetteer'
+import { getRoutePointLabel, legsToWaypoints, useGazetteerVersion, waypointsToLegs } from './features/flightplan/gazetteer'
 import { FlightplanMapEditor } from './features/flightplan/FlightplanMapEditor'
 import type { AircraftProfile, FlightPlanInput } from './features/flightplan/types'
 
@@ -173,6 +173,7 @@ export function FlightplanApp({
   headerSlot,
   onPlanChange,
 }: FlightplanAppProps = {}) {
+  useGazetteerVersion()
   const [plan, setPlan] = useState<FlightPlanInput>(() => cloneFlightPlan(initialPlan ?? createInitialFlightPlan()))
   const [activePanel, setActivePanel] = useState<EditorPanel | null>(null)
   const [activeTab, setActiveTab] = useState<WorkspaceTab>('flightplan')
