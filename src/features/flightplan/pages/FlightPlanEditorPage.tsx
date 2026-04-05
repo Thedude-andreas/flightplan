@@ -20,6 +20,8 @@ type PersistedSnapshot = {
   plan: FlightPlanInput
 }
 
+type EditorWorkspaceTab = 'flightplan' | 'map' | 'print' | 'settings'
+
 function createDefaultPlanName() {
   const date = new Intl.DateTimeFormat('sv-SE', { dateStyle: 'medium' }).format(new Date())
   return `Ny färdplan ${date}`
@@ -94,6 +96,7 @@ export function FlightPlanEditorPage() {
   const [isCopyDialogOpen, setIsCopyDialogOpen] = useState(false)
   const [isClearRouteDialogOpen, setIsClearRouteDialogOpen] = useState(false)
   const [editorRevision, setEditorRevision] = useState(0)
+  const [editorActiveTab, setEditorActiveTab] = useState<EditorWorkspaceTab>('flightplan')
 
   const draftKey = useMemo(() => {
     if (!user) {
@@ -358,6 +361,7 @@ export function FlightPlanEditorPage() {
       <FlightplanApp
         key={`${recordId ?? 'new'}:${baseUpdatedAt ?? 'draft'}:${editorRevision}`}
         initialPlan={initialPlan}
+        initialActiveTab={editorActiveTab}
         documentTitleSlot={
           <input
             className="fp-document-title-input"
@@ -408,6 +412,7 @@ export function FlightPlanEditorPage() {
           setCurrentPlan(nextPlan)
           setSaveState((current) => (current === 'saving' ? current : current === 'error' || current === 'conflict' ? current : 'idle'))
         }}
+        onActiveTabChange={setEditorActiveTab}
       />
 
       {isCopyDialogOpen && (

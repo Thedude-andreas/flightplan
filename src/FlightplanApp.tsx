@@ -5,7 +5,7 @@ import { aircraftProfiles, createInitialFlightPlan } from './features/flightplan
 import { calculateFlightPlan, formatNumber, formatTimeFromMinutes } from './features/flightplan/calculations'
 import { snapCoordinate } from './features/flightplan/coordinates'
 import { getRoutePointLabel, legsToWaypoints, useGazetteerVersion, waypointsToLegs } from './features/flightplan/gazetteer'
-import { FlightplanMapEditor } from './features/flightplan/FlightplanMapEditor'
+import { FlightplanMapEditor, type FlightplanMapViewport } from './features/flightplan/FlightplanMapEditor'
 import {
   buildSuggestedRadioNav,
   mergeRadioNavEntries,
@@ -255,17 +255,21 @@ function cloneFlightPlan(plan: FlightPlanInput): FlightPlanInput {
 type FlightplanAppProps = {
   initialPlan?: FlightPlanInput
   initialAircraftOptions?: AircraftProfile[]
+  initialActiveTab?: WorkspaceTab
   documentTitleSlot?: ReactNode
   documentToolbarSlot?: ReactNode
   onPlanChange?: (plan: FlightPlanInput) => void
+  onActiveTabChange?: (tab: WorkspaceTab) => void
 }
 
 export function FlightplanApp({
   initialPlan,
   initialAircraftOptions,
+  initialActiveTab = 'flightplan',
   documentTitleSlot,
   documentToolbarSlot,
   onPlanChange,
+  onActiveTabChange,
 }: FlightplanAppProps = {}) {
   useGazetteerVersion()
   const normalizePlanRadioNav = (nextPlan: FlightPlanInput): FlightPlanInput => {
@@ -296,13 +300,14 @@ export function FlightplanApp({
     normalizePlanRadioNav(cloneFlightPlan(initialPlan ?? createInitialFlightPlan())),
   )
   const [activePanel, setActivePanel] = useState<EditorPanel | null>(null)
-  const [activeTab, setActiveTab] = useState<WorkspaceTab>('flightplan')
+  const [activeTab, setActiveTab] = useState<WorkspaceTab>(initialActiveTab)
   const [aircraftOptions, setAircraftOptions] = useState<AircraftProfile[]>(() =>
     (initialAircraftOptions ?? aircraftProfiles).map(cloneAircraftProfile),
   )
   const [settingsIndex, setSettingsIndex] = useState(0)
   const [rowContextMenu, setRowContextMenu] = useState<RowContextMenuState>(null)
   const [focusedLegIndex, setFocusedLegIndex] = useState<number | null>(null)
+  const [mapViewport, setMapViewport] = useState<FlightplanMapViewport | null>(null)
   const [weatherRefreshToken, setWeatherRefreshToken] = useState(0)
   const [weatherState, setWeatherState] = useState<WeatherState>({
     status: 'idle',
@@ -356,6 +361,10 @@ export function FlightplanApp({
   useEffect(() => {
     onPlanChange?.(plan)
   }, [onPlanChange, plan])
+
+  useEffect(() => {
+    onActiveTabChange?.(activeTab)
+  }, [activeTab, onActiveTabChange])
 
   useEffect(() => {
     if (activePanel !== 'weather') {
@@ -705,6 +714,8 @@ export function FlightplanApp({
                 derived={derived}
                 onRouteLegsChange={replaceRouteLegs}
                 focusedLegIndex={focusedLegIndex}
+                initialViewport={mapViewport}
+                onViewportChange={setMapViewport}
               />
             </section>
           </div>

@@ -66,6 +66,16 @@ const navaidLabelMinZoom = 9
 const directionArrowWaypointClearancePx = 22
 const maxVisibleAirspaceLowerFt = 9500
 
+export type FlightplanMapViewport = {
+  center: [number, number]
+  zoom: number
+}
+
+const emptyPlanViewport: FlightplanMapViewport = {
+  center: [64.9, 16.8],
+  zoom: 5,
+}
+
 function getNavaidPalette(kind: (typeof swedishNavaids)[number]['kind']) {
   switch (kind) {
     case 'VOR':
@@ -286,6 +296,31 @@ function MapZoomHandler({
   return null
 }
 
+function MapViewportHandler({
+  onViewportChange,
+}: {
+  onViewportChange: (viewport: FlightplanMapViewport) => void
+}) {
+  useMapEvents({
+    moveend(event) {
+      const centerPoint = event.target.getCenter()
+      onViewportChange({
+        center: [centerPoint.lat, centerPoint.lng],
+        zoom: event.target.getZoom(),
+      })
+    },
+    zoomend(event) {
+      const centerPoint = event.target.getCenter()
+      onViewportChange({
+        center: [centerPoint.lat, centerPoint.lng],
+        zoom: event.target.getZoom(),
+      })
+    },
+  })
+
+  return null
+}
+
 function FocusLegHandler({
   plan,
   focusedLegIndex,
@@ -315,6 +350,44 @@ function FocusLegHandler({
       duration: 0.7,
     })
   }, [focusedLegIndex, map, plan.routeLegs])
+
+  return null
+}
+
+function InitialViewportHandler({
+  waypoints,
+  focusedLegIndex,
+  initialViewport,
+}: {
+  waypoints: FlightPlanInput['routeLegs'][number]['from'][]
+  focusedLegIndex: number | null
+  initialViewport: FlightplanMapViewport | null
+}) {
+  const map = useMap()
+  const didApplyInitialViewport = useRef(false)
+
+  useEffect(() => {
+    if (didApplyInitialViewport.current || focusedLegIndex != null) {
+      return
+    }
+
+    if (initialViewport) {
+      map.setView(initialViewport.center, initialViewport.zoom, {
+        animate: false,
+      })
+    } else if (waypoints.length >= 2) {
+      const bounds = L.latLngBounds(waypoints.map((point) => [point.lat, point.lon] as [number, number]))
+      map.fitBounds(bounds.pad(0.3), {
+        animate: false,
+      })
+    } else {
+      map.setView(emptyPlanViewport.center, emptyPlanViewport.zoom, {
+        animate: false,
+      })
+    }
+
+    didApplyInitialViewport.current = true
+  }, [focusedLegIndex, initialViewport, map, waypoints])
 
   return null
 }
@@ -367,11 +440,15 @@ export function FlightplanMapEditor({
   derived,
   onRouteLegsChange,
   focusedLegIndex = null,
+  initialViewport = null,
+  onViewportChange,
 }: {
   plan: FlightPlanInput
   derived: FlightPlanDerived
   onRouteLegsChange: (legs: FlightPlanInput['routeLegs']) => void
   focusedLegIndex?: number | null
+  initialViewport?: FlightplanMapViewport | null
+  onViewportChange?: (viewport: FlightplanMapViewport) => void
 }) {
   const [basemap, setBasemap] = useState<BasemapKey>('topo')
   const [showAirspaces, setShowAirspaces] = useState(true)
@@ -688,8 +765,14 @@ export function FlightplanMapEditor({
         <MapContainer center={center} zoom={7} scrollWheelZoom className="fp-leaflet-map">
           <TileLayer attribution={basemaps[basemap].attribution} url={basemaps[basemap].url} />
           <MapInstanceHandler onReady={setMapInstance} />
+          <InitialViewportHandler
+            waypoints={displayWaypoints}
+            focusedLegIndex={focusedLegIndex}
+            initialViewport={initialViewport}
+          />
           <MapClickHandler onAddPoint={addPointToEnd} shouldSuppressClick={shouldSuppressClick} />
           <MapZoomHandler onZoomChange={setMapZoom} />
+          {onViewportChange ? <MapViewportHandler onViewportChange={onViewportChange} /> : null}
           <RouteInsertDragHandler
             activeSegmentIndex={activeSegmentInsertIndex}
             onMove={updateSegmentInsertDrag}
