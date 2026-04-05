@@ -11,7 +11,12 @@ import {
   mergeRadioNavEntries,
 } from './features/flightplan/radioNav'
 import { fetchNotamsForAirports, type AirportNotam, type NotamSupplement } from './features/flightplan/notam'
-import { getRelevantSupplements, getRouteNotamMatches } from './features/flightplan/notamRoute'
+import {
+  getRelevantSupplements,
+  getRouteNotamMatches,
+  getSupplementSourceLabel,
+  getSupplementValidityLabel,
+} from './features/flightplan/notamRoute'
 import { fetchWeatherForAirports, getAirportsNearRoute, type AirportWeather } from './features/flightplan/weather'
 import type { AircraftProfile, FlightPlanInput, RadioNavEntry } from './features/flightplan/types'
 
@@ -1351,17 +1356,18 @@ export function FlightplanApp({
                                 <h3>{supplement.title}</h3>
                                 <p>{supplement.relevance}</p>
                                 <p>
-                                  {supplement.periodText ?? 'Giltighet okänd'}
+                                  {getSupplementValidityLabel(supplement)}
                                   {supplement.distanceNm !== null ? ` · ${formatNumber(supplement.distanceNm, 1)} NM från rutten` : ''}
                                 </p>
                               </div>
                               <div className="fp-notam-supplement-meta">
-                                <small>{supplement.source === 'eaip-datasource' ? 'LFV eSUP' : 'Refererad i NOTAM'}</small>
                                 {supplement.url ? (
                                   <a href={supplement.url} target="_blank" rel="noreferrer">
-                                    Öppna SUP
+                                    Öppna {getSupplementSourceLabel(supplement)}
                                   </a>
-                                ) : null}
+                                ) : (
+                                  <small>{getSupplementSourceLabel(supplement)}</small>
+                                )}
                               </div>
                             </article>
                           ))}

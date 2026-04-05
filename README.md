@@ -116,8 +116,17 @@ Swedish NOTAM now uses a Supabase Edge Function that:
 
 - fetches LFV `ESAA FIR VFR 24hr` briefing on demand
 - parses the LFV PDF server-side
+- fetches LFV eAIP `datasource.js` for AIP SUP metadata and individual eSUP pages
 - caches the parsed result in `public.notam_briefing_cache`
 - reuses the cached bulletin until it is older than 30 minutes
+
+The NOTAM panel currently shows:
+
+- aerodrome NOTAM for Swedish airports within `50 NM` of the route
+- en-route NOTAM and NAV warnings matched by `PSN` coordinates, area coordinates and nearby navaids
+- AIP SUP entries that are valid on the flight date in the form header and whose geometry or referenced aerodromes fall within `50 NM` of the route
+
+AIP SUP validity is derived from LFV eSUP content. When available, the UI prefers the `Tider/Hours` section from the supplement itself so the briefing shows time-of-day windows, not only coarse `from/to` dates.
 
 Apply the migration and deploy the function:
 

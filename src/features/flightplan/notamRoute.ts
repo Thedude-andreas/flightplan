@@ -33,6 +33,13 @@ export type RelevantNotamSupplement = NotamSupplement & {
   hasGeometry: boolean
 }
 
+function normalizeDisplayText(value: string) {
+  return value
+    .replace(/\s*–\s*/g, ' – ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
 function degToRad(value: number) {
   return (value * Math.PI) / 180
 }
@@ -237,6 +244,21 @@ function getBestGeometryMatch(routeLegs: FlightPlanInput['routeLegs'], rawText: 
 
 function parseIsoDate(value: string | null) {
   return value ? new Date(`${value}T00:00:00Z`) : null
+}
+
+export function getSupplementValidityLabel(supplement: NotamSupplement) {
+  const rawText = supplement.rawText ?? ''
+  const hoursMatch = rawText.match(/Tider\/Hours\s+(.+?)(?:\s+–\s*S L U T\s*\/\s*E N D\s*–|$)/i)
+
+  if (hoursMatch?.[1]) {
+    return normalizeDisplayText(hoursMatch[1])
+  }
+
+  return supplement.periodText ? normalizeDisplayText(supplement.periodText) : 'Giltighet okänd'
+}
+
+export function getSupplementSourceLabel(supplement: NotamSupplement) {
+  return supplement.source === 'eaip-datasource' ? 'LFV eSUP' : 'NOTAM-referens'
 }
 
 function isSupplementValidOnDate(supplement: NotamSupplement, flightDate: string) {
