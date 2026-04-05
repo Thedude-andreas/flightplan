@@ -10,6 +10,11 @@ type RoutePoint = {
   lon: number
 }
 
+type RouteDistance = {
+  distanceNm: number
+  progressNm: number
+}
+
 export type RouteNotamMatch = {
   id: string
   title: string
@@ -23,6 +28,9 @@ export type RouteNotamMatch = {
 
 export type RelevantNotamSupplement = NotamSupplement & {
   relevance: string
+  distanceNm: number | null
+  progressNm: number | null
+  hasGeometry: boolean
 }
 
 function degToRad(value: number) {
@@ -81,7 +89,7 @@ function pointToSegmentDistance(point: RoutePoint, start: RoutePoint, end: Route
   }
 }
 
-function routeDistanceForPoint(routeLegs: FlightPlanInput['routeLegs'], point: RoutePoint) {
+function routeDistanceForPoint(routeLegs: FlightPlanInput['routeLegs'], point: RoutePoint): RouteDistance {
   let bestDistanceNm = Number.POSITIVE_INFINITY
   let bestProgressNm = Number.POSITIVE_INFINITY
   let distanceBeforeLegNm = 0
@@ -176,6 +184,85 @@ function centroid(points: RoutePoint[]) {
   }
 }
 
+function matchNearbyNavaids(routeLegs: FlightPlanInput['routeLegs'], rawText: string, maxDistanceNm: number) {
+  const normalizedEntry = ` ${normalizeForMatch(rawText)} `
+
+  return swedishNavaids
+    .map((navaid) => {
+      const ident = navaid.ident ? normalizeForMatch(navaid.ident) : null
+      const name = navaid.name ? normalizeForMatch(navaid.name) : null
+      const identHit = ident ? new RegExp(`[^A-Z0-9]${escapeRegExp(ident)}[^A-Z0-9]`).test(normalizedEntry) : false
+      const nameHit = name && name.length >= 5
+        ? new RegExp(`[^A-Z0-9]${escapeRegExp(name)}[^A-Z0-9]`).test(normalizedEntry)
+        : false
+
+      if (!identHit && !nameHit) {
+        return null
+      }
+
+      const distance = routeDistanceForPoint(routeLegs, { lat: navaid.lat, lon: navaid.lon })
+      if (distance.distanceNm > maxDistanceNm) {
+        return null
+      }
+
+      return {
+        label: navaid.ident ? `${navaid.ident}${navaid.name ? `/${navaid.name}` : ''}` : (navaid.name ?? navaid.id),
+        distanceNm: distance.distanceNm,
+        progressNm: distance.progressNm,
+      }
+    })
+    .filter((value): value is NonNullable<typeof value> => Boolean(value))
+    .sort((left, right) => left.distanceNm - right.distanceNm || left.label.localeCompare(right.label, 'sv'))
+}
+
+function getBestGeometryMatch(routeLegs: FlightPlanInput['routeLegs'], rawText: string) {
+  const coordinates = extractCoordinates(rawText)
+  const coordinateDistances = coordinates.map((point) => routeDistanceForPoint(routeLegs, point))
+  const areaCenter = coordinates.length >= 2 ? centroid(coordinates) : null
+
+  if (areaCenter) {
+    coordinateDistances.push(routeDistanceForPoint(routeLegs, areaCenter))
+  }
+
+  const bestDistance = coordinateDistances.reduce<RouteDistance | null>(
+    (closest, current) => (!closest || current.distanceNm < closest.distanceNm ? current : closest),
+    null,
+  )
+
+  return {
+    coordinates,
+    bestDistance,
+  }
+}
+
+function parseIsoDate(value: string | null) {
+  return value ? new Date(`${value}T00:00:00Z`) : null
+}
+
+function isSupplementValidOnDate(supplement: NotamSupplement, flightDate: string) {
+  if (!flightDate) {
+    return true
+  }
+
+  const flight = parseIsoDate(flightDate)
+  const validFrom = parseIsoDate(supplement.validFrom)
+  const validTo = parseIsoDate(supplement.validTo)
+
+  if (!flight) {
+    return true
+  }
+
+  if (validFrom && flight < validFrom) {
+    return false
+  }
+
+  if (validTo && flight > validTo) {
+    return false
+  }
+
+  return true
+}
+
 export function getRouteNotamMatches(
   routeLegs: FlightPlanInput['routeLegs'],
   sectionText: string | null,
@@ -187,54 +274,15 @@ export function getRouteNotamMatches(
 
   return splitSectionEntries(sectionText)
     .map((entry, index) => {
-      const coordinates = extractCoordinates(entry)
-      const coordinateDistances = coordinates.map((point) => routeDistanceForPoint(routeLegs, point))
-      const areaCenter = coordinates.length >= 2 ? centroid(coordinates) : null
-
-      if (areaCenter) {
-        coordinateDistances.push(routeDistanceForPoint(routeLegs, areaCenter))
-      }
-
-      const normalizedEntry = ` ${normalizeForMatch(entry)} `
-      const matchedNavaids = swedishNavaids
-        .map((navaid) => {
-          const ident = navaid.ident ? normalizeForMatch(navaid.ident) : null
-          const name = navaid.name ? normalizeForMatch(navaid.name) : null
-          const identHit = ident ? new RegExp(`[^A-Z0-9]${escapeRegExp(ident)}[^A-Z0-9]`).test(normalizedEntry) : false
-          const nameHit = name && name.length >= 5
-            ? new RegExp(`[^A-Z0-9]${escapeRegExp(name)}[^A-Z0-9]`).test(normalizedEntry)
-            : false
-
-          if (!identHit && !nameHit) {
-            return null
-          }
-
-          const distance = routeDistanceForPoint(routeLegs, { lat: navaid.lat, lon: navaid.lon })
-          if (distance.distanceNm > maxDistanceNm) {
-            return null
-          }
-
-          return {
-            label: navaid.ident ? `${navaid.ident}${navaid.name ? `/${navaid.name}` : ''}` : (navaid.name ?? navaid.id),
-            distanceNm: distance.distanceNm,
-            progressNm: distance.progressNm,
-          }
-        })
-        .filter((value): value is NonNullable<typeof value> => Boolean(value))
-        .sort((left, right) => left.distanceNm - right.distanceNm || left.label.localeCompare(right.label, 'sv'))
-
-      const closestCoordinate = coordinateDistances.reduce<null | { distanceNm: number; progressNm: number }>(
-        (closest, current) =>
-          !closest || current.distanceNm < closest.distanceNm ? current : closest,
-        null,
-      )
+      const geometry = getBestGeometryMatch(routeLegs, entry)
+      const matchedNavaids = matchNearbyNavaids(routeLegs, entry, maxDistanceNm)
       const closestNavaid = matchedNavaids[0]
       const bestDistance =
-        closestCoordinate && closestNavaid
-          ? closestCoordinate.distanceNm <= closestNavaid.distanceNm
-            ? closestCoordinate
+        geometry.bestDistance && closestNavaid
+          ? geometry.bestDistance.distanceNm <= closestNavaid.distanceNm
+            ? geometry.bestDistance
             : closestNavaid
-          : closestCoordinate ?? closestNavaid
+          : geometry.bestDistance ?? closestNavaid
 
       if (!bestDistance || bestDistance.distanceNm > maxDistanceNm) {
         return null
@@ -242,11 +290,11 @@ export function getRouteNotamMatches(
 
       const summaryParts: string[] = []
 
-      if (coordinates.length > 0) {
+      if (geometry.coordinates.length > 0) {
         summaryParts.push(
-          coordinates.length === 1
+          geometry.coordinates.length === 1
             ? `PSN ${round(bestDistance.distanceNm)} NM från rutten`
-            : `${coordinates.length} koordinater/area, närmast ${round(bestDistance.distanceNm)} NM`,
+            : `${geometry.coordinates.length} koordinater/area, närmast ${round(bestDistance.distanceNm)} NM`,
         )
       }
 
@@ -270,31 +318,50 @@ export function getRouteNotamMatches(
 }
 
 export function getRelevantSupplements(
+  routeLegs: FlightPlanInput['routeLegs'],
+  flightDate: string,
   supplements: NotamSupplement[],
   matches: RouteNotamMatch[],
   nearbyAirports: NearbyAirport[],
+  maxDistanceNm = 50,
 ) {
-  const airportKeys = new Set<string>()
-  const navaidKeys = new Set<string>()
+  if (routeLegs.length === 0) {
+    return []
+  }
+
   const routeSupplementIds = new Set(matches.flatMap((match) => match.supplementIds))
+  const airportKeys = new Set<string>()
 
   for (const airport of nearbyAirports) {
     airportKeys.add(airport.icao.toUpperCase())
     airportKeys.add(normalizeForMatch(airport.name))
   }
 
-  for (const match of matches) {
-    for (const navaid of match.matchedNavaids) {
-      navaidKeys.add(normalizeForMatch(navaid))
-    }
-  }
-
   return supplements
+    .filter((supplement) => isSupplementValidOnDate(supplement, flightDate))
     .map((supplement) => {
+      const rawText = supplement.rawText ?? supplement.title
+      const geometry = getBestGeometryMatch(routeLegs, rawText)
+      const hasGeometry = geometry.coordinates.length > 0
+      const bestDistance = geometry.bestDistance
+
       if (routeSupplementIds.has(supplement.id)) {
         return {
           ...supplement,
           relevance: 'Refererad i route-relevant NOTAM/NAV warning',
+          distanceNm: bestDistance?.distanceNm ?? null,
+          progressNm: bestDistance?.progressNm ?? null,
+          hasGeometry,
+        }
+      }
+
+      if (bestDistance && bestDistance.distanceNm <= maxDistanceNm) {
+        return {
+          ...supplement,
+          relevance: hasGeometry ? 'SUP-område inom 50 NM från färdlinjen' : 'SUP-referens nära rutten',
+          distanceNm: bestDistance.distanceNm,
+          progressNm: bestDistance.progressNm,
+          hasGeometry,
         }
       }
 
@@ -303,20 +370,19 @@ export function getRelevantSupplements(
       if (airportHit) {
         return {
           ...supplement,
-          relevance: 'Matchar flygplats nära färdlinjen',
-        }
-      }
-
-      const navaidHit = Array.from(navaidKeys).find((key) => key && normalizedTitle.includes(key))
-      if (navaidHit) {
-        return {
-          ...supplement,
-          relevance: 'Matchar navaid nära färdlinjen',
+          relevance: 'Giltig på flygdatum och matchar flygplats nära färdlinjen',
+          distanceNm: null,
+          progressNm: null,
+          hasGeometry,
         }
       }
 
       return null
     })
     .filter((value): value is RelevantNotamSupplement => Boolean(value))
-    .sort((left, right) => left.id.localeCompare(right.id, 'sv'))
+    .sort((left, right) => {
+      const leftDistance = left.distanceNm ?? Number.POSITIVE_INFINITY
+      const rightDistance = right.distanceNm ?? Number.POSITIVE_INFINITY
+      return leftDistance - rightDistance || left.id.localeCompare(right.id, 'sv')
+    })
 }

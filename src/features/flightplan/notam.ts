@@ -10,8 +10,12 @@ export type AirportNotam = {
 export type NotamSupplement = {
   id: string
   title: string
-  source: 'eaip-cover' | 'trigger-notam'
+  source: 'eaip-datasource' | 'trigger-notam'
   url: string | null
+  periodText: string | null
+  validFrom: string | null
+  validTo: string | null
+  rawText: string | null
 }
 
 export type NotamResponse = {

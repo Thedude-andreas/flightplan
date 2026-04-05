@@ -336,8 +336,15 @@ export function FlightplanApp({
     [plan.routeLegs, notamState.warningsText],
   )
   const relevantSupplements = useMemo(
-    () => getRelevantSupplements(notamState.supplements, [...routeEnRouteMatches, ...routeWarningMatches], nearbyRouteAirports),
-    [nearbyRouteAirports, notamState.supplements, routeEnRouteMatches, routeWarningMatches],
+    () =>
+      getRelevantSupplements(
+        plan.routeLegs,
+        plan.header.date,
+        notamState.supplements,
+        [...routeEnRouteMatches, ...routeWarningMatches],
+        nearbyRouteAirports,
+      ),
+    [nearbyRouteAirports, notamState.supplements, plan.header.date, plan.routeLegs, routeEnRouteMatches, routeWarningMatches],
   )
 
   useEffect(() => {
@@ -1325,15 +1332,15 @@ export function FlightplanApp({
                       <div className="fp-weather-card__header">
                         <div>
                           <h3>AIP SUP</h3>
-                          <p>Aktiva supplement som matchar route-NOTAM, navaids eller flygplatser nära färdlinjen</p>
+                          <p>Giltiga på {plan.header.date || 'flygdatum'} och inom 50 NM från färdlinjen</p>
                         </div>
                         <strong>{relevantSupplements.length}</strong>
                       </div>
                       {relevantSupplements.length === 0 ? (
                         <p className="fp-weather-empty-state">
                           {notamState.status === 'loading'
-                            ? 'Läser LFV eAIP cover page...'
-                            : 'Ingen route-relevant AIP SUP matchades i aktuell LFV-cover page.'}
+                            ? 'Läser giltiga LFV eSUP...'
+                            : 'Ingen giltig AIP SUP inom 50 NM matchades mot flygdatum och färdlinje.'}
                         </p>
                       ) : (
                         <div className="fp-notam-supplements">
@@ -1343,8 +1350,19 @@ export function FlightplanApp({
                                 <span className="fp-weather-report-label">AIP SUP {supplement.id}</span>
                                 <h3>{supplement.title}</h3>
                                 <p>{supplement.relevance}</p>
+                                <p>
+                                  {supplement.periodText ?? 'Giltighet okänd'}
+                                  {supplement.distanceNm !== null ? ` · ${formatNumber(supplement.distanceNm, 1)} NM från rutten` : ''}
+                                </p>
                               </div>
-                              <small>{supplement.source === 'eaip-cover' ? 'LFV eAIP cover page' : 'Refererad i NOTAM'}</small>
+                              <div className="fp-notam-supplement-meta">
+                                <small>{supplement.source === 'eaip-datasource' ? 'LFV eSUP' : 'Refererad i NOTAM'}</small>
+                                {supplement.url ? (
+                                  <a href={supplement.url} target="_blank" rel="noreferrer">
+                                    Öppna SUP
+                                  </a>
+                                ) : null}
+                              </div>
                             </article>
                           ))}
                         </div>

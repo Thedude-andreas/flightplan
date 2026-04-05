@@ -12,6 +12,7 @@ const briefingKey = 'lfv-esaa-fir-vfr-24hr-v3'
 const listingUrl = 'https://www.aro.lfv.se/Links/Link/ShowFileList?path=%5Cpibsweden%5C&torlinkName=NOTAM+Sweden&type=AIS'
 const eAipIndexUrl = 'https://aro.lfv.se/content/eaip/default_offline.html'
 const eAipBaseUrl = 'https://aro.lfv.se/content/eaip/'
+const eAipDatasourcePath = 'v2/js/datasource.js'
 
 type CachedSections = Record<string, {
   airportName: string | null
@@ -22,8 +23,12 @@ type CachedSections = Record<string, {
 type CachedSupplement = {
   id: string
   title: string
-  source: 'eaip-cover' | 'trigger-notam'
+  source: 'eaip-datasource' | 'trigger-notam'
   url: string | null
+  periodText: string | null
+  validFrom: string | null
+  validTo: string | null
+  rawText: string | null
 }
 
 type CachedPayload = {
@@ -68,6 +73,15 @@ function decodeHtmlEntities(value: string) {
     .replace(/&gt;/gi, '>')
     .replace(/&#(\d+);/g, (_, digits) => String.fromCharCode(Number(digits)))
     .replace(/&#x([0-9a-f]+);/gi, (_, hex) => String.fromCharCode(Number.parseInt(hex, 16)))
+}
+
+function stripHtml(value: string) {
+  return normalizeWhitespace(
+    decodeHtmlEntities(value)
+      .replace(/<br[^>]*\/?>/gi, '\n')
+      .replace(/<\/(p|div|tr|td|th|h1|h2|h3|li)>/gi, '\n')
+      .replace(/<[^>]+>/g, ' '),
+  )
 }
 
 async function extractPdfText(pdfBytes: Uint8Array) {
@@ -150,7 +164,7 @@ function parsePublishedAtFromBulletinUrl(sourceUrl: string) {
   return `${datePart.slice(0, 4)}-${datePart.slice(4, 6)}-${datePart.slice(6, 8)}T${timePart.slice(0, 2)}:${timePart.slice(2, 4)}:${timePart.slice(4, 6)}Z`
 }
 
-function extractCurrentEaipCoverUrl(indexHtml: string) {
+function extractCurrentEaipRootUrl(indexHtml: string) {
   const match = indexHtml.match(/href="([^"]*AIRAC AIP AMDT [^"]*index-v2\.html)"/i)
   const issuePath = match?.[1]
   if (!issuePath) {
@@ -158,35 +172,158 @@ function extractCurrentEaipCoverUrl(indexHtml: string) {
   }
 
   const normalizedPath = issuePath.replace(/\\/g, '/').replace(/ /g, '%20')
-  return new URL(normalizedPath.replace(/index-v2\.html$/i, 'ES-Cover%20Page-en-GB.html'), eAipBaseUrl).toString()
+  return new URL(normalizedPath.replace(/index-v2\.html$/i, ''), eAipBaseUrl).toString()
 }
 
-function extractCoverPageSupplements(coverPageHtml: string) {
-  const match = coverPageHtml.match(/Supplement:<\/span>[\s\S]*?<p[^>]*>([\s\S]*?)<\/p>/i)
+function parseMonthToken(value: string) {
+  return ({
+    JAN: '01',
+    FEB: '02',
+    MAR: '03',
+    APR: '04',
+    MAY: '05',
+    JUN: '06',
+    JUL: '07',
+    AUG: '08',
+    SEP: '09',
+    OCT: '10',
+    NOV: '11',
+    DEC: '12',
+  } as Record<string, string>)[value.toUpperCase()] ?? null
+}
+
+function parseDayMonthYear(value: string) {
+  const match = value.match(/(\d{1,2})\s+([A-Z]{3})\s+(\d{4})/i)
   if (!match) {
-    return []
+    return null
   }
 
-  return decodeHtmlEntities(match[1])
-    .replace(/<br[^>]*\/?>/gi, '\n')
-    .replace(/<[^>]+>/g, ' ')
-    .split(/\n+/)
-    .map((line) => normalizeWhitespace(line))
-    .filter(Boolean)
-    .map((line) => {
-      const supplementMatch = line.match(/^(\d+\/\d{4})\s+(.+)$/)
-      if (!supplementMatch) {
+  const month = parseMonthToken(match[2])
+  if (!month) {
+    return null
+  }
+
+  return `${match[3]}-${month}-${match[1].padStart(2, '0')}`
+}
+
+function parsePeriodText(periodText: string | null) {
+  if (!periodText) {
+    return { validFrom: null, validTo: null }
+  }
+
+  const fromMatch = periodText.match(/from\s+(\d{1,2}\s+[A-Z]{3}\s+\d{4})/i)
+  const toMatch = periodText.match(/to\s+(\d{1,2}\s+[A-Z]{3}\s+\d{4}|PERM|UFN)/i)
+
+  return {
+    validFrom: fromMatch ? parseDayMonthYear(fromMatch[1]) : null,
+    validTo:
+      toMatch && !/PERM|UFN/i.test(toMatch[1])
+        ? parseDayMonthYear(toMatch[1])
+        : null,
+  }
+}
+
+function parseDatasourceObject(source: string) {
+  const assignmentIndex = source.indexOf('{')
+  const trailingIndex = source.lastIndexOf('};')
+  if (assignmentIndex < 0 || trailingIndex < assignmentIndex) {
+    return null
+  }
+
+  return JSON.parse(source.slice(assignmentIndex, trailingIndex + 1)) as {
+    tabs?: Array<{
+      id?: number
+      contents?: Record<string, {
+        table?: {
+          rows?: Array<{
+            year?: { text?: string; href?: string }
+            period?: { text?: string }
+            subject?: { text?: string }
+          }>
+        }
+      }>
+    }>
+  }
+}
+
+async function mapWithConcurrencyLimit<T, R>(
+  values: T[],
+  limit: number,
+  mapper: (value: T, index: number) => Promise<R>,
+) {
+  const results: R[] = Array.from({ length: values.length }) as R[]
+  let nextIndex = 0
+
+  async function worker() {
+    while (nextIndex < values.length) {
+      const currentIndex = nextIndex
+      nextIndex += 1
+      results[currentIndex] = await mapper(values[currentIndex], currentIndex)
+    }
+  }
+
+  await Promise.all(Array.from({ length: Math.min(limit, values.length) }, () => worker()))
+  return results
+}
+
+async function extractDatasourceSupplements(eAipRootUrl: string) {
+  const datasourceUrl = new URL(eAipDatasourcePath, eAipRootUrl).toString()
+  const datasourceResponse = await fetch(datasourceUrl)
+  if (!datasourceResponse.ok) {
+    throw new Error(`LFV datasource misslyckades (${datasourceResponse.status}).`)
+  }
+
+  const datasource = parseDatasourceObject(await datasourceResponse.text())
+  const rows = datasource?.tabs?.find((tab) => tab.id === 3)?.contents?.['en-GB']?.table?.rows ?? []
+
+  const supplements = rows
+    .map((row) => {
+      const yearText = normalizeWhitespace(row.year?.text ?? '')
+      const href = row.year?.href?.replace(/\#.*/, '') ?? null
+      const periodText = normalizeWhitespace(row.period?.text ?? '') || null
+      const subject = stripHtml(row.subject?.text ?? '') || yearText
+      const idMatch = yearText.match(/(\d+\/\d{4})/)
+
+      if (!idMatch || !href || /Checklist/i.test(yearText)) {
         return null
       }
 
+      const validity = parsePeriodText(periodText)
+
       return {
-        id: supplementMatch[1],
-        title: supplementMatch[2],
-        source: 'eaip-cover' as const,
-        url: null,
+        id: idMatch[1],
+        title: subject,
+        source: 'eaip-datasource' as const,
+        url: new URL(`eSUP/${href}`, eAipRootUrl).toString(),
+        periodText,
+        validFrom: validity.validFrom,
+        validTo: validity.validTo,
       }
     })
-    .filter((value): value is CachedSupplement => Boolean(value))
+    .filter((value): value is Omit<CachedSupplement, 'rawText'> => Boolean(value))
+
+  return mapWithConcurrencyLimit(supplements, 6, async (supplement) => {
+    try {
+      const response = await fetch(supplement.url as string)
+      if (!response.ok) {
+        return {
+          ...supplement,
+          rawText: null,
+        }
+      }
+
+      const html = await response.text()
+      return {
+        ...supplement,
+        rawText: stripHtml(html),
+      }
+    } catch {
+      return {
+        ...supplement,
+        rawText: null,
+      }
+    }
+  })
 }
 
 function extractTriggerSupplements(...texts: Array<string | null>) {
@@ -198,6 +335,10 @@ function extractTriggerSupplements(...texts: Array<string | null>) {
     title: `AIP SUP ${id}`,
     source: 'trigger-notam' as const,
     url: null,
+    periodText: null,
+    validFrom: null,
+    validTo: null,
+    rawText: null,
   }))
 }
 
@@ -227,23 +368,19 @@ async function buildFreshCacheEntry() {
     const eAipIndexResponse = await fetch(eAipIndexUrl)
     if (eAipIndexResponse.ok) {
       const eAipIndexHtml = await eAipIndexResponse.text()
-      supplementSourceUrl = extractCurrentEaipCoverUrl(eAipIndexHtml)
+      const eAipRootUrl = extractCurrentEaipRootUrl(eAipIndexHtml)
+      if (eAipRootUrl) {
+        supplementSourceUrl = new URL(eAipDatasourcePath, eAipRootUrl).toString()
+        const datasourceSupplements = await extractDatasourceSupplements(eAipRootUrl)
+        const supplementMap = new Map<string, CachedSupplement>()
 
-      if (supplementSourceUrl) {
-        const coverResponse = await fetch(supplementSourceUrl)
-        if (coverResponse.ok) {
-          const coverPageHtml = await coverResponse.text()
-          const coverSupplements = extractCoverPageSupplements(coverPageHtml)
-          const supplementMap = new Map<string, CachedSupplement>()
-
-          for (const supplement of [...coverSupplements, ...supplements]) {
-            if (!supplementMap.has(supplement.id) || supplement.source === 'eaip-cover') {
-              supplementMap.set(supplement.id, supplement)
-            }
+        for (const supplement of [...datasourceSupplements, ...supplements]) {
+          if (!supplementMap.has(supplement.id) || supplement.source === 'eaip-datasource') {
+            supplementMap.set(supplement.id, supplement)
           }
-
-          supplements = Array.from(supplementMap.values())
         }
+
+        supplements = Array.from(supplementMap.values())
       }
     }
   } catch {
