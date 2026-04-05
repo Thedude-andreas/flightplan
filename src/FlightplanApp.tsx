@@ -20,6 +20,17 @@ type RowContextMenuState = { x: number; y: number; rowIndex: number } | null
 const printLogoSrc = `${import.meta.env.BASE_URL}lbfk-logo.png`
 const contextMenuSize = { width: 220, height: 112, margin: 12 }
 
+function getEndpointLabel(
+  point: FlightPlanInput['routeLegs'][number]['from'] | undefined,
+  fallback: string,
+) {
+  if (!point) {
+    return fallback
+  }
+
+  return getRoutePointLabel(point)
+}
+
 function clampContextMenuPosition(x: number, y: number) {
   const maxX = window.innerWidth - contextMenuSize.width - contextMenuSize.margin
   const maxY = window.innerHeight - contextMenuSize.height - contextMenuSize.margin
@@ -181,12 +192,11 @@ export function FlightplanApp({
 }: FlightplanAppProps = {}) {
   useGazetteerVersion()
   const normalizePlanRadioNav = (nextPlan: FlightPlanInput): FlightPlanInput => {
-    const departureLabel =
-      (nextPlan.routeLegs[0] ? getRoutePointLabel(nextPlan.routeLegs[0].from) : nextPlan.header.departureAerodrome)
-    const destinationLabel =
-      (nextPlan.routeLegs.length > 0
-        ? getRoutePointLabel(nextPlan.routeLegs[nextPlan.routeLegs.length - 1].to)
-        : nextPlan.header.destinationAerodrome)
+    const departureLabel = getEndpointLabel(nextPlan.routeLegs[0]?.from, nextPlan.header.departureAerodrome)
+    const destinationLabel = getEndpointLabel(
+      nextPlan.routeLegs[nextPlan.routeLegs.length - 1]?.to,
+      nextPlan.header.destinationAerodrome,
+    )
     const planWithSyncedEndpoints: FlightPlanInput = {
       ...nextPlan,
       header: {
