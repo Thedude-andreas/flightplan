@@ -256,20 +256,24 @@ type FlightplanAppProps = {
   initialPlan?: FlightPlanInput
   initialAircraftOptions?: AircraftProfile[]
   initialActiveTab?: WorkspaceTab
+  initialMapViewport?: FlightplanMapViewport | null
   documentTitleSlot?: ReactNode
   documentToolbarSlot?: ReactNode
   onPlanChange?: (plan: FlightPlanInput) => void
   onActiveTabChange?: (tab: WorkspaceTab) => void
+  onMapViewportChange?: (viewport: FlightplanMapViewport) => void
 }
 
 export function FlightplanApp({
   initialPlan,
   initialAircraftOptions,
   initialActiveTab = 'flightplan',
+  initialMapViewport = null,
   documentTitleSlot,
   documentToolbarSlot,
   onPlanChange,
   onActiveTabChange,
+  onMapViewportChange,
 }: FlightplanAppProps = {}) {
   useGazetteerVersion()
   const normalizePlanRadioNav = (nextPlan: FlightPlanInput): FlightPlanInput => {
@@ -307,7 +311,6 @@ export function FlightplanApp({
   const [settingsIndex, setSettingsIndex] = useState(0)
   const [rowContextMenu, setRowContextMenu] = useState<RowContextMenuState>(null)
   const [focusedLegIndex, setFocusedLegIndex] = useState<number | null>(null)
-  const [mapViewport, setMapViewport] = useState<FlightplanMapViewport | null>(null)
   const [weatherRefreshToken, setWeatherRefreshToken] = useState(0)
   const [weatherState, setWeatherState] = useState<WeatherState>({
     status: 'idle',
@@ -714,8 +717,8 @@ export function FlightplanApp({
                 derived={derived}
                 onRouteLegsChange={replaceRouteLegs}
                 focusedLegIndex={focusedLegIndex}
-                initialViewport={mapViewport}
-                onViewportChange={setMapViewport}
+                initialViewport={initialMapViewport}
+                onViewportChange={onMapViewportChange}
               />
             </section>
           </div>

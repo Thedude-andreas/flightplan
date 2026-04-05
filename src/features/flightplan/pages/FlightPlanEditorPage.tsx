@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { FlightplanApp } from '../../../FlightplanApp'
+import type { FlightplanMapViewport } from '../FlightplanMapEditor'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { useNetworkStatus } from '../../../lib/network/useNetworkStatus'
 import { clearDraft, loadDraft, saveDraft } from '../../../lib/storage/draftStorage'
@@ -97,6 +98,7 @@ export function FlightPlanEditorPage() {
   const [isClearRouteDialogOpen, setIsClearRouteDialogOpen] = useState(false)
   const [editorRevision, setEditorRevision] = useState(0)
   const [editorActiveTab, setEditorActiveTab] = useState<EditorWorkspaceTab>('flightplan')
+  const [editorMapViewport, setEditorMapViewport] = useState<FlightplanMapViewport | null>(null)
 
   const draftKey = useMemo(() => {
     if (!user) {
@@ -362,6 +364,7 @@ export function FlightPlanEditorPage() {
         key={`${recordId ?? 'new'}:${baseUpdatedAt ?? 'draft'}:${editorRevision}`}
         initialPlan={initialPlan}
         initialActiveTab={editorActiveTab}
+        initialMapViewport={editorMapViewport}
         documentTitleSlot={
           <input
             className="fp-document-title-input"
@@ -413,6 +416,7 @@ export function FlightPlanEditorPage() {
           setSaveState((current) => (current === 'saving' ? current : current === 'error' || current === 'conflict' ? current : 'idle'))
         }}
         onActiveTabChange={setEditorActiveTab}
+        onMapViewportChange={setEditorMapViewport}
       />
 
       {isCopyDialogOpen && (
