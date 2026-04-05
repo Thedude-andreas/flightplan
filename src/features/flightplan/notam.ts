@@ -7,10 +7,21 @@ export type AirportNotam = {
   hasNotams: boolean
 }
 
+export type NotamSupplement = {
+  id: string
+  title: string
+  source: 'eaip-cover' | 'trigger-notam'
+  url: string | null
+}
+
 export type NotamResponse = {
   sourceUrl: string | null
   fetchedAt: string | null
   bulletinPublishedAt: string | null
+  enRouteText: string | null
+  warningsText: string | null
+  supplementSourceUrl: string | null
+  supplements: NotamSupplement[]
   notams: AirportNotam[]
 }
 

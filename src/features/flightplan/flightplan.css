@@ -558,11 +558,19 @@
   gap: 0.85rem;
 }
 
+.flightplan-page .fp-weather-list--embedded {
+  margin-top: 0.85rem;
+}
+
 .flightplan-page .fp-weather-card {
   border: 1px solid #d3cbb8;
   border-radius: 1rem;
   background: #fffef9;
   padding: 0.95rem;
+}
+
+.flightplan-page .fp-weather-card--nested {
+  background: #fff;
 }
 
 .flightplan-page .fp-weather-card__header {
@@ -654,6 +662,33 @@
   color: #151515;
   text-decoration: none;
   font-weight: 700;
+}
+
+.flightplan-page .fp-notam-supplements {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.flightplan-page .fp-notam-supplement-card {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  border: 1px solid #e4dccb;
+  border-radius: 0.85rem;
+  background: #fff;
+  padding: 0.85rem;
+}
+
+.flightplan-page .fp-notam-supplement-card h3,
+.flightplan-page .fp-notam-supplement-card p,
+.flightplan-page .fp-notam-supplement-card small {
+  margin: 0;
+  color: #151515;
+}
+
+.flightplan-page .fp-notam-supplement-card p,
+.flightplan-page .fp-notam-supplement-card small {
+  color: #6a6356;
 }
 
 .flightplan-page .fp-settings-card { color: #151515; }

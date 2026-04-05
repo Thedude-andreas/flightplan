@@ -10,7 +10,8 @@ import {
   buildSuggestedRadioNav,
   mergeRadioNavEntries,
 } from './features/flightplan/radioNav'
-import { fetchNotamsForAirports, type AirportNotam } from './features/flightplan/notam'
+import { fetchNotamsForAirports, type AirportNotam, type NotamSupplement } from './features/flightplan/notam'
+import { getRelevantSupplements, getRouteNotamMatches } from './features/flightplan/notamRoute'
 import { fetchWeatherForAirports, getAirportsNearRoute, type AirportWeather } from './features/flightplan/weather'
 import type { AircraftProfile, FlightPlanInput, RadioNavEntry } from './features/flightplan/types'
 
@@ -24,10 +25,54 @@ type WeatherState =
   | { status: 'ready'; results: AirportWeather[]; error: string | null; lastUpdatedAt: string }
   | { status: 'error'; results: AirportWeather[]; error: string; lastUpdatedAt: null }
 type NotamState =
-  | { status: 'idle'; results: AirportNotam[]; error: string | null; lastUpdatedAt: null; sourceUrl: null; bulletinPublishedAt: null }
-  | { status: 'loading'; results: AirportNotam[]; error: string | null; lastUpdatedAt: null; sourceUrl: null; bulletinPublishedAt: null }
-  | { status: 'ready'; results: AirportNotam[]; error: string | null; lastUpdatedAt: string | null; sourceUrl: string | null; bulletinPublishedAt: string | null }
-  | { status: 'error'; results: AirportNotam[]; error: string; lastUpdatedAt: null; sourceUrl: null; bulletinPublishedAt: null }
+  | {
+      status: 'idle'
+      results: AirportNotam[]
+      enRouteText: string | null
+      warningsText: string | null
+      supplements: NotamSupplement[]
+      error: string | null
+      lastUpdatedAt: null
+      sourceUrl: null
+      supplementSourceUrl: null
+      bulletinPublishedAt: null
+    }
+  | {
+      status: 'loading'
+      results: AirportNotam[]
+      enRouteText: string | null
+      warningsText: string | null
+      supplements: NotamSupplement[]
+      error: string | null
+      lastUpdatedAt: null
+      sourceUrl: null
+      supplementSourceUrl: null
+      bulletinPublishedAt: null
+    }
+  | {
+      status: 'ready'
+      results: AirportNotam[]
+      enRouteText: string | null
+      warningsText: string | null
+      supplements: NotamSupplement[]
+      error: string | null
+      lastUpdatedAt: string | null
+      sourceUrl: string | null
+      supplementSourceUrl: string | null
+      bulletinPublishedAt: string | null
+    }
+  | {
+      status: 'error'
+      results: AirportNotam[]
+      enRouteText: string | null
+      warningsText: string | null
+      supplements: NotamSupplement[]
+      error: string
+      lastUpdatedAt: null
+      sourceUrl: null
+      supplementSourceUrl: null
+      bulletinPublishedAt: null
+    }
 
 const printLogoSrc = `${import.meta.env.BASE_URL}lbfk-logo.png`
 const contextMenuSize = { width: 220, height: 112, margin: 12 }
@@ -263,9 +308,13 @@ export function FlightplanApp({
   const [notamState, setNotamState] = useState<NotamState>({
     status: 'idle',
     results: [],
+    enRouteText: null,
+    warningsText: null,
+    supplements: [],
     error: null,
     lastUpdatedAt: null,
     sourceUrl: null,
+    supplementSourceUrl: null,
     bulletinPublishedAt: null,
   })
 
@@ -278,6 +327,18 @@ export function FlightplanApp({
     [plan.radioNav, suggestedRadioNav],
   )
   const nearbyRouteAirports = useMemo(() => getAirportsNearRoute(plan.routeLegs), [plan.routeLegs])
+  const routeEnRouteMatches = useMemo(
+    () => getRouteNotamMatches(plan.routeLegs, notamState.enRouteText),
+    [plan.routeLegs, notamState.enRouteText],
+  )
+  const routeWarningMatches = useMemo(
+    () => getRouteNotamMatches(plan.routeLegs, notamState.warningsText),
+    [plan.routeLegs, notamState.warningsText],
+  )
+  const relevantSupplements = useMemo(
+    () => getRelevantSupplements(notamState.supplements, [...routeEnRouteMatches, ...routeWarningMatches], nearbyRouteAirports),
+    [nearbyRouteAirports, notamState.supplements, routeEnRouteMatches, routeWarningMatches],
+  )
 
   useEffect(() => {
     onPlanChange?.(plan)
@@ -337,25 +398,17 @@ export function FlightplanApp({
       return
     }
 
-    if (nearbyRouteAirports.length === 0) {
-      setNotamState({
-        status: 'ready',
-        results: [],
-        error: null,
-        lastUpdatedAt: null,
-        sourceUrl: null,
-        bulletinPublishedAt: null,
-      })
-      return
-    }
-
     let cancelled = false
     setNotamState({
       status: 'loading',
       results: [],
+      enRouteText: null,
+      warningsText: null,
+      supplements: [],
       error: null,
       lastUpdatedAt: null,
       sourceUrl: null,
+      supplementSourceUrl: null,
       bulletinPublishedAt: null,
     })
 
@@ -368,9 +421,13 @@ export function FlightplanApp({
         setNotamState({
           status: 'ready',
           results: response.notams,
+          enRouteText: response.enRouteText ?? null,
+          warningsText: response.warningsText ?? null,
+          supplements: response.supplements ?? [],
           error: null,
           lastUpdatedAt: response.fetchedAt,
           sourceUrl: response.sourceUrl,
+          supplementSourceUrl: response.supplementSourceUrl ?? null,
           bulletinPublishedAt: response.bulletinPublishedAt,
         })
       })
@@ -383,9 +440,13 @@ export function FlightplanApp({
         setNotamState({
           status: 'error',
           results: [],
+          enRouteText: null,
+          warningsText: null,
+          supplements: [],
           error: message,
           lastUpdatedAt: null,
           sourceUrl: null,
+          supplementSourceUrl: null,
           bulletinPublishedAt: null,
         })
       })
@@ -541,8 +602,8 @@ export function FlightplanApp({
       : 'Inga träffar'
   const notamStatusLabel =
     nearbyRouteAirports.length > 0
-      ? `${nearbyRouteAirports.length} flygplatser inom 50 NM`
-      : 'Öppna LFV NOTAM'
+      ? `Ruttbriefing + ${nearbyRouteAirports.length} flygplatser`
+      : 'Öppna route-NOTAM'
 
   return (
     <div className="flightplan-page">
@@ -1097,7 +1158,7 @@ export function FlightplanApp({
                 <div className="fp-panel-header">
                   <div>
                     <p className="fp-panel-eyebrow">NOTAM</p>
-                    <h2>Flygplatser inom 50 NM från färdlinjen</h2>
+                    <h2>Route-NOTAM och varningar nära färdlinjen</h2>
                   </div>
                   <div className="fp-overlay-actions">
                     <button type="button" onClick={() => setNotamRefreshToken((current) => current + 1)}>
@@ -1109,7 +1170,12 @@ export function FlightplanApp({
                   </div>
                 </div>
                 <div className="fp-weather-summary">
-                  <div><span>Träffar</span><strong>{nearbyRouteAirports.length}</strong></div>
+                  <div><span>Flygplatser</span><strong>{nearbyRouteAirports.length}</strong></div>
+                  <div><span>En-route träffar</span><strong>{routeEnRouteMatches.length}</strong></div>
+                  <div><span>NAV warnings</span><strong>{routeWarningMatches.length}</strong></div>
+                </div>
+                <div className="fp-weather-summary">
+                  <div><span>AIP SUP</span><strong>{relevantSupplements.length}</strong></div>
                   <div><span>Källa</span><strong>LFV AROWeb</strong></div>
                   <div><span>Status</span><strong>{notamState.status === 'loading' ? 'Hämtar' : notamState.status === 'error' ? 'Fel' : 'Klar'}</strong></div>
                 </div>
@@ -1125,45 +1191,166 @@ export function FlightplanApp({
                   <a href={lfvAroHomeUrl} target="_blank" rel="noreferrer">
                     Öppna LFV AROWeb
                   </a>
+                  {notamState.supplementSourceUrl ? (
+                    <a href={notamState.supplementSourceUrl} target="_blank" rel="noreferrer">
+                      Öppna LFV eAIP Cover Page
+                    </a>
+                  ) : null}
                 </div>
                 {notamState.status === 'error' && (
                   <p className="fp-weather-empty-state">
                     Kunde inte hämta NOTAM: {notamState.error}
                   </p>
                 )}
-                {notamState.status !== 'error' && nearbyRouteAirports.length === 0 ? (
-                  <p className="fp-weather-empty-state">
-                    Rutten passerar inga registrerade svenska flygplatser inom 50 NM.
-                  </p>
-                ) : null}
-                {notamState.status !== 'error' && nearbyRouteAirports.length > 0 ? (
+                {notamState.status !== 'error' ? (
                   <div className="fp-weather-list">
-                    {nearbyRouteAirports.map((airport) => {
-                      const entry = notamState.results.find((result) => result.icao === airport.icao)
-                      return (
-                        <article key={airport.icao} className="fp-weather-card">
-                        <div className="fp-weather-card__header">
-                          <div>
-                            <h3>{airport.icao}</h3>
-                            <p>{entry?.airportName ?? airport.name}</p>
-                          </div>
-                          <strong>{formatNumber(airport.distanceNm, 1)} NM</strong>
+                    <article className="fp-weather-card">
+                      <div className="fp-weather-card__header">
+                        <div>
+                          <h3>Aerodrome NOTAM</h3>
+                          <p>Flygplatser inom 50 NM från färdlinjen</p>
                         </div>
-                        <section className="fp-weather-report-grid fp-weather-report-grid--single">
-                          <section>
-                            <span className="fp-weather-report-label">NOTAM</span>
-                            <p className="fp-weather-report-time">
-                              {notamState.status === 'loading'
-                                ? 'Läser LFV-briefing...'
-                                : entry?.hasNotams
-                                  ? 'Aktiva NOTAM i aktuell LFV-briefing'
-                                  : 'Inga NOTAM i aktuell LFV-briefing'}
-                            </p>
-                            <pre>{entry?.rawText ?? (notamState.status === 'loading' ? 'Hämtar NOTAM...' : 'Ingen NOTAM tillgänglig')}</pre>
-                          </section>
-                        </section>
-                      </article>
-                    )})}
+                        <strong>{nearbyRouteAirports.length}</strong>
+                      </div>
+                      {nearbyRouteAirports.length === 0 ? (
+                        <p className="fp-weather-empty-state">Rutten passerar inga registrerade svenska flygplatser inom 50 NM.</p>
+                      ) : (
+                        <div className="fp-weather-list fp-weather-list--embedded">
+                          {nearbyRouteAirports.map((airport) => {
+                            const entry = notamState.results.find((result) => result.icao === airport.icao)
+                            return (
+                              <article key={airport.icao} className="fp-weather-card fp-weather-card--nested">
+                                <div className="fp-weather-card__header">
+                                  <div>
+                                    <h3>{airport.icao}</h3>
+                                    <p>{entry?.airportName ?? airport.name}</p>
+                                  </div>
+                                  <strong>{formatNumber(airport.distanceNm, 1)} NM</strong>
+                                </div>
+                                <section className="fp-weather-report-grid fp-weather-report-grid--single">
+                                  <section>
+                                    <span className="fp-weather-report-label">NOTAM</span>
+                                    <p className="fp-weather-report-time">
+                                      {notamState.status === 'loading'
+                                        ? 'Läser LFV-briefing...'
+                                        : entry?.hasNotams
+                                          ? 'Aktiva NOTAM i aktuell LFV-briefing'
+                                          : 'Inga NOTAM i aktuell LFV-briefing'}
+                                    </p>
+                                    <pre>{entry?.rawText ?? (notamState.status === 'loading' ? 'Hämtar NOTAM...' : 'Ingen NOTAM tillgänglig')}</pre>
+                                  </section>
+                                </section>
+                              </article>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </article>
+
+                    <article className="fp-weather-card">
+                      <div className="fp-weather-card__header">
+                        <div>
+                          <h3>En-route NOTAM</h3>
+                          <p>PSN-koordinater, områden och navaids nära rutten</p>
+                        </div>
+                        <strong>{routeEnRouteMatches.length}</strong>
+                      </div>
+                      {routeEnRouteMatches.length === 0 ? (
+                        <p className="fp-weather-empty-state">
+                          {notamState.status === 'loading'
+                            ? 'Analyserar en-route NOTAM...'
+                            : 'Inga route-relevanta en-route NOTAM hittades via koordinater eller navaid-matchning.'}
+                        </p>
+                      ) : (
+                        <div className="fp-weather-list fp-weather-list--embedded">
+                          {routeEnRouteMatches.map((entry) => (
+                            <article key={entry.id} className="fp-weather-card fp-weather-card--nested">
+                              <div className="fp-weather-card__header">
+                                <div>
+                                  <h3>{entry.title}</h3>
+                                  <p>{entry.matchSummary}</p>
+                                </div>
+                                <strong>{formatNumber(entry.distanceNm, 1)} NM</strong>
+                              </div>
+                              <section className="fp-weather-report-grid fp-weather-report-grid--single">
+                                <section>
+                                  <span className="fp-weather-report-label">EN-ROUTE</span>
+                                  <pre>{entry.rawText}</pre>
+                                </section>
+                              </section>
+                            </article>
+                          ))}
+                        </div>
+                      )}
+                    </article>
+
+                    <article className="fp-weather-card">
+                      <div className="fp-weather-card__header">
+                        <div>
+                          <h3>NAV Warnings</h3>
+                          <p>Temporära restriktionsområden och varningar nära rutten</p>
+                        </div>
+                        <strong>{routeWarningMatches.length}</strong>
+                      </div>
+                      {routeWarningMatches.length === 0 ? (
+                        <p className="fp-weather-empty-state">
+                          {notamState.status === 'loading'
+                            ? 'Analyserar NAV warnings...'
+                            : 'Inga route-relevanta NAV warnings hittades via koordinater eller navaid-matchning.'}
+                        </p>
+                      ) : (
+                        <div className="fp-weather-list fp-weather-list--embedded">
+                          {routeWarningMatches.map((entry) => (
+                            <article key={entry.id} className="fp-weather-card fp-weather-card--nested">
+                              <div className="fp-weather-card__header">
+                                <div>
+                                  <h3>{entry.title}</h3>
+                                  <p>{entry.matchSummary}</p>
+                                </div>
+                                <strong>{formatNumber(entry.distanceNm, 1)} NM</strong>
+                              </div>
+                              <section className="fp-weather-report-grid fp-weather-report-grid--single">
+                                <section>
+                                  <span className="fp-weather-report-label">NAV WARNING</span>
+                                  <pre>{entry.rawText}</pre>
+                                </section>
+                              </section>
+                            </article>
+                          ))}
+                        </div>
+                      )}
+                    </article>
+
+                    <article className="fp-weather-card">
+                      <div className="fp-weather-card__header">
+                        <div>
+                          <h3>AIP SUP</h3>
+                          <p>Aktiva supplement som matchar route-NOTAM, navaids eller flygplatser nära färdlinjen</p>
+                        </div>
+                        <strong>{relevantSupplements.length}</strong>
+                      </div>
+                      {relevantSupplements.length === 0 ? (
+                        <p className="fp-weather-empty-state">
+                          {notamState.status === 'loading'
+                            ? 'Läser LFV eAIP cover page...'
+                            : 'Ingen route-relevant AIP SUP matchades i aktuell LFV-cover page.'}
+                        </p>
+                      ) : (
+                        <div className="fp-notam-supplements">
+                          {relevantSupplements.map((supplement) => (
+                            <article key={`${supplement.source}-${supplement.id}`} className="fp-notam-supplement-card">
+                              <div>
+                                <span className="fp-weather-report-label">AIP SUP {supplement.id}</span>
+                                <h3>{supplement.title}</h3>
+                                <p>{supplement.relevance}</p>
+                              </div>
+                              <small>{supplement.source === 'eaip-cover' ? 'LFV eAIP cover page' : 'Refererad i NOTAM'}</small>
+                            </article>
+                          ))}
+                        </div>
+                      )}
+                    </article>
+
                     {notamState.status === 'loading' && (
                       <p className="fp-weather-empty-state">Hämtar och läser LFV NOTAM-briefing...</p>
                     )}
