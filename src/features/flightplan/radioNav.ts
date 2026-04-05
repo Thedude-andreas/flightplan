@@ -15,9 +15,10 @@ import {
 const maxSuggestedEntries = 12
 const maxAirportEntriesPerEndpoint = 2
 const maxRouteAirspaceEntries = 5
-const maxNavaidEntries = 3
+const maxNearbyUncontrolledAirportEntries = 4
 const earthRadiusNm = 3440.065
 const endpointAirportFallbackRadiusNm = 12
+const nearbyUncontrolledAirportRadiusNm = 2
 
 function degToRad(value: number) {
   return (value * Math.PI) / 180
@@ -34,6 +35,73 @@ function distanceNm(fromLat: number, fromLon: number, toLat: number, toLon: numb
     Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2
 
   return earthRadiusNm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+}
+
+function projectPointNm(lat: number, lon: number, referenceLat: number) {
+  const x = degToRad(lon) * earthRadiusNm * Math.cos(degToRad(referenceLat))
+  const y = degToRad(lat) * earthRadiusNm
+  return { x, y }
+}
+
+function projectPointOnSegment(point: RoutePointInput, from: RoutePointInput, to: RoutePointInput) {
+  const referenceLat = (point.lat + from.lat + to.lat) / 3
+  const projectedPoint = projectPointNm(point.lat, point.lon, referenceLat)
+  const projectedFrom = projectPointNm(from.lat, from.lon, referenceLat)
+  const projectedTo = projectPointNm(to.lat, to.lon, referenceLat)
+  const dx = projectedTo.x - projectedFrom.x
+  const dy = projectedTo.y - projectedFrom.y
+  const segmentLengthSquared = dx * dx + dy * dy
+
+  if (segmentLengthSquared <= Number.EPSILON) {
+    return {
+      lateralDistanceNm: Math.hypot(projectedPoint.x - projectedFrom.x, projectedPoint.y - projectedFrom.y),
+      alongFraction: 0,
+    }
+  }
+
+  const projection =
+    ((projectedPoint.x - projectedFrom.x) * dx + (projectedPoint.y - projectedFrom.y) * dy) /
+    segmentLengthSquared
+  const clampedProjection = Math.max(0, Math.min(1, projection))
+  const closestX = projectedFrom.x + clampedProjection * dx
+  const closestY = projectedFrom.y + clampedProjection * dy
+
+  return {
+    lateralDistanceNm: Math.hypot(projectedPoint.x - closestX, projectedPoint.y - closestY),
+    alongFraction: clampedProjection,
+  }
+}
+
+function distancePointToSegmentNm(point: RoutePointInput, from: RoutePointInput, to: RoutePointInput) {
+  return projectPointOnSegment(point, from, to).lateralDistanceNm
+}
+
+function routeProgressNmForPoint(plan: FlightPlanInput, point: RoutePointInput) {
+  if (plan.routeLegs.length === 0) {
+    return Number.POSITIVE_INFINITY
+  }
+
+  let bestProgressNm = Number.POSITIVE_INFINITY
+  let bestLateralDistanceNm = Number.POSITIVE_INFINITY
+  let distanceBeforeLegNm = 0
+
+  for (const leg of plan.routeLegs) {
+    const legLengthNm = distanceNm(leg.from.lat, leg.from.lon, leg.to.lat, leg.to.lon)
+    const projection = projectPointOnSegment(point, leg.from, leg.to)
+    const progressNm = distanceBeforeLegNm + projection.alongFraction * legLengthNm
+
+    if (
+      projection.lateralDistanceNm < bestLateralDistanceNm ||
+      (Math.abs(projection.lateralDistanceNm - bestLateralDistanceNm) <= 0.01 && progressNm < bestProgressNm)
+    ) {
+      bestLateralDistanceNm = projection.lateralDistanceNm
+      bestProgressNm = progressNm
+    }
+
+    distanceBeforeLegNm += legLengthNm
+  }
+
+  return bestProgressNm
 }
 
 function pointInRing(lat: number, lon: number, ring: number[][]) {
@@ -171,6 +239,7 @@ function formatNavaidEntry(navaid: SwedishNavaid): RadioNavEntry {
 
 function normalizeEntryName(value: string) {
   return value
+    .replace(/[\\/]+/g, '/')
     .replace(/\bINFORMATION\b/gi, 'INFO')
     .replace(/\bAPPROACH\b/gi, 'APP')
     .replace(/\bCONTROL\b/gi, 'CTL')
@@ -288,6 +357,16 @@ function isTowerService(record: SwedishAirportFrequency) {
   )
 }
 
+function isUncontrolledAirportService(record: SwedishAirportFrequency) {
+  const text = `${record.kind} ${record.unit}`.toUpperCase()
+  return (
+    text.includes('AFIS') ||
+    text.includes('INFORMATION') ||
+    /\bINFO\b/.test(text) ||
+    text.includes('RADIO')
+  )
+}
+
 function findAirspaceRadioRecords(airspace: (typeof swedishAirspaces)[number]) {
   const icao = airspace.positionIndicator
   if (!icao) {
@@ -378,6 +457,58 @@ export function inferFlightplanEndpointIcaos(plan: FlightPlanInput) {
   }
 }
 
+function buildNearbyUncontrolledAirportEntries(plan: FlightPlanInput) {
+  if (plan.routeLegs.length === 0) {
+    return []
+  }
+
+  const encountered = new Set<string>()
+  const entries: { entry: RadioNavEntry; progressNm: number }[] = []
+
+  for (const airport of swedishAirports) {
+    const icao = airport.icao?.trim().toUpperCase()
+    if (!icao) {
+      continue
+    }
+
+    const matchingRecords = findAirportRadioRecords(icao).filter((record) => isUncontrolledAirportService(record))
+    if (matchingRecords.length === 0) {
+      continue
+    }
+
+    const airportPoint = {
+      name: airport.name ?? icao,
+      lat: airport.lat,
+      lon: airport.lon,
+    }
+
+    const isNearRoute = plan.routeLegs.some(
+      (leg) => distancePointToSegmentNm(airportPoint, leg.from, leg.to) <= nearbyUncontrolledAirportRadiusNm,
+    )
+
+    if (!isNearRoute || encountered.has(icao)) {
+      continue
+    }
+
+    encountered.add(icao)
+    const pickedRecords = matchingRecords
+      .sort((a, b) => preferAirportService(b) - preferAirportService(a))
+      .slice(0, 1)
+
+    entries.push(
+      ...pickedRecords.flatMap((record) =>
+        formatAirportEntry(record).map((entry) => ({
+          entry,
+          progressNm: routeProgressNmForPoint(plan, airportPoint),
+        })),
+      ),
+    )
+  }
+
+  return dedupeEntries(entries.sort((a, b) => a.progressNm - b.progressNm).map((item) => item.entry))
+    .slice(0, maxNearbyUncontrolledAirportEntries)
+}
+
 function buildSwedenControlEntries(plan: FlightPlanInput) {
   const routePoints = plan.routeLegs.flatMap((leg) => sampleLegPoints(leg.from, leg.to))
   if (routePoints.length === 0) {
@@ -410,50 +541,45 @@ function navaidRangeNm(navaid: SwedishNavaid) {
     case 'VOR':
     case 'DMEV':
       return 80
-    case 'DME':
-      return 60
     case 'NDB':
-      return 40
+      return 30
     default:
-      return 50
+      return 0
   }
 }
 
 function findSuggestedNavaids(plan: FlightPlanInput) {
-  const entries: RadioNavEntry[] = []
+  const entries: { entry: RadioNavEntry; progressNm: number; lateralDistanceNm: number }[] = []
   const seenIds = new Set<string>()
 
-  for (const leg of plan.routeLegs) {
-    if (leg.navRef) {
-      const exact = swedishNavaids.find((navaid) => navaid.ident?.toUpperCase() === leg.navRef.trim().toUpperCase())
-      if (exact) {
-        if (!seenIds.has(exact.id)) {
-          seenIds.add(exact.id)
-          entries.push(formatNavaidEntry(exact))
-        }
-        continue
-      }
+  for (const navaid of swedishNavaids) {
+    const maxDistanceNm = navaidRangeNm(navaid)
+    if (maxDistanceNm <= 0 || seenIds.has(navaid.id)) {
+      continue
     }
 
-    const nearest = swedishNavaids
-      .map((navaid) => {
-        const points = sampleLegPoints(leg.from, leg.to)
-        const bestDistance = Math.min(...points.map((point) => distanceNm(point.lat, point.lon, navaid.lat, navaid.lon)))
-        return {
-          navaid,
-          distance: bestDistance,
-        }
-      })
-      .filter((candidate) => candidate.distance <= navaidRangeNm(candidate.navaid))
-      .sort((a, b) => a.distance - b.distance)[0]
+    const navaidPoint = {
+      name: navaid.name ?? navaid.ident ?? navaid.id,
+      lat: navaid.lat,
+      lon: navaid.lon,
+    }
 
-    if (nearest && !seenIds.has(nearest.navaid.id)) {
-      seenIds.add(nearest.navaid.id)
-      entries.push(formatNavaidEntry(nearest.navaid))
+    const lateralDistanceNm = Math.min(
+      ...plan.routeLegs.map((leg) => distancePointToSegmentNm(navaidPoint, leg.from, leg.to)),
+    )
+
+    if (lateralDistanceNm <= maxDistanceNm) {
+      seenIds.add(navaid.id)
+      entries.push({
+        entry: formatNavaidEntry(navaid),
+        progressNm: routeProgressNmForPoint(plan, navaidPoint),
+        lateralDistanceNm,
+      })
     }
   }
 
-  return entries.slice(0, maxNavaidEntries)
+  return entries
+    .sort((a, b) => a.lateralDistanceNm - b.lateralDistanceNm || a.progressNm - b.progressNm)
 }
 
 const knownAutoEntryKeys = new Set<string>([
@@ -478,7 +604,9 @@ function isAutoManagedEntry(entry: RadioNavEntry) {
 
 export function buildSuggestedRadioNav(plan: FlightPlanInput) {
   const routeEntries: RadioNavEntry[] = []
-  const airportEntries: RadioNavEntry[] = []
+  const departureAirportEntries: RadioNavEntry[] = []
+  const destinationAirportEntries: RadioNavEntry[] = []
+  const nearbyAirportEntries: RadioNavEntry[] = []
   const controlEntries: RadioNavEntry[] = []
   const navEntries: RadioNavEntry[] = []
 
@@ -486,11 +614,11 @@ export function buildSuggestedRadioNav(plan: FlightPlanInput) {
   const destinationIcao = resolveEndpointIcao(plan.header.destinationAerodrome, plan.routeLegs[plan.routeLegs.length - 1]?.to)
 
   if (departureIcao) {
-    airportEntries.push(...buildEndpointEntries(departureIcao))
+    departureAirportEntries.push(...buildEndpointEntries(departureIcao))
   }
 
   if (destinationIcao && destinationIcao !== departureIcao) {
-    airportEntries.push(...buildEndpointEntries(destinationIcao))
+    destinationAirportEntries.push(...buildEndpointEntries(destinationIcao))
   }
 
   const crossedAirspaces = plan.routeLegs
@@ -501,10 +629,31 @@ export function buildSuggestedRadioNav(plan: FlightPlanInput) {
     .flatMap(findAirspaceRadioRecords)
 
   routeEntries.push(...dedupeEntries(crossedAirspaces).slice(0, maxRouteAirspaceEntries))
+  nearbyAirportEntries.push(...buildNearbyUncontrolledAirportEntries(plan))
   controlEntries.push(...buildSwedenControlEntries(plan))
-  navEntries.push(...findSuggestedNavaids(plan))
+  const fixedEntries = dedupeEntries([
+    ...departureAirportEntries,
+    ...controlEntries,
+    ...nearbyAirportEntries,
+    ...routeEntries,
+    ...destinationAirportEntries,
+  ])
+  const availableNavSlots = Math.max(0, maxSuggestedEntries - fixedEntries.length)
+  navEntries.push(
+    ...findSuggestedNavaids(plan)
+      .slice(0, availableNavSlots)
+      .sort((a, b) => a.progressNm - b.progressNm)
+      .map((item) => item.entry),
+  )
 
-  return dedupeEntries([...airportEntries, ...controlEntries, ...routeEntries, ...navEntries]).slice(0, maxSuggestedEntries)
+  return dedupeEntries([
+    ...departureAirportEntries,
+    ...controlEntries,
+    ...nearbyAirportEntries,
+    ...routeEntries,
+    ...navEntries,
+    ...destinationAirportEntries,
+  ]).slice(0, maxSuggestedEntries)
 }
 
 export function mergeRadioNavEntries(

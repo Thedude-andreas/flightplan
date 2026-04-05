@@ -352,6 +352,7 @@ export function FlightplanMapEditor({
   const [mapInstance, setMapInstance] = useState<L.Map | null>(null)
   const [dragPreviewWaypoints, setDragPreviewWaypoints] = useState<ReturnType<typeof legsToWaypoints> | null>(null)
   const [activeSegmentInsertIndex, setActiveSegmentInsertIndex] = useState<number | null>(null)
+  const [waypointMarkerLayerVersion, setWaypointMarkerLayerVersion] = useState(0)
   const suppressNextMapClick = useRef(false)
   const hasPendingStartPoint = useMemo(() => isPlaceholderLeg(plan.routeLegs), [plan.routeLegs])
   const waypoints = useMemo(() => {
@@ -560,6 +561,7 @@ export function FlightplanMapEditor({
     if (waypoints.length <= 2) {
       return
     }
+    setWaypointMarkerLayerVersion((current) => current + 1)
     setWaypoints(waypoints.filter((_, pointIndex) => pointIndex !== index))
   }
 
@@ -766,7 +768,7 @@ export function FlightplanMapEditor({
 
           {displayWaypoints.map((point, index) => (
             <Marker
-              key={`waypoint-${index}`}
+              key={`waypoint-${waypointMarkerLayerVersion}-${index}`}
               position={[point.lat, point.lon]}
               icon={waypointIcon}
               draggable={displayWaypoints.length > 1}
