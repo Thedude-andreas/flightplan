@@ -8,7 +8,6 @@ import { getRoutePointLabel, legsToWaypoints, useGazetteerVersion, waypointsToLe
 import { FlightplanMapEditor } from './features/flightplan/FlightplanMapEditor'
 import {
   buildSuggestedRadioNav,
-  inferFlightplanEndpointIcaos,
   mergeRadioNavEntries,
 } from './features/flightplan/radioNav'
 import type { AircraftProfile, FlightPlanInput, RadioNavEntry } from './features/flightplan/types'
@@ -182,12 +181,9 @@ export function FlightplanApp({
 }: FlightplanAppProps = {}) {
   useGazetteerVersion()
   const normalizePlanRadioNav = (nextPlan: FlightPlanInput): FlightPlanInput => {
-    const inferredEndpoints = inferFlightplanEndpointIcaos(nextPlan)
     const departureLabel =
-      inferredEndpoints.departureIcao ||
       (nextPlan.routeLegs[0] ? getRoutePointLabel(nextPlan.routeLegs[0].from) : nextPlan.header.departureAerodrome)
     const destinationLabel =
-      inferredEndpoints.destinationIcao ||
       (nextPlan.routeLegs.length > 0
         ? getRoutePointLabel(nextPlan.routeLegs[nextPlan.routeLegs.length - 1].to)
         : nextPlan.header.destinationAerodrome)
