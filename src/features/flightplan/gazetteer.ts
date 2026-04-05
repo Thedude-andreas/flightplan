@@ -251,7 +251,7 @@ export function waypointsToLegs(
       windSpeedKt: previous?.windSpeedKt ?? 15,
       tasKt: previous?.tasKt ?? defaultTasKt,
       variation: previous?.variation ?? 6,
-      altitude: previous?.altitude ?? '',
+      altitude: previous?.altitude ?? "3000'",
       navRef: previous?.navRef ?? '',
       notes: previous?.notes ?? '',
     }

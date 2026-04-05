@@ -1,3 +1,4 @@
+import { getSupabaseClient } from '../../lib/supabase/client'
 import { swedishAirports, type SwedishAirport } from './generated/airports.se'
 import type { FlightPlanInput } from './types'
 
@@ -15,6 +16,40 @@ export type AirportWeather = {
   metarObservedAt: string | null
   tafRawText: string | null
   tafIssuedAt: string | null
+}
+
+export type LfvWindLevel = {
+  label: string
+  altitudeFt: number
+  rawText: string
+}
+
+export type LfvLhpArea = {
+  id: 'se1' | 'se2' | 'se3' | 'se4'
+  title: string
+  sourceUrl: string
+  overviewText: string | null
+  areaText: string | null
+  issuedAt: string | null
+  validFrom: string | null
+  validTo: string | null
+  windLevels: LfvWindLevel[]
+}
+
+export type LfvWeatherBriefing = {
+  fetchedAt: string | null
+  sigmetSourceUrl: string | null
+  sigmetPublishedAt: string | null
+  sigmetText: string | null
+  lhpAreas: LfvLhpArea[]
+}
+
+type WeatherBriefingResponse = {
+  fetchedAt: string | null
+  sigmetSourceUrl: string | null
+  sigmetPublishedAt: string | null
+  sigmetText: string | null
+  lhpAreas: LfvLhpArea[]
 }
 
 function degToRad(value: number) {
@@ -148,4 +183,22 @@ export async function fetchWeatherForAirports(
       }
     }),
   )
+}
+
+export async function fetchLfvWeatherBriefing() {
+  const supabase = getSupabaseClient()
+
+  if (!supabase) {
+    throw new Error('Supabase är inte konfigurerat. LFV-väderbriefing kräver backend-stöd.')
+  }
+
+  const { data, error } = await supabase.functions.invoke('weather-briefing', {
+    body: {},
+  })
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  return data as WeatherBriefingResponse
 }

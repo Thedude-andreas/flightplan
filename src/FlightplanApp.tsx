@@ -18,7 +18,9 @@ import {
   getSupplementSourceLabel,
   getSupplementValidityLabel,
 } from './features/flightplan/notamRoute'
-import { fetchWeatherForAirports, getAirportsNearRoute, type AirportWeather } from './features/flightplan/weather'
+import { fetchLfvWeatherBriefing, fetchWeatherForAirports, getAirportsNearRoute, type AirportWeather, type LfvLhpArea } from './features/flightplan/weather'
+import { formatWeatherBriefingText, getRelevantLhpAreas } from './features/flightplan/weatherRoute'
+import { getRouteWeatherMatches } from './features/flightplan/weatherSigmet'
 import type { AircraftProfile, FlightPlanInput, RadioNavEntry } from './features/flightplan/types'
 
 type EditorPanel = 'fuel' | 'weightBalance' | 'performance' | 'aircraft' | 'weather' | 'notam'
@@ -26,10 +28,46 @@ type WorkspaceTab = 'flightplan' | 'map' | 'print' | 'settings'
 type RouteRow = Record<string, string | number>
 type RowContextMenuState = { x: number; y: number; rowIndex: number } | null
 type WeatherState =
-  | { status: 'idle'; results: AirportWeather[]; error: string | null; lastUpdatedAt: null }
-  | { status: 'loading'; results: AirportWeather[]; error: string | null; lastUpdatedAt: null }
-  | { status: 'ready'; results: AirportWeather[]; error: string | null; lastUpdatedAt: string }
-  | { status: 'error'; results: AirportWeather[]; error: string; lastUpdatedAt: null }
+  | {
+      status: 'idle'
+      results: AirportWeather[]
+      sigmetText: string | null
+      sigmetSourceUrl: string | null
+      sigmetPublishedAt: string | null
+      lhpAreas: LfvLhpArea[]
+      error: string | null
+      lastUpdatedAt: null
+    }
+  | {
+      status: 'loading'
+      results: AirportWeather[]
+      sigmetText: string | null
+      sigmetSourceUrl: string | null
+      sigmetPublishedAt: string | null
+      lhpAreas: LfvLhpArea[]
+      error: string | null
+      lastUpdatedAt: null
+    }
+  | {
+      status: 'ready'
+      results: AirportWeather[]
+      sigmetText: string | null
+      sigmetSourceUrl: string | null
+      sigmetPublishedAt: string | null
+      lhpAreas: LfvLhpArea[]
+      error: string | null
+      lastUpdatedAt: string
+    }
+  | {
+      status: 'error'
+      results: AirportWeather[]
+      sigmetText: string | null
+      sigmetSourceUrl: string | null
+      sigmetPublishedAt: string | null
+      lhpAreas: LfvLhpArea[]
+      error: string
+      lastUpdatedAt: null
+    }
 type NotamState =
   | {
       status: 'idle'
@@ -84,6 +122,7 @@ const printLogoSrc = `${import.meta.env.BASE_URL}lbfk-logo.png`
 const contextMenuSize = { width: 220, height: 112, margin: 12 }
 const lfvNotamSwedenUrl = 'https://www.aro.lfv.se/Links/Link/ShowFileList?path=%5Cpibsweden%5C&torlinkName=NOTAM+Sweden&type=AIS'
 const lfvAroHomeUrl = 'https://www.aro.lfv.se/'
+const lfvSigmetUrl = 'https://www.aro.lfv.se/Links/Link/ShowFileList?type=MET&path=%5CAREA%5CSIGMET%5C&torlinkName=SIGMET%2FARS%2FAIRMET'
 
 function getEndpointLabel(
   point: FlightPlanInput['routeLegs'][number]['from'] | undefined,
@@ -315,6 +354,10 @@ export function FlightplanApp({
   const [weatherState, setWeatherState] = useState<WeatherState>({
     status: 'idle',
     results: [],
+    sigmetText: null,
+    sigmetSourceUrl: null,
+    sigmetPublishedAt: null,
+    lhpAreas: [],
     error: null,
     lastUpdatedAt: null,
   })
@@ -341,6 +384,14 @@ export function FlightplanApp({
     [plan.radioNav, suggestedRadioNav],
   )
   const nearbyRouteAirports = useMemo(() => getAirportsNearRoute(plan.routeLegs), [plan.routeLegs])
+  const relevantLhpAreas = useMemo(
+    () => getRelevantLhpAreas(plan.routeLegs, weatherState.lhpAreas),
+    [plan.routeLegs, weatherState.lhpAreas],
+  )
+  const routeWeatherMatches = useMemo(
+    () => getRouteWeatherMatches(plan.routeLegs, weatherState.sigmetText),
+    [plan.routeLegs, weatherState.sigmetText],
+  )
   const routeEnRouteMatches = useMemo(
     () => getRouteNotamMatches(plan.routeLegs, notamState.enRouteText),
     [plan.routeLegs, notamState.enRouteText],
@@ -374,10 +425,14 @@ export function FlightplanApp({
       return
     }
 
-    if (nearbyRouteAirports.length === 0) {
+    if (plan.routeLegs.length === 0) {
       setWeatherState({
         status: 'ready',
         results: [],
+        sigmetText: null,
+        sigmetSourceUrl: null,
+        sigmetPublishedAt: null,
+        lhpAreas: [],
         error: null,
         lastUpdatedAt: new Date().toISOString(),
       })
@@ -388,17 +443,30 @@ export function FlightplanApp({
     setWeatherState(() => ({
       status: 'loading',
       results: [],
+      sigmetText: null,
+      sigmetSourceUrl: null,
+      sigmetPublishedAt: null,
+      lhpAreas: [],
       error: null,
       lastUpdatedAt: null,
     }))
 
-    fetchWeatherForAirports(nearbyRouteAirports, controller.signal)
-      .then((results) => {
+    Promise.all([
+      nearbyRouteAirports.length > 0
+        ? fetchWeatherForAirports(nearbyRouteAirports, controller.signal)
+        : Promise.resolve([]),
+      fetchLfvWeatherBriefing(),
+    ])
+      .then(([results, briefing]) => {
         setWeatherState({
           status: 'ready',
           results,
+          sigmetText: briefing.sigmetText ?? null,
+          sigmetSourceUrl: briefing.sigmetSourceUrl ?? null,
+          sigmetPublishedAt: briefing.sigmetPublishedAt ?? null,
+          lhpAreas: briefing.lhpAreas ?? [],
           error: null,
-          lastUpdatedAt: new Date().toISOString(),
+          lastUpdatedAt: briefing.fetchedAt ?? new Date().toISOString(),
         })
       })
       .catch((error: unknown) => {
@@ -410,13 +478,17 @@ export function FlightplanApp({
         setWeatherState({
           status: 'error',
           results: [],
+          sigmetText: null,
+          sigmetSourceUrl: null,
+          sigmetPublishedAt: null,
+          lhpAreas: [],
           error: message,
           lastUpdatedAt: null,
         })
       })
 
     return () => controller.abort()
-  }, [activePanel, nearbyRouteAirports, weatherRefreshToken])
+  }, [activePanel, nearbyRouteAirports, plan.routeLegs.length, weatherRefreshToken])
 
   useEffect(() => {
     if (activePanel !== 'notam') {
@@ -623,8 +695,8 @@ export function FlightplanApp({
   const selectedAircraftConfig = aircraftOptions[settingsIndex] ?? aircraftOptions[0]
   const weatherStatusLabel =
     nearbyRouteAirports.length > 0
-      ? `${nearbyRouteAirports.length} flygplatser inom 50 NM`
-      : 'Inga träffar'
+      ? `LFV routeväder + ${nearbyRouteAirports.length} flygplatser`
+      : 'LFV routeväder'
   const notamStatusLabel =
     nearbyRouteAirports.length > 0
       ? `Ruttbriefing + ${nearbyRouteAirports.length} flygplatser`
@@ -682,7 +754,6 @@ export function FlightplanApp({
                 titleSlot={documentTitleSlot}
                 onHeaderChange={updateHeader}
                 weatherStatusLabel={weatherStatusLabel}
-                nearbyWeatherCount={nearbyRouteAirports.length}
                 onOpenWeatherPanel={() => {
                   setActivePanel('weather')
                   setWeatherRefreshToken((current) => current + 1)
@@ -734,7 +805,6 @@ export function FlightplanApp({
                 radioNavEntries={effectiveRadioNav}
                 onHeaderChange={updateHeader}
                 weatherStatusLabel={weatherStatusLabel}
-                nearbyWeatherCount={nearbyRouteAirports.length}
                 onOpenWeatherPanel={() => {
                   setActivePanel('weather')
                   setWeatherRefreshToken((current) => current + 1)
@@ -1116,8 +1186,8 @@ export function FlightplanApp({
               <section className="fp-panel-card fp-overlay-card">
                 <div className="fp-panel-header">
                   <div>
-                    <p className="fp-panel-eyebrow">METAR / TAF</p>
-                    <h2>Flygplatser inom 50 NM från färdlinjen</h2>
+                    <p className="fp-panel-eyebrow">METAR / TAF / LFV</p>
+                    <h2>Väderbriefing för färdlinjen</h2>
                   </div>
                   <div className="fp-overlay-actions">
                     <button type="button" onClick={() => setWeatherRefreshToken((current) => current + 1)}>
@@ -1135,16 +1205,102 @@ export function FlightplanApp({
                 </div>
                 {weatherState.status === 'error' && (
                   <p className="fp-weather-empty-state">
-                    Kunde inte hämta METAR/TAF: {weatherState.error}
+                    Kunde inte hämta väderbriefing: {weatherState.error}
                   </p>
                 )}
-                {weatherState.status !== 'error' && nearbyRouteAirports.length === 0 && (
+                {weatherState.status !== 'error' && plan.routeLegs.length === 0 && (
                   <p className="fp-weather-empty-state">
-                    Rutten passerar inga registrerade svenska flygplatser inom 50 NM.
+                    Lägg först in en färdlinje för att hämta routeväder, höjdvindar och flygplatsväder.
                   </p>
                 )}
-                {weatherState.status !== 'error' && nearbyRouteAirports.length > 0 && (
+                {weatherState.status !== 'error' && plan.routeLegs.length > 0 && (
                   <div className="fp-weather-list">
+                    <article className="fp-weather-card">
+                      <div className="fp-weather-card__header">
+                        <div>
+                          <h3>LFV Routeväder</h3>
+                          <p>SIGMET/ARS/AIRMET och LHP längs färdlinjen</p>
+                        </div>
+                      </div>
+                      <div className="fp-weather-report-grid fp-weather-report-grid--single">
+                        <section>
+                          <span className="fp-weather-report-label">SIGMET / ARS / AIRMET</span>
+                          <p className="fp-weather-report-time">
+                            {formatUtcTimestamp(weatherState.sigmetPublishedAt)
+                              ? `Publicerad ${formatUtcTimestamp(weatherState.sigmetPublishedAt)}Z`
+                              : 'Senaste bulletin från LFV'}
+                          </p>
+                          {routeWeatherMatches.length > 0 ? (
+                            <div className="fp-weather-level-list">
+                              {routeWeatherMatches.map((match) => (
+                                <div key={match.id} className="fp-weather-level-item">
+                                  <strong>{match.firCodes[0] ?? 'SIGMET'}</strong>
+                                  <p>{match.matchSummary}</p>
+                                  <pre>{formatWeatherBriefingText(match.rawText) ?? match.rawText}</pre>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <pre>Ingen route-relevant SIGMET / ARS / AIRMET hittades.</pre>
+                          )}
+                          {weatherState.sigmetSourceUrl ?? lfvSigmetUrl ? (
+                            <div className="fp-weather-links">
+                              <a href={weatherState.sigmetSourceUrl ?? lfvSigmetUrl} target="_blank" rel="noreferrer">
+                                Öppna LFV SIGMET/ARS/AIRMET
+                              </a>
+                            </div>
+                          ) : null}
+                        </section>
+                      </div>
+                    </article>
+
+                    {relevantLhpAreas.length > 0 ? (
+                      relevantLhpAreas.map(({ area, matchedLevels }) => (
+                        <article key={area.id} className="fp-weather-card">
+                          <div className="fp-weather-card__header">
+                            <div>
+                              <h3>{area.title}</h3>
+                              <p>LFV LHP för route-ben i {area.id.toUpperCase()}</p>
+                            </div>
+                          </div>
+                          <div className="fp-weather-report-grid">
+                            <section>
+                              <span className="fp-weather-report-label">Översikt</span>
+                              <pre>{formatWeatherBriefingText(area.overviewText) ?? 'Ingen LHP-översikt tillgänglig.'}</pre>
+                            </section>
+                            <section>
+                              <span className="fp-weather-report-label">Höjdvind matchad mot Alt</span>
+                              <div className="fp-weather-level-list">
+                                {matchedLevels.map(({ level, legLabels, altitudeLabels }) => (
+                                  <div key={`${area.id}-${level.label}`} className="fp-weather-level-item">
+                                    <strong>{level.label}</strong>
+                                    <p>{legLabels.join(', ')}</p>
+                                    <p>Matchad mot {altitudeLabels.join(', ')}</p>
+                                    <pre>{formatWeatherBriefingText(level.rawText) ?? level.rawText}</pre>
+                                  </div>
+                                ))}
+                              </div>
+                              <div className="fp-weather-links">
+                                <a href={area.sourceUrl} target="_blank" rel="noreferrer">
+                                  Öppna {area.title}
+                                </a>
+                              </div>
+                            </section>
+                          </div>
+                        </article>
+                      ))
+                    ) : (
+                      <p className="fp-weather-empty-state">
+                        Ingen relevant LHP-område matchades mot färdlinjen.
+                      </p>
+                    )}
+
+                    {nearbyRouteAirports.length === 0 && (
+                      <p className="fp-weather-empty-state">
+                        Rutten passerar inga registrerade svenska flygplatser inom 50 NM, men LFV-routevädret ovan är fortfarande tillgängligt.
+                      </p>
+                    )}
+
                     {weatherState.results.map((entry) => (
                       <article key={entry.airport.icao} className="fp-weather-card">
                         <div className="fp-weather-card__header">
@@ -1173,7 +1329,7 @@ export function FlightplanApp({
                       </article>
                     ))}
                     {weatherState.status === 'loading' && (
-                      <p className="fp-weather-empty-state">Hämtar väderrapporter för {nearbyRouteAirports.length} flygplatser...</p>
+                      <p className="fp-weather-empty-state">Hämtar LFV-routeväder och väderrapporter för {nearbyRouteAirports.length} flygplatser...</p>
                     )}
                   </div>
                 )}
@@ -1484,7 +1640,6 @@ function FlightPlanDocument({
   titleSlot,
   onHeaderChange,
   weatherStatusLabel,
-  nearbyWeatherCount,
   onOpenWeatherPanel,
   notamStatusLabel,
   onOpenNotamPanel,
@@ -1502,7 +1657,6 @@ function FlightPlanDocument({
   titleSlot?: ReactNode
   onHeaderChange: (key: keyof FlightPlanInput['header'], value: string) => void
   weatherStatusLabel: string
-  nearbyWeatherCount: number
   onOpenWeatherPanel: () => void
   notamStatusLabel: string
   onOpenNotamPanel: () => void
@@ -1573,7 +1727,7 @@ function FlightPlanDocument({
           <HeaderField label="Väder / Metar" className="fp-meta-weather">
             <button type="button" className="fp-header-picker fp-header-weather-button" onClick={onOpenWeatherPanel}>
               <strong>{plan.header.weatherStatus}</strong>
-              <small>{nearbyWeatherCount > 0 ? weatherStatusLabel : 'Öppna METAR/TAF-panel'}</small>
+              <small>{weatherStatusLabel}</small>
             </button>
           </HeaderField>
           <HeaderField label="Blocktid" className="fp-meta-block-time"><strong>{formatTimeFromMinutes(derived.totals.blockTimeMinutes)}</strong></HeaderField>
@@ -1585,7 +1739,7 @@ function FlightPlanDocument({
         <table className="fp-route-table">
           <thead>
             <tr>
-              <th>W/v</th><th>TAS</th><th>TT</th><th>WCA</th><th>TH</th><th>var</th><th>MH</th><th>Alt/FL</th><th>STRÄCKA</th><th>VOR/NDB</th><th>GS</th><th>DIST INT</th><th>DIST ACC</th><th>TID INT</th><th>TID ACC</th><th>NOTERING</th>
+              <th>W/v</th><th>TAS</th><th>TT</th><th>WCA</th><th>TH</th><th>var</th><th>MH</th><th>Alt</th><th>STRÄCKA</th><th>VOR/NDB</th><th>GS</th><th>DIST INT</th><th>DIST ACC</th><th>TID INT</th><th>TID ACC</th><th>NOTERING</th>
             </tr>
           </thead>
           <tbody>
