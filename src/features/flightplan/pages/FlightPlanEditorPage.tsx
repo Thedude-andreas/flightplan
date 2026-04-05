@@ -92,6 +92,8 @@ export function FlightPlanEditorPage() {
   const [error, setError] = useState('')
   const [copyName, setCopyName] = useState('')
   const [isCopyDialogOpen, setIsCopyDialogOpen] = useState(false)
+  const [isClearRouteDialogOpen, setIsClearRouteDialogOpen] = useState(false)
+  const [editorRevision, setEditorRevision] = useState(0)
 
   const draftKey = useMemo(() => {
     if (!user) {
@@ -318,6 +320,29 @@ export function FlightPlanEditorPage() {
     }
   }
 
+  function openClearRouteDialog() {
+    setIsClearRouteDialogOpen(true)
+  }
+
+  function handleConfirmClearRoute() {
+    if (!currentPlan) {
+      setIsClearRouteDialogOpen(false)
+      return
+    }
+
+    const clearedPlan = {
+      ...currentPlan,
+      routeLegs: [],
+    }
+
+    setInitialPlan(clearedPlan)
+    setCurrentPlan(clearedPlan)
+    setSaveState('dirty')
+    setError('')
+    setEditorRevision((current) => current + 1)
+    setIsClearRouteDialogOpen(false)
+  }
+
   if (loading || !initialPlan) {
     return (
       <section className="app-panel">
@@ -328,52 +353,52 @@ export function FlightPlanEditorPage() {
 
   return (
     <section className="editor-page">
-      <div className="editor-toolbar">
-        <div className="editor-toolbar__main">
-          <div>
-            <p className="app-eyebrow">Färdplanseditor</p>
-            <input
-              className="editor-toolbar__title"
-              value={name}
-              onChange={(event) => {
-                setName(event.target.value)
-                setSaveState('dirty')
-              }}
-              placeholder="Namnge färdplanen"
-            />
-          </div>
-          <div className="editor-toolbar__meta">
-            <span className={`resource-pill resource-pill--${displaySaveState}`}>{getSaveLabel(displaySaveState)}</span>
-            <span className={`resource-pill ${isOnline ? '' : 'resource-pill--warning'}`}>
-              {isOnline ? 'Online' : 'Offline'}
-            </span>
-          </div>
-        </div>
-
-        <div className="editor-toolbar__actions">
-          <Link to="/app/flightplans" className="button-link">
-            Till listan
-          </Link>
-          {recordId && (
-            <button type="button" onClick={openSaveCopyDialog} disabled={saveState === 'saving'}>
-              Spara kopia
-            </button>
-          )}
-          <button type="button" onClick={handleSave} disabled={saveState === 'saving' || !hasUnsavedChanges}>
-            {saveState === 'saving' ? 'Sparar...' : 'Spara'}
-          </button>
-        </div>
-      </div>
-
       {error && <p className="account-error editor-toolbar__error">{error}</p>}
 
       <FlightplanApp
-        key={`${recordId ?? 'new'}:${baseUpdatedAt ?? 'draft'}`}
+        key={`${recordId ?? 'new'}:${baseUpdatedAt ?? 'draft'}:${editorRevision}`}
         initialPlan={initialPlan}
-        headerSlot={
-          <span className={`resource-pill resource-pill--inline ${displaySaveState === 'dirty' ? 'resource-pill--warning' : ''}`}>
-            {getSaveLabel(displaySaveState)}
-          </span>
+        documentTitleSlot={
+          <input
+            className="fp-document-title-input"
+            value={name}
+            onChange={(event) => {
+              setName(event.target.value)
+              setSaveState('dirty')
+            }}
+            placeholder="Namnge färdplanen"
+          />
+        }
+        documentToolbarSlot={
+          <>
+            <div className="fp-editor-toolbar__actions">
+              <Link to="/app/flightplans" className="button-link">
+                Till listan
+              </Link>
+              {recordId && (
+                <button type="button" onClick={openSaveCopyDialog} disabled={saveState === 'saving'}>
+                  Spara kopia
+                </button>
+              )}
+              <button type="button" onClick={handleSave} disabled={saveState === 'saving' || !hasUnsavedChanges}>
+                {saveState === 'saving' ? 'Sparar...' : 'Spara'}
+              </button>
+              <button
+                type="button"
+                className="button-link button-link--danger"
+                onClick={openClearRouteDialog}
+                disabled={saveState === 'saving' || !currentPlan || currentPlan.routeLegs.length === 0}
+              >
+                Rensa färdväg
+              </button>
+            </div>
+            <div className="fp-editor-toolbar__status">
+              <span className={`resource-pill resource-pill--${displaySaveState}`}>{getSaveLabel(displaySaveState)}</span>
+              <span className={`resource-pill ${isOnline ? '' : 'resource-pill--warning'}`}>
+                {isOnline ? 'Online' : 'Offline'}
+              </span>
+            </div>
+          </>
         }
         onPlanChange={(nextPlan) => {
           if (!didHydrateRef.current) {
@@ -400,6 +425,23 @@ export function FlightPlanEditorPage() {
               </button>
               <button type="button" onClick={handleConfirmSaveCopy} disabled={saveState === 'saving'}>
                 {saveState === 'saving' ? 'Sparar...' : 'Spara kopia'}
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {isClearRouteDialogOpen && (
+        <div className="dialog-backdrop" onClick={() => setIsClearRouteDialogOpen(false)}>
+          <section className="dialog-card" onClick={(event) => event.stopPropagation()}>
+            <h2>Rensa färdväg</h2>
+            <p>Detta tar bort alla waypoints i färdvägen. Vill du fortsätta?</p>
+            <div className="dialog-actions">
+              <button type="button" className="button-link" onClick={() => setIsClearRouteDialogOpen(false)}>
+                Avbryt
+              </button>
+              <button type="button" className="button-link button-link--danger" onClick={handleConfirmClearRoute}>
+                Rensa färdväg
               </button>
             </div>
           </section>

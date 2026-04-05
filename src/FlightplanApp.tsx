@@ -168,14 +168,16 @@ function cloneFlightPlan(plan: FlightPlanInput): FlightPlanInput {
 type FlightplanAppProps = {
   initialPlan?: FlightPlanInput
   initialAircraftOptions?: AircraftProfile[]
-  headerSlot?: ReactNode
+  documentTitleSlot?: ReactNode
+  documentToolbarSlot?: ReactNode
   onPlanChange?: (plan: FlightPlanInput) => void
 }
 
 export function FlightplanApp({
   initialPlan,
   initialAircraftOptions,
-  headerSlot,
+  documentTitleSlot,
+  documentToolbarSlot,
   onPlanChange,
 }: FlightplanAppProps = {}) {
   useGazetteerVersion()
@@ -377,14 +379,13 @@ export function FlightplanApp({
     <div className="flightplan-page">
       <header className="fp-page-header fp-no-print">
         <div>
-          <p className="fp-eyebrow">Flightplan · allmänflyg · Sverige</p>
-          <h1>Flightplan</h1>
+          <p className="fp-eyebrow">VFRplan.se · allmänflyg · Sverige</p>
+          <h1>VFRplan.se</h1>
           <p className="fp-lede">
             Fristående färdplansverktyg med svensk LFV/AIP-datapipeline, karteditor och utskriftsanpassad driftfärdplan.
           </p>
         </div>
         <div className="fp-page-actions">
-          {headerSlot}
           {activeTab === 'print' ? (
             <button type="button" onClick={() => window.print()}>
               Skriv ut formulär
@@ -413,6 +414,8 @@ export function FlightplanApp({
       </div>
 
       <main className="fp-workspace" onClick={() => setRowContextMenu(null)}>
+        {documentToolbarSlot ? <div className="fp-page-toolbar fp-no-print">{documentToolbarSlot}</div> : null}
+
         {activeTab === 'flightplan' && (
           <div className="fp-tab-panel">
             <section className="fp-document-sheet">
@@ -421,6 +424,7 @@ export function FlightplanApp({
                 derived={derived}
                 routeRows={routeRows}
                 radioNavEntries={effectiveRadioNav}
+                titleSlot={documentTitleSlot}
                 onHeaderChange={updateHeader}
                 onSectionSelect={setActivePanel}
                 onRouteSegmentSelect={(rowIndex) => {
@@ -912,6 +916,7 @@ function FlightPlanDocument({
   derived,
   routeRows,
   radioNavEntries,
+  titleSlot,
   onHeaderChange,
   onSectionSelect,
   onRouteSegmentSelect,
@@ -924,6 +929,7 @@ function FlightPlanDocument({
   derived: ReturnType<typeof calculateFlightPlan>
   routeRows: RouteRow[]
   radioNavEntries: RadioNavEntry[]
+  titleSlot?: ReactNode
   onHeaderChange: (key: keyof FlightPlanInput['header'], value: string) => void
   onSectionSelect: (panel: EditorPanel) => void
   onRouteSegmentSelect: (rowIndex: number) => void
@@ -955,12 +961,13 @@ function FlightPlanDocument({
       <section className="fp-flight-form__header">
         <div className="fp-title-box">
           <div className="fp-crest" aria-hidden="true">
-            <span className="fp-crest-text">LBFK</span>
+            <span className="fp-crest-text">VFR</span>
             <img className="fp-crest-logo" src={printLogoSrc} alt="" />
           </div>
           <div className="fp-title-copy">
-            <h2>LULEÅ-BODEN FLYGKLUBB</h2>
+            <h2>VFRPLAN.SE</h2>
             <h3>DRIFTFÄRDPLAN</h3>
+            {titleSlot ? <div className="fp-document-title-slot fp-no-print">{titleSlot}</div> : null}
             <p>Signatur befälhavare</p>
           </div>
         </div>

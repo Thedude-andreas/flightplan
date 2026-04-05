@@ -89,7 +89,7 @@
 .auth-form button,
 .app-card button,
 .app-panel button,
-.editor-toolbar__actions button,
+.fp-editor-toolbar__actions button,
 .dialog-actions button {
   display: inline-flex;
   align-items: center;
@@ -109,17 +109,30 @@
 .auth-form button,
 .app-card button,
 .app-panel button,
-.editor-toolbar__actions button,
+.fp-editor-toolbar__actions button,
 .dialog-actions button {
   background: #163850;
   color: #f7fafc;
+}
+
+.button-link--danger {
+  border-color: #8f5757;
+  background: #a96a6a;
+  color: #fff8f7;
+}
+
+.fp-editor-toolbar__actions .button-link--danger,
+.dialog-actions .button-link--danger {
+  border-color: #8f5757;
+  background: #a96a6a;
+  color: #fff8f7;
 }
 
 .button-link:hover,
 .auth-form button:hover,
 .app-card button:hover,
 .app-panel button:hover,
-.editor-toolbar__actions button:hover,
+.fp-editor-toolbar__actions button:hover,
 .dialog-actions button:hover {
   opacity: 0.92;
 }
@@ -128,7 +141,7 @@
 .auth-form button:disabled,
 .app-card button:disabled,
 .app-panel button:disabled,
-.editor-toolbar__actions button:disabled,
+.fp-editor-toolbar__actions button:disabled,
 .dialog-actions button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
@@ -194,6 +207,10 @@
   background: #f2f5f6;
 }
 
+.app-layout--editor {
+  grid-template-columns: 1fr;
+}
+
 .app-sidebar {
   display: grid;
   align-content: start;
@@ -232,6 +249,10 @@
 
 .app-layout__content {
   min-width: 0;
+}
+
+.app-layout--editor .app-layout__content {
+  width: 100%;
 }
 
 .app-panel {
@@ -323,41 +344,8 @@
 
 .editor-page {
   display: grid;
-  gap: 16px;
-}
-
-.editor-toolbar {
-  display: grid;
-  gap: 16px;
-  padding: 20px 28px 0;
-}
-
-.editor-toolbar__main {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  align-items: start;
-}
-
-.editor-toolbar__meta,
-.editor-toolbar__actions {
-  display: flex;
-  flex-wrap: wrap;
   gap: 12px;
-  align-items: center;
-}
-
-.editor-toolbar__title {
-  width: min(100%, 980px);
-  max-width: calc(100vw - 420px);
-  margin-top: 8px;
-  border: none;
-  padding: 0;
-  background: transparent;
-  color: #12202a;
-  font-size: clamp(1.8rem, 4vw, 3rem);
-  font-weight: 700;
-  line-height: 1;
+  min-height: 100vh;
 }
 
 .editor-toolbar__error {
@@ -453,18 +441,6 @@
     grid-auto-flow: column;
     grid-auto-columns: minmax(0, 1fr);
     overflow: auto;
-  }
-
-  .editor-toolbar {
-    padding: 20px 20px 0;
-  }
-
-  .editor-toolbar__main {
-    flex-direction: column;
-  }
-
-  .editor-toolbar__title {
-    max-width: 100%;
   }
 
   .editor-toolbar__error {
