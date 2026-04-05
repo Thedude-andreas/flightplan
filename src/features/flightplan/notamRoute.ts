@@ -40,6 +40,35 @@ function normalizeDisplayText(value: string) {
     .trim()
 }
 
+export function formatNotamText(value: string | null) {
+  if (!value) {
+    return ''
+  }
+
+  return value
+    .replace(/\u00a0/g, ' ')
+    .replace(/\s+/g, ' ')
+    .replace(/\s+\+\s+/g, '\n\n+ ')
+    .replace(/^(\+\s+)/, '+ ')
+    .replace(/(\d{2}:\d{2})(FROM:)/g, '$1\nFROM:')
+    .replace(/(\d{2}:\d{2})(TO:)/g, '$1\nTO:')
+    .replace(/(EST)(TO:)/g, '$1\nTO:')
+    .replace(/\s+(FROM:)/g, '\n$1')
+    .replace(/\s+(TO:)/g, '\n$1')
+    .replace(/\s+(LOWER:)/g, '\n$1')
+    .replace(/\s+(UPPER:)/g, '\n$1')
+    .replace(/\s+(Tider\/Hours)/g, '\n$1')
+    .replace(/\s+(AREA BOUNDED BY:)/g, '\n$1')
+    .replace(/\s+(WI A CIRCLE WITH RADIUS)/g, '\n$1')
+    .replace(/\s+(CENTERED ON|CENTRED ON)/g, '\n$1')
+    .replace(/\s+(FLIGHT WI THE AREA)/g, '\n$1')
+    .replace(/\s+(The following traffic on mission is exempted)/g, '\n$1')
+    .replace(/\s+(The following traffic is exempted)/g, '\n$1')
+    .replace(/\s+([•-])\s+/g, '\n$1 ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+}
+
 function degToRad(value: number) {
   return (value * Math.PI) / 180
 }
@@ -191,6 +220,110 @@ function centroid(points: RoutePoint[]) {
   }
 }
 
+function isClosedPolygon(points: RoutePoint[], rawText: string) {
+  if (points.length < 3) {
+    return false
+  }
+
+  if (/AREA\s+BOUNDED\s+BY|POLYGON/i.test(rawText)) {
+    return true
+  }
+
+  const first = points[0]
+  const last = points[points.length - 1]
+  return distanceNm(first.lat, first.lon, last.lat, last.lon) <= 0.2
+}
+
+function pointInRing(lat: number, lon: number, ring: RoutePoint[]) {
+  let inside = false
+
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const xi = ring[i].lon
+    const yi = ring[i].lat
+    const xj = ring[j].lon
+    const yj = ring[j].lat
+    const intersects =
+      yi > lat !== yj > lat &&
+      lon < ((xj - xi) * (lat - yi)) / ((yj - yi) || Number.EPSILON) + xi
+
+    if (intersects) {
+      inside = !inside
+    }
+  }
+
+  return inside
+}
+
+function orientation(a: { x: number; y: number }, b: { x: number; y: number }, c: { x: number; y: number }) {
+  const value = (b.y - a.y) * (c.x - b.x) - (b.x - a.x) * (c.y - b.y)
+  if (Math.abs(value) <= 1e-9) {
+    return 0
+  }
+  return value > 0 ? 1 : 2
+}
+
+function onSegment(a: { x: number; y: number }, b: { x: number; y: number }, c: { x: number; y: number }) {
+  return (
+    b.x <= Math.max(a.x, c.x) + 1e-9 &&
+    b.x + 1e-9 >= Math.min(a.x, c.x) &&
+    b.y <= Math.max(a.y, c.y) + 1e-9 &&
+    b.y + 1e-9 >= Math.min(a.y, c.y)
+  )
+}
+
+function segmentsIntersect(startA: RoutePoint, endA: RoutePoint, startB: RoutePoint, endB: RoutePoint) {
+  const referenceLat = (startA.lat + endA.lat + startB.lat + endB.lat) / 4
+  const a = toLocalNm(startA.lat, startA.lon, referenceLat)
+  const b = toLocalNm(endA.lat, endA.lon, referenceLat)
+  const c = toLocalNm(startB.lat, startB.lon, referenceLat)
+  const d = toLocalNm(endB.lat, endB.lon, referenceLat)
+
+  const o1 = orientation(a, b, c)
+  const o2 = orientation(a, b, d)
+  const o3 = orientation(c, d, a)
+  const o4 = orientation(c, d, b)
+
+  if (o1 !== o2 && o3 !== o4) {
+    return true
+  }
+
+  if (o1 === 0 && onSegment(a, c, b)) {
+    return true
+  }
+  if (o2 === 0 && onSegment(a, d, b)) {
+    return true
+  }
+  if (o3 === 0 && onSegment(c, a, d)) {
+    return true
+  }
+  if (o4 === 0 && onSegment(c, b, d)) {
+    return true
+  }
+
+  return false
+}
+
+function routeIntersectsPolygon(routeLegs: FlightPlanInput['routeLegs'], polygon: RoutePoint[]) {
+  for (const leg of routeLegs) {
+    if (pointInRing(leg.from.lat, leg.from.lon, polygon) || pointInRing(leg.to.lat, leg.to.lon, polygon)) {
+      return routeDistanceForPoint(routeLegs, leg.from)
+    }
+
+    for (let index = 0; index < polygon.length; index += 1) {
+      const current = polygon[index]
+      const next = polygon[(index + 1) % polygon.length]
+      if (segmentsIntersect(leg.from, leg.to, current, next)) {
+        return {
+          distanceNm: 0,
+          progressNm: routeDistanceForPoint(routeLegs, leg.from).progressNm,
+        }
+      }
+    }
+  }
+
+  return null
+}
+
 function matchNearbyNavaids(routeLegs: FlightPlanInput['routeLegs'], rawText: string, maxDistanceNm: number) {
   const normalizedEntry = ` ${normalizeForMatch(rawText)} `
 
@@ -224,6 +357,16 @@ function matchNearbyNavaids(routeLegs: FlightPlanInput['routeLegs'], rawText: st
 
 function getBestGeometryMatch(routeLegs: FlightPlanInput['routeLegs'], rawText: string) {
   const coordinates = extractCoordinates(rawText)
+  const polygon = isClosedPolygon(coordinates, rawText) ? coordinates.slice(0, -1) : null
+  const polygonIntersection = polygon && polygon.length >= 3 ? routeIntersectsPolygon(routeLegs, polygon) : null
+
+  if (polygonIntersection) {
+    return {
+      coordinates,
+      bestDistance: polygonIntersection,
+    }
+  }
+
   const coordinateDistances = coordinates.map((point) => routeDistanceForPoint(routeLegs, point))
   const areaCenter = coordinates.length >= 2 ? centroid(coordinates) : null
 

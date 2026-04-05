@@ -12,6 +12,7 @@ import {
 } from './features/flightplan/radioNav'
 import { fetchNotamsForAirports, type AirportNotam, type NotamSupplement } from './features/flightplan/notam'
 import {
+  formatNotamText,
   getRelevantSupplements,
   getRouteNotamMatches,
   getSupplementSourceLabel,
@@ -1249,7 +1250,7 @@ export function FlightplanApp({
                                           ? 'Aktiva NOTAM i aktuell LFV-briefing'
                                           : 'Inga NOTAM i aktuell LFV-briefing'}
                                     </p>
-                                    <pre>{entry?.rawText ?? (notamState.status === 'loading' ? 'Hämtar NOTAM...' : 'Ingen NOTAM tillgänglig')}</pre>
+                                    <pre>{entry?.rawText ? formatNotamText(entry.rawText) : (notamState.status === 'loading' ? 'Hämtar NOTAM...' : 'Ingen NOTAM tillgänglig')}</pre>
                                   </section>
                                 </section>
                               </article>
@@ -1287,7 +1288,7 @@ export function FlightplanApp({
                               <section className="fp-weather-report-grid fp-weather-report-grid--single">
                                 <section>
                                   <span className="fp-weather-report-label">EN-ROUTE</span>
-                                  <pre>{entry.rawText}</pre>
+                                  <pre>{formatNotamText(entry.rawText)}</pre>
                                 </section>
                               </section>
                             </article>
@@ -1324,7 +1325,7 @@ export function FlightplanApp({
                               <section className="fp-weather-report-grid fp-weather-report-grid--single">
                                 <section>
                                   <span className="fp-weather-report-label">NAV WARNING</span>
-                                  <pre>{entry.rawText}</pre>
+                                  <pre>{formatNotamText(entry.rawText)}</pre>
                                 </section>
                               </section>
                             </article>
