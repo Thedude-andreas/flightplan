@@ -3,6 +3,7 @@
   margin-left: calc(50% - 50vw);
   padding: 0 2rem 2.5rem;
   color: #151515;
+  min-height: 100vh;
 }
 
 .flightplan-page .fp-no-print {
@@ -80,7 +81,9 @@
   align-items: end;
   margin-top: 6px;
   margin-bottom: -1px;
-  padding-left: 0.35rem;
+  padding-left: 1rem;
+  position: relative;
+  z-index: 2;
 }
 
 .flightplan-page .fp-tabs button {
@@ -98,7 +101,7 @@
 }
 
 .flightplan-page .fp-tabs button.is-active {
-  background: #f5f2e8;
+  background: #efe7d6;
   color: #151515;
   border-color: #8d826d;
   margin-bottom: -1px;
@@ -106,10 +109,29 @@
   z-index: 2;
 }
 
+.flightplan-page .fp-page-toolbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  align-items: center;
+  padding: 0 0 0.85rem;
+  margin-bottom: 0.15rem;
+  border-bottom: 1px dashed rgba(111, 102, 85, 0.32);
+}
+
+.flightplan-page .fp-page-toolbar .fp-editor-toolbar__status,
+.flightplan-page .fp-page-toolbar .fp-editor-toolbar__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
 .flightplan-page .fp-workspace {
   border: 1px solid #8d826d;
   background: linear-gradient(180deg, #efe7d6 0%, #e4ddce 100%);
-  border-radius: 0 1.35rem 1.35rem 1.35rem;
+  border-radius: 1.35rem;
   padding: 1.5rem;
   box-shadow: 0 24px 60px rgba(25, 18, 10, 0.14);
 }
@@ -190,10 +212,11 @@
 }
 
 .flightplan-page .fp-title-copy {
-  padding: 1rem;
+  padding: 0.85rem 1rem 1rem;
   text-align: center;
-  display: grid;
-  grid-template-rows: auto auto 1fr;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .flightplan-page .fp-title-copy h2,
@@ -204,17 +227,41 @@
 
 .flightplan-page .fp-title-copy h2 {
   font-size: 1.15rem;
+  line-height: 1.05;
 }
 
 .flightplan-page .fp-title-copy h3 {
-  margin-top: 1.4rem;
+  margin-top: 0.65rem;
   font-size: 1.85rem;
+  line-height: 1;
+}
+
+.flightplan-page .fp-document-title-slot {
+  width: 100%;
+  margin-top: 0.45rem;
+  padding-top: 0.25rem;
+}
+
+.flightplan-page .fp-document-title-input {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: #151515;
+  font: inherit;
+  font-size: clamp(1rem, 1.8vw, 1.3rem);
+  font-weight: 700;
+  text-align: center;
+  letter-spacing: 0.02em;
+}
+
+.flightplan-page .fp-document-title-input::placeholder {
+  color: rgba(21, 21, 21, 0.52);
 }
 
 .flightplan-page .fp-title-copy p {
-  align-self: end;
-  margin: 0;
-  padding-top: 0.7rem;
+  width: 100%;
+  margin: auto 0 0;
+  padding-top: 0.5rem;
   border-top: 2px dashed #232323;
   font-size: 0.95rem;
   font-weight: 700;
@@ -594,13 +641,17 @@
   border-bottom: 0;
 }
 
+.flightplan-page .leaflet-tooltip.fp-airport-label,
 .flightplan-page .fp-airport-label {
   background: transparent;
   border: 0;
   box-shadow: none;
+  padding: 0;
+  pointer-events: none;
 }
 
-.flightplan-page .fp-airport-label span {
+.flightplan-page .fp-airport-label span,
+.flightplan-page .fp-navaid-label-marker span {
   display: inline-block;
   padding: 0.12rem 0.36rem;
   border-radius: 999px;
@@ -613,6 +664,17 @@
   letter-spacing: 0.06em;
   line-height: 1.15;
   box-shadow: 0 1px 4px rgba(18, 42, 92, 0.14);
+}
+
+.flightplan-page .fp-navaid-label-marker {
+  background: transparent;
+  border: 0;
+}
+
+.flightplan-page .fp-navaid-label-marker span {
+  background: rgba(255, 253, 248, 0.96);
+  border-color: rgba(109, 59, 179, 0.28);
+  color: #4d248a;
 }
 
 .flightplan-page .fp-airport-label::before {
@@ -631,6 +693,10 @@
 
 .flightplan-page .fp-waypoint-popup .leaflet-popup-content {
   margin: 0;
+}
+
+.flightplan-page .fp-navaid-tooltip__content strong {
+  color: #4d248a;
 }
 
 .flightplan-page .fp-waypoint-popup__content {
@@ -718,7 +784,10 @@
 @media (max-width: 1100px) {
   .flightplan-page { padding: 0 1rem 2rem; }
   .flightplan-page .fp-page-header { flex-direction: column; }
-  .flightplan-page .fp-tabs { flex-wrap: wrap; margin-bottom: 0.75rem; padding-left: 0; }
+  .flightplan-page .fp-tabs { flex-wrap: wrap; margin-bottom: -1px; padding-left: 0.75rem; }
+  .flightplan-page .fp-page-toolbar { padding: 0 0 0.75rem; align-items: start; }
+  .flightplan-page .fp-page-toolbar .fp-editor-toolbar__status,
+  .flightplan-page .fp-page-toolbar .fp-editor-toolbar__actions { width: 100%; }
   .flightplan-page .fp-workspace { border-radius: 1rem; padding: 0.9rem; }
   .flightplan-page .fp-document-sheet,
   .flightplan-page .fp-map-sheet { padding: 0.8rem; }

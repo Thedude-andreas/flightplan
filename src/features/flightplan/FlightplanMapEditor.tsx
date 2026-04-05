@@ -20,6 +20,7 @@ import { formatCoordinateDms } from './coordinates'
 import { getRoutePointLabel, legsToWaypoints, pointWithNearestName, waypointsToLegs } from './gazetteer'
 import { swedishAirspaces } from './generated/airspaces.se'
 import { swedishAirports } from './generated/airports.se'
+import { swedishNavaids } from './generated/radio-nav.se'
 import type { FlightPlanInput, FlightPlanDerived } from './types'
 
 type BasemapKey = 'topo' | 'osm'
@@ -48,11 +49,37 @@ const waypointIcon = divIcon({
   iconAnchor: [9, 9],
 })
 
+function createMapLabelIcon(className: string, label: string) {
+  return divIcon({
+    className,
+    html: `<span>${label}</span>`,
+    iconSize: [0, 0],
+    iconAnchor: [0, 0],
+  })
+}
+
 const routeLineWeight = 6
 const airportLabelMinZoom = 8
 const airportMarkerRadiusPx = 4
+const navaidMinZoom = 7
+const navaidLabelMinZoom = 9
 const directionArrowWaypointClearancePx = 22
 const maxVisibleAirspaceLowerFt = 9500
+
+function getNavaidPalette(kind: (typeof swedishNavaids)[number]['kind']) {
+  switch (kind) {
+    case 'VOR':
+      return { color: '#0c5a9a', fillColor: '#d9eeff', radius: 5 }
+    case 'DMEV':
+      return { color: '#6d3bb3', fillColor: '#eadcff', radius: 5 }
+    case 'DME':
+      return { color: '#7f4a12', fillColor: '#ffe7c9', radius: 4.5 }
+    case 'NDB':
+      return { color: '#0f6a41', fillColor: '#d9f6e6', radius: 4.5 }
+    default:
+      return { color: '#4a5560', fillColor: '#eef2f4', radius: 4.5 }
+  }
+}
 
 function parseAirspaceAltitudeFeet(value: string | null) {
   if (!value) {
@@ -489,6 +516,49 @@ export function FlightplanMapEditor({
     setWaypoints([...waypoints, nextPoint])
   }
 
+  const addNavaidPointToEnd = (navaid: (typeof swedishNavaids)[number]) => {
+    const resolvedPoint = resolveRoutePoint(navaid.lat, navaid.lon)
+    const nextLabel = navaid.ident ?? navaid.name ?? navaid.kind
+    const nextPoint =
+      resolvedPoint.lat === navaid.lat && resolvedPoint.lon === navaid.lon
+        ? {
+            lat: navaid.lat,
+            lon: navaid.lon,
+            name: nextLabel,
+          }
+        : resolvedPoint
+
+    if (waypoints.length === 0) {
+      onRouteLegsChange([
+        {
+          from: nextPoint,
+          to: nextPoint,
+          windDirection: 220,
+          windSpeedKt: 15,
+          tasKt: derived.aircraft.cruiseTasKt,
+          variation: 6,
+          altitude: '',
+          navRef: '',
+          notes: '',
+        },
+      ])
+      return
+    }
+
+    if (isPlaceholderLeg(plan.routeLegs)) {
+      onRouteLegsChange([
+        {
+          ...plan.routeLegs[0],
+          from: { ...plan.routeLegs[0].from },
+          to: nextPoint,
+        },
+      ])
+      return
+    }
+
+    setWaypoints([...waypoints, nextPoint])
+  }
+
   const previewMoveWaypoint = (index: number, lat: number, lon: number) => {
     setDragPreviewWaypoints(
       waypoints.map((point, pointIndex) =>
@@ -690,6 +760,53 @@ export function FlightplanMapEditor({
               }}
             />
           ) : null}
+
+          {mapZoom >= navaidMinZoom
+            ? swedishNavaids.map((navaid) => {
+                const palette = getNavaidPalette(navaid.kind)
+                const label = navaid.ident ?? navaid.name ?? navaid.kind
+                return (
+                  <FeatureGroup key={navaid.id}>
+                    {navaid.ident && mapZoom >= navaidLabelMinZoom ? (
+                      <Marker
+                        position={[navaid.lat, navaid.lon]}
+                        icon={createMapLabelIcon('fp-navaid-label-marker', navaid.ident)}
+                        interactive={false}
+                        keyboard={false}
+                        zIndexOffset={100}
+                      />
+                    ) : null}
+                    <CircleMarker
+                      center={[navaid.lat, navaid.lon]}
+                      radius={palette.radius}
+                      pathOptions={{
+                        color: palette.color,
+                        weight: 1.25,
+                        fillColor: palette.fillColor,
+                        fillOpacity: 0.92,
+                      }}
+                      eventHandlers={{
+                        click: (event) => {
+                          event.originalEvent.preventDefault()
+                          event.originalEvent.stopPropagation()
+                          addNavaidPointToEnd(navaid)
+                        },
+                      }}
+                    >
+                      <Tooltip direction="top" offset={[0, -6]} opacity={0.95} className="fp-navaid-tooltip">
+                        <div className="fp-airport-tooltip fp-navaid-tooltip__content">
+                          <strong>{label}</strong>
+                          <span>{navaid.kind === 'DMEV' ? 'VOR/DME' : navaid.kind}</span>
+                          {navaid.frequency ? <span>{navaid.frequency}</span> : null}
+                          {navaid.channel ? <span>Kanal {navaid.channel}</span> : null}
+                          <span>{formatCoordinateDms(navaid.lat, 'lat')} {formatCoordinateDms(navaid.lon, 'lon')}</span>
+                        </div>
+                      </Tooltip>
+                    </CircleMarker>
+                  </FeatureGroup>
+                )
+              })
+            : null}
 
           {swedishAirports.map((airport) => (
             <CircleMarker
