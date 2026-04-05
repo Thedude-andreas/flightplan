@@ -164,5 +164,3 @@ export function createEmptyFlightPlan(): FlightPlanInput {
     routeLegs: [],
   }
 }
-
-export const initialFlightPlan = createInitialFlightPlan()

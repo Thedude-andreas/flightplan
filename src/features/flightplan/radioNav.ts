@@ -450,13 +450,6 @@ function resolveEndpointIcao(headerIcao: string, fallbackPoint: RoutePointInput 
   return inferAirportIcaoFromPoint(fallbackPoint)
 }
 
-export function inferFlightplanEndpointIcaos(plan: FlightPlanInput) {
-  return {
-    departureIcao: inferAirportIcaoFromPoint(plan.routeLegs[0]?.from),
-    destinationIcao: inferAirportIcaoFromPoint(plan.routeLegs[plan.routeLegs.length - 1]?.to),
-  }
-}
-
 function buildNearbyUncontrolledAirportEntries(plan: FlightPlanInput) {
   if (plan.routeLegs.length === 0) {
     return []

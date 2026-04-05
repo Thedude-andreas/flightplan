@@ -1,5 +1,5 @@
 import { getSupabaseClient } from '../../../lib/supabase/client'
-import type { CreateAircraftProfileInput, AircraftProfileRecord, UpdateAircraftProfileInput } from '../types'
+import type { CreateAircraftProfileInput, AircraftProfileRecord } from '../types'
 
 type AircraftProfileRow = {
   id: string
@@ -78,52 +78,6 @@ export async function createAircraftProfile(input: CreateAircraftProfileInput) {
       visibility: input.visibility ?? 'private',
       payload: input.payload,
     })
-    .select('id, owner_user_id, name, registration, type_name, visibility, payload, created_at, updated_at, archived_at')
-    .single()
-
-  if (error) {
-    throw error
-  }
-
-  return mapRecord(data as AircraftProfileRow)
-}
-
-export async function archiveAircraftProfile(id: string) {
-  const supabase = requireClient()
-  const { error } = await supabase.from('aircraft_profiles').update({ archived_at: new Date().toISOString() }).eq('id', id)
-
-  if (error) {
-    throw error
-  }
-}
-
-export async function updateAircraftProfile(id: string, input: UpdateAircraftProfileInput, expectedUpdatedAt: string) {
-  const supabase = requireClient()
-
-  const { data: current, error: loadError } = await supabase
-    .from('aircraft_profiles')
-    .select('updated_at')
-    .eq('id', id)
-    .single()
-
-  if (loadError) {
-    throw loadError
-  }
-
-  if (current.updated_at !== expectedUpdatedAt) {
-    throw new Error('Konflikt upptäckt. Profilen har uppdaterats i en annan session.')
-  }
-
-  const { data, error } = await supabase
-    .from('aircraft_profiles')
-    .update({
-      name: input.name,
-      registration: input.registration,
-      type_name: input.typeName,
-      visibility: input.visibility ?? 'private',
-      payload: input.payload,
-    })
-    .eq('id', id)
     .select('id, owner_user_id, name, registration, type_name, visibility, payload, created_at, updated_at, archived_at')
     .single()
 

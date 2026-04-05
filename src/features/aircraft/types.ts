@@ -21,5 +21,3 @@ export type CreateAircraftProfileInput = {
   visibility?: Visibility
   payload: AircraftProfile
 }
-
-export type UpdateAircraftProfileInput = CreateAircraftProfileInput

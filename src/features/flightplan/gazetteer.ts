@@ -148,15 +148,6 @@ export function useGazetteerVersion() {
   )
 }
 
-export function nearestPlaceLabel(lat: number, lon: number) {
-  const nearest = findBestNamedPlace(lat, lon)
-  if (nearest) {
-    return nearest.place.name
-  }
-
-  return formatCoordinateLabel(lat, lon)
-}
-
 function findNearestAirport(lat: number, lon: number) {
   let nearest = airports[0]
   let minDistance = Number.POSITIVE_INFINITY
