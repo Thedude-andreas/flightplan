@@ -312,6 +312,21 @@
   cursor: pointer;
 }
 
+.flightplan-page .fp-header-weather-button {
+  display: grid;
+  gap: 0.12rem;
+}
+
+.flightplan-page .fp-header-weather-button strong,
+.flightplan-page .fp-header-weather-button small {
+  display: block;
+}
+
+.flightplan-page .fp-header-weather-button small {
+  font-size: 0.76rem;
+  color: rgba(21, 21, 21, 0.72);
+}
+
 .fp-meta-date { grid-column: 1; grid-row: 1; }
 .fp-meta-registration { grid-column: 2; grid-row: 1; }
 .fp-meta-type { grid-column: 3; grid-row: 1; }
@@ -511,6 +526,136 @@
 .flightplan-page .fp-aircraft-picker span {
   color: rgba(21, 21, 21, 0.74);
 }
+
+.flightplan-page .fp-weather-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.flightplan-page .fp-weather-summary > div {
+  border: 1px solid #d3cbb8;
+  border-radius: 0.9rem;
+  background: #fffef9;
+  padding: 0.8rem 0.9rem;
+  display: grid;
+  gap: 0.18rem;
+}
+
+.flightplan-page .fp-weather-summary span {
+  color: #6a6356;
+  font-size: 0.82rem;
+}
+
+.flightplan-page .fp-weather-summary strong {
+  color: #151515;
+  font-size: 1rem;
+}
+
+.flightplan-page .fp-weather-list {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.flightplan-page .fp-weather-card {
+  border: 1px solid #d3cbb8;
+  border-radius: 1rem;
+  background: #fffef9;
+  padding: 0.95rem;
+}
+
+.flightplan-page .fp-weather-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 1rem;
+  margin-bottom: 0.85rem;
+}
+
+.flightplan-page .fp-weather-card__header h3,
+.flightplan-page .fp-weather-card__header p {
+  margin: 0;
+  color: #151515;
+}
+
+.flightplan-page .fp-weather-card__header p {
+  margin-top: 0.2rem;
+  color: #6a6356;
+}
+
+.flightplan-page .fp-weather-report-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.flightplan-page .fp-weather-report-grid--single {
+  grid-template-columns: 1fr;
+}
+
+.flightplan-page .fp-weather-report-grid section {
+  border: 1px solid #e4dccb;
+  border-radius: 0.85rem;
+  background: #fff;
+  padding: 0.8rem;
+}
+
+.flightplan-page .fp-weather-report-label {
+  display: inline-block;
+  margin-bottom: 0.35rem;
+  font-family: 'Space Grotesk', 'Inter', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #6a5f4b;
+}
+
+.flightplan-page .fp-weather-report-time {
+  margin: 0 0 0.45rem;
+  color: #6a6356;
+  font-size: 0.84rem;
+}
+
+.flightplan-page .fp-weather-report-grid pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: #151515;
+  font: inherit;
+  line-height: 1.45;
+}
+
+.flightplan-page .fp-weather-empty-state {
+  margin: 0;
+  border: 1px dashed #b8b09d;
+  border-radius: 0.9rem;
+  background: #fffef9;
+  padding: 1rem;
+  color: #151515;
+}
+
+.flightplan-page .fp-notam-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin: 1rem 0;
+}
+
+.flightplan-page .fp-notam-actions a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0.65rem 0.95rem;
+  border: 1px solid #b8b09d;
+  border-radius: 0.9rem;
+  background: #fff;
+  color: #151515;
+  text-decoration: none;
+  font-weight: 700;
+}
+
 .flightplan-page .fp-settings-card { color: #151515; }
 .flightplan-page .fp-settings-layout { display: grid; grid-template-columns: 260px 1fr; gap: 1rem; }
 .flightplan-page .fp-config-list { display: grid; gap: 0.65rem; align-content: start; }
@@ -800,6 +945,8 @@
   .flightplan-page .fp-map-canvas { min-height: 52vh; }
   .flightplan-page .fp-leaflet-map { height: 56vh; }
   .flightplan-page .fp-settings-layout { grid-template-columns: 1fr; }
+  .flightplan-page .fp-weather-summary,
+  .flightplan-page .fp-weather-report-grid { grid-template-columns: 1fr; }
 }
 
 @media print {

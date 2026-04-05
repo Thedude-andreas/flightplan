@@ -10,15 +10,29 @@ import {
   buildSuggestedRadioNav,
   mergeRadioNavEntries,
 } from './features/flightplan/radioNav'
+import { fetchNotamsForAirports, type AirportNotam } from './features/flightplan/notam'
+import { fetchWeatherForAirports, getAirportsNearRoute, type AirportWeather } from './features/flightplan/weather'
 import type { AircraftProfile, FlightPlanInput, RadioNavEntry } from './features/flightplan/types'
 
-type EditorPanel = 'fuel' | 'weightBalance' | 'performance' | 'aircraft'
+type EditorPanel = 'fuel' | 'weightBalance' | 'performance' | 'aircraft' | 'weather' | 'notam'
 type WorkspaceTab = 'flightplan' | 'map' | 'print' | 'settings'
 type RouteRow = Record<string, string | number>
 type RowContextMenuState = { x: number; y: number; rowIndex: number } | null
+type WeatherState =
+  | { status: 'idle'; results: AirportWeather[]; error: string | null; lastUpdatedAt: null }
+  | { status: 'loading'; results: AirportWeather[]; error: string | null; lastUpdatedAt: null }
+  | { status: 'ready'; results: AirportWeather[]; error: string | null; lastUpdatedAt: string }
+  | { status: 'error'; results: AirportWeather[]; error: string; lastUpdatedAt: null }
+type NotamState =
+  | { status: 'idle'; results: AirportNotam[]; error: string | null; lastUpdatedAt: null; sourceUrl: null; bulletinPublishedAt: null }
+  | { status: 'loading'; results: AirportNotam[]; error: string | null; lastUpdatedAt: null; sourceUrl: null; bulletinPublishedAt: null }
+  | { status: 'ready'; results: AirportNotam[]; error: string | null; lastUpdatedAt: string | null; sourceUrl: string | null; bulletinPublishedAt: string | null }
+  | { status: 'error'; results: AirportNotam[]; error: string; lastUpdatedAt: null; sourceUrl: null; bulletinPublishedAt: null }
 
 const printLogoSrc = `${import.meta.env.BASE_URL}lbfk-logo.png`
 const contextMenuSize = { width: 220, height: 112, margin: 12 }
+const lfvNotamSwedenUrl = 'https://www.aro.lfv.se/Links/Link/ShowFileList?path=%5Cpibsweden%5C&torlinkName=NOTAM+Sweden&type=AIS'
+const lfvAroHomeUrl = 'https://www.aro.lfv.se/'
 
 function getEndpointLabel(
   point: FlightPlanInput['routeLegs'][number]['from'] | undefined,
@@ -39,6 +53,18 @@ function clampContextMenuPosition(x: number, y: number) {
     x: Math.max(contextMenuSize.margin, Math.min(x, maxX)),
     y: Math.max(contextMenuSize.margin, Math.min(y, maxY)),
   }
+}
+
+function formatUtcTimestamp(value: string | null) {
+  if (!value) {
+    return null
+  }
+
+  return new Intl.DateTimeFormat('sv-SE', {
+    dateStyle: 'short',
+    timeStyle: 'short',
+    timeZone: 'UTC',
+  }).format(new Date(value))
 }
 
 function emptyRouteRow(index: number): RouteRow {
@@ -226,6 +252,22 @@ export function FlightplanApp({
   const [settingsIndex, setSettingsIndex] = useState(0)
   const [rowContextMenu, setRowContextMenu] = useState<RowContextMenuState>(null)
   const [focusedLegIndex, setFocusedLegIndex] = useState<number | null>(null)
+  const [weatherRefreshToken, setWeatherRefreshToken] = useState(0)
+  const [weatherState, setWeatherState] = useState<WeatherState>({
+    status: 'idle',
+    results: [],
+    error: null,
+    lastUpdatedAt: null,
+  })
+  const [notamRefreshToken, setNotamRefreshToken] = useState(0)
+  const [notamState, setNotamState] = useState<NotamState>({
+    status: 'idle',
+    results: [],
+    error: null,
+    lastUpdatedAt: null,
+    sourceUrl: null,
+    bulletinPublishedAt: null,
+  })
 
   const derived = calculateFlightPlan(plan, aircraftOptions)
   const routeRows = useMemo(() => createRouteRows(plan, derived), [plan, derived])
@@ -235,10 +277,123 @@ export function FlightplanApp({
     () => mergeRadioNavEntries(plan.radioNav, suggestedRadioNav),
     [plan.radioNav, suggestedRadioNav],
   )
+  const nearbyRouteAirports = useMemo(() => getAirportsNearRoute(plan.routeLegs), [plan.routeLegs])
 
   useEffect(() => {
     onPlanChange?.(plan)
   }, [onPlanChange, plan])
+
+  useEffect(() => {
+    if (activePanel !== 'weather') {
+      return
+    }
+
+    if (nearbyRouteAirports.length === 0) {
+      setWeatherState({
+        status: 'ready',
+        results: [],
+        error: null,
+        lastUpdatedAt: new Date().toISOString(),
+      })
+      return
+    }
+
+    const controller = new AbortController()
+    setWeatherState(() => ({
+      status: 'loading',
+      results: [],
+      error: null,
+      lastUpdatedAt: null,
+    }))
+
+    fetchWeatherForAirports(nearbyRouteAirports, controller.signal)
+      .then((results) => {
+        setWeatherState({
+          status: 'ready',
+          results,
+          error: null,
+          lastUpdatedAt: new Date().toISOString(),
+        })
+      })
+      .catch((error: unknown) => {
+        if (controller.signal.aborted) {
+          return
+        }
+
+        const message = error instanceof Error ? error.message : 'Okänt fel vid hämtning av METAR/TAF.'
+        setWeatherState({
+          status: 'error',
+          results: [],
+          error: message,
+          lastUpdatedAt: null,
+        })
+      })
+
+    return () => controller.abort()
+  }, [activePanel, nearbyRouteAirports, weatherRefreshToken])
+
+  useEffect(() => {
+    if (activePanel !== 'notam') {
+      return
+    }
+
+    if (nearbyRouteAirports.length === 0) {
+      setNotamState({
+        status: 'ready',
+        results: [],
+        error: null,
+        lastUpdatedAt: null,
+        sourceUrl: null,
+        bulletinPublishedAt: null,
+      })
+      return
+    }
+
+    let cancelled = false
+    setNotamState({
+      status: 'loading',
+      results: [],
+      error: null,
+      lastUpdatedAt: null,
+      sourceUrl: null,
+      bulletinPublishedAt: null,
+    })
+
+    fetchNotamsForAirports(nearbyRouteAirports.map((airport) => airport.icao))
+      .then((response) => {
+        if (cancelled) {
+          return
+        }
+
+        setNotamState({
+          status: 'ready',
+          results: response.notams,
+          error: null,
+          lastUpdatedAt: response.fetchedAt,
+          sourceUrl: response.sourceUrl,
+          bulletinPublishedAt: response.bulletinPublishedAt,
+        })
+      })
+      .catch((error: unknown) => {
+        if (cancelled) {
+          return
+        }
+
+        const message = error instanceof Error ? error.message : 'Okänt fel vid hämtning av NOTAM.'
+        setNotamState({
+          status: 'error',
+          results: [],
+          error: message,
+          lastUpdatedAt: null,
+          sourceUrl: null,
+          bulletinPublishedAt: null,
+        })
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [activePanel, nearbyRouteAirports, notamRefreshToken])
 
   const updatePlan = (updater: (current: FlightPlanInput) => FlightPlanInput) => {
     setPlan((current) => normalizePlanRadioNav(updater(current)))
@@ -380,6 +535,14 @@ export function FlightplanApp({
   }
 
   const selectedAircraftConfig = aircraftOptions[settingsIndex] ?? aircraftOptions[0]
+  const weatherStatusLabel =
+    nearbyRouteAirports.length > 0
+      ? `${nearbyRouteAirports.length} flygplatser inom 50 NM`
+      : 'Inga träffar'
+  const notamStatusLabel =
+    nearbyRouteAirports.length > 0
+      ? `${nearbyRouteAirports.length} flygplatser inom 50 NM`
+      : 'Öppna LFV NOTAM'
 
   return (
     <div className="flightplan-page">
@@ -432,6 +595,17 @@ export function FlightplanApp({
                 radioNavEntries={effectiveRadioNav}
                 titleSlot={documentTitleSlot}
                 onHeaderChange={updateHeader}
+                weatherStatusLabel={weatherStatusLabel}
+                nearbyWeatherCount={nearbyRouteAirports.length}
+                onOpenWeatherPanel={() => {
+                  setActivePanel('weather')
+                  setWeatherRefreshToken((current) => current + 1)
+                }}
+                notamStatusLabel={notamStatusLabel}
+                onOpenNotamPanel={() => {
+                  setActivePanel('notam')
+                  setNotamRefreshToken((current) => current + 1)
+                }}
                 onSectionSelect={setActivePanel}
                 onRouteSegmentSelect={(rowIndex) => {
                   setFocusedLegIndex(rowIndex)
@@ -471,6 +645,17 @@ export function FlightplanApp({
                 routeRows={printRouteRows}
                 radioNavEntries={effectiveRadioNav}
                 onHeaderChange={updateHeader}
+                weatherStatusLabel={weatherStatusLabel}
+                nearbyWeatherCount={nearbyRouteAirports.length}
+                onOpenWeatherPanel={() => {
+                  setActivePanel('weather')
+                  setWeatherRefreshToken((current) => current + 1)
+                }}
+                notamStatusLabel={notamStatusLabel}
+                onOpenNotamPanel={() => {
+                  setActivePanel('notam')
+                  setNotamRefreshToken((current) => current + 1)
+                }}
                 onSectionSelect={setActivePanel}
                 onRouteSegmentSelect={(rowIndex) => {
                   setFocusedLegIndex(rowIndex)
@@ -838,6 +1023,154 @@ export function FlightplanApp({
                 </div>
               </section>
             )}
+
+            {activePanel === 'weather' && (
+              <section className="fp-panel-card fp-overlay-card">
+                <div className="fp-panel-header">
+                  <div>
+                    <p className="fp-panel-eyebrow">METAR / TAF</p>
+                    <h2>Flygplatser inom 50 NM från färdlinjen</h2>
+                  </div>
+                  <div className="fp-overlay-actions">
+                    <button type="button" onClick={() => setWeatherRefreshToken((current) => current + 1)}>
+                      Uppdatera
+                    </button>
+                    <button type="button" onClick={() => setActivePanel(null)}>
+                      Stäng
+                    </button>
+                  </div>
+                </div>
+                <div className="fp-weather-summary">
+                  <div><span>Träffar</span><strong>{nearbyRouteAirports.length}</strong></div>
+                  <div><span>Status</span><strong>{weatherState.status === 'loading' ? 'Hämtar' : weatherState.status === 'error' ? 'Fel' : 'Klar'}</strong></div>
+                  <div><span>Senast uppdaterad</span><strong>{formatUtcTimestamp(weatherState.lastUpdatedAt) ?? 'Ej hämtad'}</strong></div>
+                </div>
+                {weatherState.status === 'error' && (
+                  <p className="fp-weather-empty-state">
+                    Kunde inte hämta METAR/TAF: {weatherState.error}
+                  </p>
+                )}
+                {weatherState.status !== 'error' && nearbyRouteAirports.length === 0 && (
+                  <p className="fp-weather-empty-state">
+                    Rutten passerar inga registrerade svenska flygplatser inom 50 NM.
+                  </p>
+                )}
+                {weatherState.status !== 'error' && nearbyRouteAirports.length > 0 && (
+                  <div className="fp-weather-list">
+                    {weatherState.results.map((entry) => (
+                      <article key={entry.airport.icao} className="fp-weather-card">
+                        <div className="fp-weather-card__header">
+                          <div>
+                            <h3>{entry.airport.icao}</h3>
+                            <p>{entry.airport.name}</p>
+                          </div>
+                          <strong>{formatNumber(entry.airport.distanceNm, 1)} NM</strong>
+                        </div>
+                        <div className="fp-weather-report-grid">
+                          <section>
+                            <span className="fp-weather-report-label">METAR</span>
+                            <p className="fp-weather-report-time">
+                              {formatUtcTimestamp(entry.metarObservedAt) ? `Observerad ${formatUtcTimestamp(entry.metarObservedAt)}Z` : 'Ingen METAR tillgänglig'}
+                            </p>
+                            <pre>{entry.metarRawText ?? 'Ingen METAR tillgänglig'}</pre>
+                          </section>
+                          <section>
+                            <span className="fp-weather-report-label">TAF</span>
+                            <p className="fp-weather-report-time">
+                              {formatUtcTimestamp(entry.tafIssuedAt) ? `Utfärdad ${formatUtcTimestamp(entry.tafIssuedAt)}Z` : 'Ingen TAF tillgänglig'}
+                            </p>
+                            <pre>{entry.tafRawText ?? 'Ingen TAF tillgänglig'}</pre>
+                          </section>
+                        </div>
+                      </article>
+                    ))}
+                    {weatherState.status === 'loading' && (
+                      <p className="fp-weather-empty-state">Hämtar väderrapporter för {nearbyRouteAirports.length} flygplatser...</p>
+                    )}
+                  </div>
+                )}
+              </section>
+            )}
+
+            {activePanel === 'notam' && (
+              <section className="fp-panel-card fp-overlay-card">
+                <div className="fp-panel-header">
+                  <div>
+                    <p className="fp-panel-eyebrow">NOTAM</p>
+                    <h2>Flygplatser inom 50 NM från färdlinjen</h2>
+                  </div>
+                  <div className="fp-overlay-actions">
+                    <button type="button" onClick={() => setNotamRefreshToken((current) => current + 1)}>
+                      Uppdatera
+                    </button>
+                    <button type="button" onClick={() => setActivePanel(null)}>
+                      Stäng
+                    </button>
+                  </div>
+                </div>
+                <div className="fp-weather-summary">
+                  <div><span>Träffar</span><strong>{nearbyRouteAirports.length}</strong></div>
+                  <div><span>Källa</span><strong>LFV AROWeb</strong></div>
+                  <div><span>Status</span><strong>{notamState.status === 'loading' ? 'Hämtar' : notamState.status === 'error' ? 'Fel' : 'Klar'}</strong></div>
+                </div>
+                <div className="fp-weather-summary">
+                  <div><span>Cache hämtad</span><strong>{formatUtcTimestamp(notamState.lastUpdatedAt) ?? 'Ej hämtad'}</strong></div>
+                  <div><span>Bulletin publicerad</span><strong>{formatUtcTimestamp(notamState.bulletinPublishedAt) ?? 'Okänd'}</strong></div>
+                  <div><span>TTL</span><strong>30 min vid behov</strong></div>
+                </div>
+                <div className="fp-notam-actions">
+                  <a href={notamState.sourceUrl ?? lfvNotamSwedenUrl} target="_blank" rel="noreferrer">
+                    Öppna LFV NOTAM Sweden
+                  </a>
+                  <a href={lfvAroHomeUrl} target="_blank" rel="noreferrer">
+                    Öppna LFV AROWeb
+                  </a>
+                </div>
+                {notamState.status === 'error' && (
+                  <p className="fp-weather-empty-state">
+                    Kunde inte hämta NOTAM: {notamState.error}
+                  </p>
+                )}
+                {notamState.status !== 'error' && nearbyRouteAirports.length === 0 ? (
+                  <p className="fp-weather-empty-state">
+                    Rutten passerar inga registrerade svenska flygplatser inom 50 NM.
+                  </p>
+                ) : null}
+                {notamState.status !== 'error' && nearbyRouteAirports.length > 0 ? (
+                  <div className="fp-weather-list">
+                    {nearbyRouteAirports.map((airport) => {
+                      const entry = notamState.results.find((result) => result.icao === airport.icao)
+                      return (
+                        <article key={airport.icao} className="fp-weather-card">
+                        <div className="fp-weather-card__header">
+                          <div>
+                            <h3>{airport.icao}</h3>
+                            <p>{entry?.airportName ?? airport.name}</p>
+                          </div>
+                          <strong>{formatNumber(airport.distanceNm, 1)} NM</strong>
+                        </div>
+                        <section className="fp-weather-report-grid fp-weather-report-grid--single">
+                          <section>
+                            <span className="fp-weather-report-label">NOTAM</span>
+                            <p className="fp-weather-report-time">
+                              {notamState.status === 'loading'
+                                ? 'Läser LFV-briefing...'
+                                : entry?.hasNotams
+                                  ? 'Aktiva NOTAM i aktuell LFV-briefing'
+                                  : 'Inga NOTAM i aktuell LFV-briefing'}
+                            </p>
+                            <pre>{entry?.rawText ?? (notamState.status === 'loading' ? 'Hämtar NOTAM...' : 'Ingen NOTAM tillgänglig')}</pre>
+                          </section>
+                        </section>
+                      </article>
+                    )})}
+                    {notamState.status === 'loading' && (
+                      <p className="fp-weather-empty-state">Hämtar och läser LFV NOTAM-briefing...</p>
+                    )}
+                  </div>
+                ) : null}
+              </section>
+            )}
           </section>
         </div>
       )}
@@ -924,6 +1257,11 @@ function FlightPlanDocument({
   radioNavEntries,
   titleSlot,
   onHeaderChange,
+  weatherStatusLabel,
+  nearbyWeatherCount,
+  onOpenWeatherPanel,
+  notamStatusLabel,
+  onOpenNotamPanel,
   onSectionSelect,
   onRouteSegmentSelect,
   onOpenAircraftPicker,
@@ -937,6 +1275,11 @@ function FlightPlanDocument({
   radioNavEntries: RadioNavEntry[]
   titleSlot?: ReactNode
   onHeaderChange: (key: keyof FlightPlanInput['header'], value: string) => void
+  weatherStatusLabel: string
+  nearbyWeatherCount: number
+  onOpenWeatherPanel: () => void
+  notamStatusLabel: string
+  onOpenNotamPanel: () => void
   onSectionSelect: (panel: EditorPanel) => void
   onRouteSegmentSelect: (rowIndex: number) => void
   onOpenAircraftPicker: () => void
@@ -990,13 +1333,23 @@ function FlightPlanDocument({
           <HeaderField label="Landning" className="fp-meta-landing"><input value={plan.header.landing} onChange={(event) => onHeaderChange('landing', event.target.value)} /></HeaderField>
           <HeaderField label="Befälhavare / Status" className="fp-meta-captain"><input value={plan.header.captain} onChange={(event) => onHeaderChange('captain', event.target.value)} /></HeaderField>
           <HeaderField label="Spanare / Status" className="fp-meta-observer"><input value={plan.header.observer} onChange={(event) => onHeaderChange('observer', event.target.value)} /></HeaderField>
-          <HeaderField label="NOTAM kontroll" className="fp-meta-notam"><input value={plan.header.notamStatus} onChange={(event) => onHeaderChange('notamStatus', event.target.value)} /></HeaderField>
+          <HeaderField label="NOTAM kontroll" className="fp-meta-notam">
+            <button type="button" className="fp-header-picker fp-header-weather-button" onClick={onOpenNotamPanel}>
+              <strong>{plan.header.notamStatus}</strong>
+              <small>{notamStatusLabel}</small>
+            </button>
+          </HeaderField>
           <HeaderField label="Landningsflygplats" className="fp-meta-destination"><input value={plan.header.destinationAerodrome} onChange={(event) => onHeaderChange('destinationAerodrome', event.target.value)} /></HeaderField>
           <HeaderField label="Block ut" className="fp-meta-block-out"><input value={plan.header.blockOut} onChange={(event) => onHeaderChange('blockOut', event.target.value)} /></HeaderField>
           <HeaderField label="Start" className="fp-meta-takeoff"><input value={plan.header.takeoff} onChange={(event) => onHeaderChange('takeoff', event.target.value)} /></HeaderField>
           <HeaderField label="Fpl status" className="fp-meta-fpl-status"><input value={plan.header.fplStatus} onChange={(event) => onHeaderChange('fplStatus', event.target.value)} /></HeaderField>
           <HeaderField label="Daglig tillsyn" className="fp-meta-daily"><input value={plan.header.dailyInspection} onChange={(event) => onHeaderChange('dailyInspection', event.target.value)} /></HeaderField>
-          <HeaderField label="Väder / Metar" className="fp-meta-weather"><input value={plan.header.weatherStatus} onChange={(event) => onHeaderChange('weatherStatus', event.target.value)} /></HeaderField>
+          <HeaderField label="Väder / Metar" className="fp-meta-weather">
+            <button type="button" className="fp-header-picker fp-header-weather-button" onClick={onOpenWeatherPanel}>
+              <strong>{plan.header.weatherStatus}</strong>
+              <small>{nearbyWeatherCount > 0 ? weatherStatusLabel : 'Öppna METAR/TAF-panel'}</small>
+            </button>
+          </HeaderField>
           <HeaderField label="Blocktid" className="fp-meta-block-time"><strong>{formatTimeFromMinutes(derived.totals.blockTimeMinutes)}</strong></HeaderField>
           <HeaderField label="Flygtid" className="fp-meta-flight-time"><strong>{formatTimeFromMinutes(derived.totals.flightTimeMinutes)}</strong></HeaderField>
         </div>
