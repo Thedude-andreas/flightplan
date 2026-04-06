@@ -1,4 +1,4 @@
-# Flightplan
+# VFRplan
 
 Printable flight planning tool for general aviation in Sweden.
 
@@ -44,11 +44,11 @@ npm run lint
 
 ## Deploy
 
-Production is served from `webroots/www/flightplan` on the remote host.
+Production should be served from the webroot for `vfrplan.se` on the remote host.
 
 The deploy script now treats:
 
-- `DEPLOY_PATH=webroots/www` as the explicit production webroot
+- `DEPLOY_PATH` as the explicit webroot for the target domain
 - `DEPLOY_PATH=.` as a legacy value and remaps it to `webroots/www`
 
 Publish with:
@@ -66,6 +66,8 @@ DEPLOY_USER=...
 DEPLOY_PASS=...
 DEPLOY_PATH=webroots/www
 ```
+
+For `vfrplan.se`, point `DEPLOY_PATH` at that domain's actual webroot, not at a `flightplan` subdirectory.
 
 Do not point `DEPLOY_PATH` at the SSH home directory when publishing this app. That uploads files outside the live webroot and the public site will remain unchanged.
 
@@ -249,7 +251,7 @@ Index rebuild regenerates:
 Place updates regenerate:
 
 - `data/aviation/se/normalized/places.se.json`
-- `public/flightplan-data/places.se.json`
+- `public/vfrplan-data/places.se.json`
 - `src/features/flightplan/generated/places.se.ts`
 
 Do not hand-edit generated files. Re-run the scripts instead.

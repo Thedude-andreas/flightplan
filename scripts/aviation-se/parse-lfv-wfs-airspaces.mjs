@@ -86,7 +86,7 @@ async function fetchLayer(layer) {
   const response = await fetch(url, {
     headers: {
       Accept: 'application/json',
-      'User-Agent': 'Flightplan/1.0 (+https://andreasmartensson.com/flightplan/)',
+      'User-Agent': 'VFRplan/1.0 (+https://vfrplan.se/)',
     },
   })
 

@@ -108,7 +108,7 @@ Airspace parser output:
 Place gazetteer output:
 
 - `normalized/places.se.json`
-- `public/flightplan-data/places.se.json`
+- `public/vfrplan-data/places.se.json`
 - `src/features/flightplan/generated/places.se.ts`
 
 Index builder output:

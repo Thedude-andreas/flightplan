@@ -36,7 +36,7 @@ const kindPreference = {
   island: 0.98,
   mountain: 0.98,
 } as const
-const placesDataUrl = `${import.meta.env.BASE_URL}flightplan-data/places.se.json`
+const placesDataUrl = `${import.meta.env.BASE_URL}vfrplan-data/places.se.json`
 
 type SwedishPlaceKind = keyof typeof placeSearchRadiusNmByKind
 

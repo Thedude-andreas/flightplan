@@ -1,5 +1,5 @@
 {
-  "name": "flightplan",
+  "name": "vfrplan",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -12,7 +12,7 @@
     "supabase:stop": "npx supabase stop",
     "supabase:status": "npx supabase status",
     "supabase:db:push": "npx supabase db push",
-    "deploy": "set -a; [ -f ../AMC/.env ] && . ../AMC/.env; set +a; DEPLOY_TARGET=${DEPLOY_PATH:-webroots/www}; [ \"$DEPLOY_TARGET\" = \".\" ] && DEPLOY_TARGET=webroots/www; npm run build && lftp -e \"set sftp:auto-confirm yes; open -u $DEPLOY_USER,$DEPLOY_PASS sftp://$DEPLOY_HOST:$DEPLOY_PORT; cd $DEPLOY_TARGET; mkdir flightplan; cd flightplan; mirror -R --delete --verbose /Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/dist .; bye\"",
+    "deploy": "set -a; [ -f ../AMC/.env ] && . ../AMC/.env; set +a; DEPLOY_TARGET=${DEPLOY_PATH:-webroots/www}; [ \"$DEPLOY_TARGET\" = \".\" ] && DEPLOY_TARGET=webroots/www; npm run build && lftp -e \"set sftp:auto-confirm yes; open -u $DEPLOY_USER,$DEPLOY_PASS sftp://$DEPLOY_HOST:$DEPLOY_PORT; cd $DEPLOY_TARGET; mirror -R --delete --verbose /Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/dist .; bye\"",
     "aviation:se:fetch": "node ./scripts/aviation-se/fetch-lfv-aip.mjs --skip-if-exists",
     "aviation:se:extract": "node ./scripts/aviation-se/extract-lfv-aip.mjs",
     "aviation:se:manifest": "node ./scripts/aviation-se/build-manifest.mjs",

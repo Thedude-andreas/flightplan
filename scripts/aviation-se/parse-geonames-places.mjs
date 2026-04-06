@@ -6,7 +6,7 @@ const rawDir = resolve('data/aviation/se/raw/geonames')
 const zipPath = resolve(rawDir, 'SE.zip')
 const outputDir = resolve('data/aviation/se/normalized')
 const generatedDir = resolve('src/features/flightplan/generated')
-const publicDataDir = resolve('public/flightplan-data')
+const publicDataDir = resolve('public/vfrplan-data')
 const KIND_CODE = {
   settlement: 's',
   lake: 'l',

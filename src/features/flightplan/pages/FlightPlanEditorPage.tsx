@@ -38,6 +38,10 @@ function createCopyName(name: string) {
 }
 
 function createDraftKey(userId: string, resourceId: string | null) {
+  return `vfrplan:draft:${userId}:${resourceId ?? 'new'}`
+}
+
+function createLegacyDraftKey(userId: string, resourceId: string | null) {
   return `flightplan:draft:${userId}:${resourceId ?? 'new'}`
 }
 
@@ -160,6 +164,7 @@ export function FlightPlanEditorPage() {
           }
 
           const storedDraft = loadDraft<FlightPlanDraftValue>(createDraftKey(user.id, record.id))
+            ?? loadDraft<FlightPlanDraftValue>(createLegacyDraftKey(user.id, record.id))
           const matchingDraft = storedDraft?.baseUpdatedAt === record.updatedAt ? storedDraft : null
 
           const nextPlan = matchingDraft?.value.plan ?? record.payload
@@ -175,6 +180,7 @@ export function FlightPlanEditorPage() {
           setSaveState(matchingDraft?.hasUnsavedChanges ? 'dirty' : 'saved')
         } else {
           const storedDraft = loadDraft<FlightPlanDraftValue>(createDraftKey(user.id, null))
+            ?? loadDraft<FlightPlanDraftValue>(createLegacyDraftKey(user.id, null))
 
           const nextPlan = storedDraft?.value.plan ?? createEmptyFlightPlan()
           const nextName = storedDraft?.value.name ?? createDefaultPlanName()
