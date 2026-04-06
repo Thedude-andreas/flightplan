@@ -9,6 +9,14 @@
   color: #12202a;
 }
 
+.public-layout--login {
+  background:
+    linear-gradient(0deg, rgba(11, 22, 32, 0.4), rgba(11, 22, 32, 0.4)),
+    linear-gradient(145deg, rgba(238, 242, 244, 0.2), rgba(196, 209, 217, 0.2)),
+    url('/login-background.png') center / cover no-repeat,
+    linear-gradient(145deg, #eef2f4 0%, #d7e1e7 48%, #c4d1d9 100%);
+}
+
 .public-layout__backdrop {
   position: absolute;
   inset: 0;
@@ -21,6 +29,13 @@
       rgba(18, 32, 42, 0.03) 28px,
       rgba(18, 32, 42, 0.03) 56px
     );
+}
+
+.public-layout--login .public-layout__backdrop {
+  background:
+    linear-gradient(180deg, rgba(255, 247, 232, 0.16), rgba(12, 29, 43, 0.22)),
+    radial-gradient(circle at top right, rgba(255, 244, 220, 0.28), transparent 30%);
+  backdrop-filter: blur(2px);
 }
 
 .public-layout__content {
@@ -149,6 +164,12 @@
 
 .auth-card {
   padding: 32px;
+}
+
+.public-layout--login .auth-card {
+  background: rgba(252, 253, 254, 0.8);
+  border-color: rgba(18, 32, 42, 0.12);
+  box-shadow: 0 24px 80px rgba(7, 18, 27, 0.28);
 }
 
 .auth-card__header {

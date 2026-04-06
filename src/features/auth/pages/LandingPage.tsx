@@ -7,7 +7,7 @@ export function LandingPage() {
         <p className="marketing-hero__eyebrow">VFRplan.se</p>
         <h1>Driftfärdplaner, karteditor och flygplansprofiler i samma arbetsyta.</h1>
         <p className="marketing-hero__lede">
-          Logga in för att spara egna färdplaner och flygplansprofiler. Version 1 är privat per användare och byggd för att tåla tillfälliga avbrott utan att kasta bort arbete.
+          Färdplaneringsverktyg på en karta som inte är kass, byggt för att göra planeringen snabb, tydlig och faktiskt användbar i verkligheten.
         </p>
         <div className="marketing-hero__actions">
           <Link to="/login" className="button-link button-link--primary">
