@@ -1,5 +1,5 @@
 import { getSupabaseClient } from '../../lib/supabase/client'
-import { swedishAirports, type SwedishAirport } from './generated/airports.se'
+import { getSwedishAirports, type SwedishAirport } from './aviationData'
 import type { FlightPlanInput } from './types'
 
 const METAR_TAF_API_BASE_URL = 'https://skyvok.com/api'
@@ -115,7 +115,7 @@ export function getAirportsNearRoute(
     return []
   }
 
-  return swedishAirports
+  return getSwedishAirports()
     .filter((airport): airport is SwedishAirport & { icao: string; name: string } => Boolean(airport.icao && airport.name))
     .map((airport) => {
       const nearestDistanceNm = routeLegs.reduce((closestDistance, leg) => {

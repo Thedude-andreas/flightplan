@@ -15,12 +15,17 @@ import {
 import L, { divIcon, type LeafletMouseEvent } from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 
+import {
+  getSwedishAirports,
+  getSwedishAirspaces,
+  getSwedishNavaids,
+  type SwedishAirspace,
+  type SwedishAirspaceGeometry,
+  type SwedishNavaid,
+} from './aviationData'
 import { calculateFlightPlan, formatTimeFromMinutes } from './calculations'
 import { formatCoordinateDms } from './coordinates'
 import { getRoutePointLabel, legsToWaypoints, pointWithNearestName, waypointsToLegs } from './gazetteer'
-import { swedishAirspaces } from './generated/airspaces.se'
-import { swedishAirports } from './generated/airports.se'
-import { swedishNavaids } from './generated/radio-nav.se'
 import type { FlightPlanInput, FlightPlanDerived } from './types'
 
 type BasemapKey = 'topo' | 'osm'
@@ -76,7 +81,7 @@ const emptyPlanViewport: FlightplanMapViewport = {
   zoom: 5,
 }
 
-function getNavaidPalette(kind: (typeof swedishNavaids)[number]['kind']) {
+function getNavaidPalette(kind: SwedishNavaid['kind']) {
   switch (kind) {
     case 'VOR':
       return { color: '#0c5a9a', fillColor: '#d9eeff', radius: 5 }
@@ -170,7 +175,7 @@ function pointInPolygon(lat: number, lon: number, polygon: number[][][]) {
 }
 
 function airspaceContainsPoint(
-  airspace: (typeof swedishAirspaces)[number],
+  airspace: SwedishAirspace,
   lat: number,
   lon: number,
 ) {
@@ -178,7 +183,7 @@ function airspaceContainsPoint(
 }
 
 function geometryContainsPoint(
-  geometry: (typeof swedishAirspaces)[number]['geometry'],
+  geometry: SwedishAirspaceGeometry,
   lat: number,
   lon: number,
 ) {
@@ -450,6 +455,9 @@ export function FlightplanMapEditor({
   initialViewport?: FlightplanMapViewport | null
   onViewportChange?: (viewport: FlightplanMapViewport) => void
 }) {
+  const swedishAirspaces = getSwedishAirspaces()
+  const swedishAirports = getSwedishAirports()
+  const swedishNavaids = getSwedishNavaids()
   const [basemap, setBasemap] = useState<BasemapKey>('topo')
   const [showAirspaces, setShowAirspaces] = useState(true)
   const [mapZoom, setMapZoom] = useState(7)
@@ -593,7 +601,7 @@ export function FlightplanMapEditor({
     setWaypoints([...waypoints, nextPoint])
   }
 
-  const addNavaidPointToEnd = (navaid: (typeof swedishNavaids)[number]) => {
+  const addNavaidPointToEnd = (navaid: SwedishNavaid) => {
     const resolvedPoint = resolveRoutePoint(navaid.lat, navaid.lon)
     const nextLabel = navaid.ident ?? navaid.name ?? navaid.kind
     const nextPoint =

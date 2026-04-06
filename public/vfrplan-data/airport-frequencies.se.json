@@ -1,0 +1,1731 @@
+[
+  {
+    "id": "ESCF-TWR-1",
+    "kind": "TWR",
+    "positionIndicator": "ESCF",
+    "unit": "MALMEN TOWER",
+    "hours": "HO",
+    "remarks": "PRIMARY\nVDF",
+    "frequencies": [
+      "129.800"
+    ]
+  },
+  {
+    "id": "ESCF-TWR-2",
+    "kind": "TWR",
+    "positionIndicator": "ESCF",
+    "unit": "MALMEN TOWER",
+    "hours": "HX",
+    "remarks": null,
+    "frequencies": [
+      "121.050"
+    ]
+  },
+  {
+    "id": "ESCF-TWR-3",
+    "kind": "TWR",
+    "positionIndicator": "ESCF",
+    "unit": "MALMEN TOWER",
+    "hours": "HO",
+    "remarks": "VDF",
+    "frequencies": [
+      "132.600",
+      "121.500"
+    ]
+  },
+  {
+    "id": "ESCF-TWR-4",
+    "kind": "TWR",
+    "positionIndicator": "ESCF",
+    "unit": "MALMEN GROUND",
+    "hours": "HX",
+    "remarks": "Also de-icing",
+    "frequencies": [
+      "121.850"
+    ]
+  },
+  {
+    "id": "ESCF-APP-5",
+    "kind": "APP",
+    "positionIndicator": "ESCF",
+    "unit": "ÖSTGÖTA APPROACH",
+    "hours": "HX",
+    "remarks": "VDF",
+    "frequencies": [
+      "126.400"
+    ]
+  },
+  {
+    "id": "ESCF-APP-6",
+    "kind": "APP",
+    "positionIndicator": "ESCF",
+    "unit": "ÖSTGÖTA APPROACH",
+    "hours": "HX",
+    "remarks": null,
+    "frequencies": [
+      "127.350",
+      "135.850"
+    ]
+  },
+  {
+    "id": "ESCF-APP-7",
+    "kind": "APP",
+    "positionIndicator": "ESCF",
+    "unit": "ÖSTGÖTA APPROACH",
+    "hours": "HO",
+    "remarks": null,
+    "frequencies": [
+      "132.955"
+    ]
+  },
+  {
+    "id": "ESCF-PAR-8",
+    "kind": "PAR",
+    "positionIndicator": "ESCF",
+    "unit": "MALMEN PRECISION",
+    "hours": "HX",
+    "remarks": "MIL Operations only.",
+    "frequencies": [
+      "125.200"
+    ]
+  },
+  {
+    "id": "ESCM-TWR-1",
+    "kind": "TWR",
+    "positionIndicator": "ESCM",
+    "unit": "UPPSALA TOWER",
+    "hours": "HO",
+    "remarks": "PRIMARY\nVDF",
+    "frequencies": [
+      "119.200"
+    ]
+  },
+  {
+    "id": "ESCM-TWR-2",
+    "kind": "TWR",
+    "positionIndicator": "ESCM",
+    "unit": "UPPSALA TOWER",
+    "hours": "HO",
+    "remarks": "VDF",
+    "frequencies": [
+      "121.500"
+    ]
+  },
+  {
+    "id": "ESCM-APP-3",
+    "kind": "APP",
+    "positionIndicator": "ESCM",
+    "unit": "UPPSALA APPROACH",
+    "hours": "HO",
+    "remarks": "VDF",
+    "frequencies": [
+      "130.400"
+    ]
+  },
+  {
+    "id": "ESDF-TWR-1",
+    "kind": "TWR",
+    "positionIndicator": "ESDF",
+    "unit": "RONNEBY TOWER",
+    "hours": "HO",
+    "remarks": "PRIMARY\nVDF",
+    "frequencies": [
+      "119.200"
+    ]
+  },
+  {
+    "id": "ESDF-TWR-2",
+    "kind": "TWR",
+    "positionIndicator": "ESDF",
+    "unit": "RONNEBY TOWER",
+    "hours": "HO",
+    "remarks": "VDF",
+    "frequencies": [
+      "121.500"
+    ]
+  },
+  {
+    "id": "ESDF-TWR-3",
+    "kind": "TWR",
+    "positionIndicator": "ESDF",
+    "unit": "RONNEBY GROUND",
+    "hours": "MON-THU 0730-1500 (0630-1400) FRI 0730-1100\n (0630-1000) \n15 SEP-1 APR also THU 1500-2100 (1400-2000)",
+    "remarks": "Start-up, ATC clearance, taxi instruction.",
+    "frequencies": [
+      "121.850"
+    ]
+  },
+  {
+    "id": "ESDF-APP-4",
+    "kind": "APP",
+    "positionIndicator": "ESDF",
+    "unit": "RONNEBY APPROACH",
+    "hours": "HO",
+    "remarks": null,
+    "frequencies": [
+      "128.450"
+    ]
+  },
+  {
+    "id": "ESDF-APP-5",
+    "kind": "APP",
+    "positionIndicator": "ESDF",
+    "unit": "RONNEBY APPROACH",
+    "hours": "HO",
+    "remarks": "By directive from ATS",
+    "frequencies": [
+      "129.900"
+    ]
+  },
+  {
+    "id": "ESDF-PAR-6",
+    "kind": "PAR",
+    "positionIndicator": "ESDF",
+    "unit": "RONNEBY PRECISION",
+    "hours": "MON-THU 0730-1500 (0630-1400) FRI 0730-1100\n (0630-1000) \n15 SEP-1 APR also THU 1500-2100 (1400-2000)",
+    "remarks": "PRIMARY\nPPR for civil traffic",
+    "frequencies": [
+      "134.100"
+    ]
+  },
+  {
+    "id": "ESDF-PAR-7",
+    "kind": "PAR",
+    "positionIndicator": "ESDF",
+    "unit": "RONNEBY PRECISION",
+    "hours": "MON-THU 0730-1500 (0630-1400) FRI 0730-1100\n (0630-1000) \n15 SEP-1 APR also THU 1500-2100 (1400-2000)",
+    "remarks": null,
+    "frequencies": [
+      "118.000"
+    ]
+  },
+  {
+    "id": "ESGG-TWR-1",
+    "kind": "TWR",
+    "positionIndicator": "ESGG",
+    "unit": "LANDVETTER TOWER",
+    "hours": "H24",
+    "remarks": "PRIMARY",
+    "frequencies": [
+      "118.605"
+    ]
+  },
+  {
+    "id": "ESGG-TWR-2",
+    "kind": "TWR",
+    "positionIndicator": "ESGG",
+    "unit": "LANDVETTER TOWER",
+    "hours": "H24",
+    "remarks": null,
+    "frequencies": [
+      "121.500"
+    ]
+  },
+  {
+    "id": "ESGG-TWR-3",
+    "kind": "TWR",
+    "positionIndicator": "ESGG",
+    "unit": "LANDVETTER TOWER",
+    "hours": "HO",
+    "remarks": "SAR",
+    "frequencies": [
+      "123.100"
+    ]
+  },
+  {
+    "id": "ESGG-TWR-4",
+    "kind": "TWR",
+    "positionIndicator": "ESGG",
+    "unit": "LANDVETTER GROUND",
+    "hours": "H24",
+    "remarks": "Start-up, push-back and taxi instructions.",
+    "frequencies": [
+      "121.905"
+    ]
+  },
+  {
+    "id": "ESGG-TWR-5",
+    "kind": "TWR",
+    "positionIndicator": "ESGG",
+    "unit": "CLEARANCE DELIVERY",
+    "hours": "H24",
+    "remarks": "ATC clearance\nDCL service available by ACARS for ACFT equipped with ACARS-MU (AEEC 623 compliant) (Provider: ARINC for datalink communication).",
+    "frequencies": [
+      "121.680"
+    ]
+  },
+  {
+    "id": "ESGG-ATIS-6",
+    "kind": "ATIS",
+    "positionIndicator": "ESGG",
+    "unit": "LANDVETTER ATIS",
+    "hours": "H24",
+    "remarks": "Simultaneous transmission, both frequencies. \nD-ATIS service available.",
+    "frequencies": [
+      "114.600",
+      "118.380"
+    ]
+  },
+  {
+    "id": "ESGJ-TWR-1",
+    "kind": "TWR",
+    "positionIndicator": "ESGJ",
+    "unit": "JÖNKÖPING TOWER",
+    "hours": "HO",
+    "remarks": "PRIMARY\nVDF",
+    "frequencies": [
+      "118.255"
+    ]
+  },
+  {
+    "id": "ESGJ-TWR-2",
+    "kind": "TWR",
+    "positionIndicator": "ESGJ",
+    "unit": "JÖNKÖPING TOWER",
+    "hours": "HO",
+    "remarks": null,
+    "frequencies": [
+      "121.500"
+    ]
+  },
+  {
+    "id": "ESGP-TWR-1",
+    "kind": "TWR",
+    "positionIndicator": "ESGP",
+    "unit": "SÄVE TOWER",
+    "hours": "HO",
+    "remarks": "PRIMARY\nVDF",
+    "frequencies": [
+      "119.055"
+    ]
+  },
+  {
+    "id": "ESGP-TWR-2",
+    "kind": "TWR",
+    "positionIndicator": "ESGP",
+    "unit": "SÄVE TOWER",
+    "hours": "HO",
+    "remarks": null,
+    "frequencies": [
+      "121.500"
+    ]
+  },
+  {
+    "id": "ESGT-TWR-1",
+    "kind": "TWR",
+    "positionIndicator": "ESGT",
+    "unit": "STALLBACKA TOWER",
+    "hours": "HO",
+    "remarks": "PRIMARY",
+    "frequencies": [
+      "122.730"
+    ]
+  },
+  {
+    "id": "ESGT-TWR-2",
+    "kind": "TWR",
+    "positionIndicator": "ESGT",
+    "unit": "STALLBACKA TOWER",
+    "hours": "HO",
+    "remarks": null,
+    "frequencies": [
+      "121.500"
+    ]
+  },
+  {
+    "id": "ESIA-TWR-1",
+    "kind": "TWR",
+    "positionIndicator": "ESIA",
+    "unit": "KARLSBORG TOWER",
+    "hours": "HO",
+    "remarks": "PRIMARY\nVDF",
+    "frequencies": [
+      "133.000"
+    ]
+  },
+  {
+    "id": "ESIA-TWR-2",
+    "kind": "TWR",
+    "positionIndicator": "ESIA",
+    "unit": "KARLSBORG TOWER",
+    "hours": "HO",
+    "remarks": "VDF",
+    "frequencies": [
+      "132.050",
+      "121.500"
+    ]
+  },
+  {
+    "id": "ESIA-APP-3",
+    "kind": "APP",
+    "positionIndicator": "ESIA",
+    "unit": "KARLSBORG APPROACH",
+    "hours": "HO",
+    "remarks": "VDF",
+    "frequencies": [
+      "132.050",
+      "133.000"
+    ]
+  },
+  {
+    "id": "ESIB-TWR-1",
+    "kind": "TWR",
+    "positionIndicator": "ESIB",
+    "unit": "SÅTENÄS TOWER",
+    "hours": "HO",
+    "remarks": "PRIMARY\nVDF",
+    "frequencies": [
+      "128.200"
+    ]
+  },
+  {
+    "id": "ESIB-TWR-2",
+    "kind": "TWR",
+    "positionIndicator": "ESIB",
+    "unit": "SÅTENÄS TOWER",
+    "hours": "HO",
+    "remarks": "VDF",
+    "frequencies": [
+      "121.500"
+    ]
+  },
+  {
+    "id": "ESIB-TWR-3",
+    "kind": "TWR",
+    "positionIndicator": "ESIB",
+    "unit": "SÅTENÄS GROUND",
+    "hours": "MON-THU 0730-1430 (0630-1330)\nFRI 0730-1100 (0630-1000)",
+    "remarks": "Start-up, ATC Clearance, taxi instructions",
+    "frequencies": [
+      "121.850"
+    ]
+  },
+  {
+    "id": "ESIB-APP-4",
+    "kind": "APP",
+    "positionIndicator": "ESIB",
+    "unit": "SÅTENÄS APPROACH",
+    "hours": "HO",
+    "remarks": "VDF",
+    "frequencies": [
+      "123.000",
+      "134.550"
+    ]
+  },
+  {
+    "id": "ESIB-PAR-5",
+    "kind": "PAR",
+    "positionIndicator": "ESIB",
+    "unit": "SÅTENÄS PRECISION",
+    "hours": "HO",
+    "remarks": null,
+    "frequencies": [
+      "119.300"
+    ]
+  },
+  {
+    "id": "ESKM-AFIS-1",
+    "kind": "AFIS",
+    "positionIndicator": "ESKM",
+    "unit": "MORA INFORMATION",
+    "hours": "HO",
+    "remarks": null,
+    "frequencies": [
+      "119.055",
+      "121.500"
+    ]
+  },
+  {
+    "id": "ESKM-AFIS-2",
+    "kind": "AFIS",
+    "positionIndicator": "ESKM",
+    "unit": "MORA GROUND",
+    "hours": "HO",
+    "remarks": "De-icing, fuelling",
+    "frequencies": [
+      "131.655"
+    ]
+  },
+  {
+    "id": "ESKN-TWR-1",
+    "kind": "TWR",
+    "positionIndicator": "ESKN",
+    "unit": "SKAVSTA TOWER",
+    "hours": "H24",
+    "remarks": "PRIMARY\nVDF",
+    "frequencies": [
+      "127.705"
+    ]
+  },
+  {
+    "id": "ESKN-TWR-2",
+    "kind": "TWR",
+    "positionIndicator": "ESKN",
+    "unit": "SKAVSTA TOWER",
+    "hours": "H24",
+    "remarks": "VDF",
+    "frequencies": [
+      "121.500"
+    ]
+  },
+  {
+    "id": "ESKN-APP-3",
+    "kind": "APP",
+    "positionIndicator": "ESKN",
+    "unit": "ÖSTGÖTA APPROACH",
+    "hours": "HO",
+    "remarks": null,
+    "frequencies": [
+      "132.955"
+    ]
+  },
+  {
+    "id": "ESKN-ATIS-4",
+    "kind": "ATIS",
+    "positionIndicator": "ESKN",
+    "unit": "SKAVSTA ATIS",
+    "hours": "H24",
+    "remarks": null,
+    "frequencies": [
+      "126.280"
+    ]
+  },
+  {
+    "id": "ESKS-TWR-1",
+    "kind": "TWR",
+    "positionIndicator": "ESKS",
+    "unit": "SÄLEN TOWER",
+    "hours": "HO",
+    "remarks": "PRIMARY",
+    "frequencies": [
+      "124.460"
+    ]
+  },
+  {
+    "id": "ESKS-TWR-2",
+    "kind": "TWR",
+    "positionIndicator": "ESKS",
+    "unit": "SÄLEN TOWER",
+    "hours": "HX",
+    "remarks": "By directive from TWR",
+    "frequencies": [
+      "118.440"
+    ]
+  },
+  {
+    "id": "ESKS-TWR-3",
+    "kind": "TWR",
+    "positionIndicator": "ESKS",
+    "unit": "SÄLEN TOWER",
+    "hours": "HO",
+    "remarks": null,
+    "frequencies": [
+      "121.500"
+    ]
+  },
+  {
+    "id": "ESMK-TWR-1",
+    "kind": "TWR",
+    "positionIndicator": "ESMK",
+    "unit": "KRISTIANSTAD TOWER",
+    "hours": "HO",
+    "remarks": "PRIMARY",
+    "frequencies": [
+      "129.355"
+    ]
+  },
+  {
+    "id": "ESMK-TWR-2",
+    "kind": "TWR",
+    "positionIndicator": "ESMK",
+    "unit": "KRISTIANSTAD TOWER",
+    "hours": "HO",
+    "remarks": null,
+    "frequencies": [
+      "121.500"
+    ]
+  },
+  {
+    "id": "ESMQ-TWR/APP-1",
+    "kind": "TWR/APP",
+    "positionIndicator": "ESMQ",
+    "unit": "KALMAR TOWER",
+    "hours": "HO",
+    "remarks": "PRIMARY",
+    "frequencies": [
+      "130.805"
+    ]
+  },
+  {
+    "id": "ESMQ-TWR/APP-2",
+    "kind": "TWR/APP",
+    "positionIndicator": "ESMQ",
+    "unit": "KALMAR TOWER",
+    "hours": "HX",
+    "remarks": null,
+    "frequencies": [
+      "127.055"
+    ]
+  },
+  {
+    "id": "ESMQ-TWR/APP-3",
+    "kind": "TWR/APP",
+    "positionIndicator": "ESMQ",
+    "unit": "KALMAR TOWER",
+    "hours": "HO",
+    "remarks": null,
+    "frequencies": [
+      "121.500"
+    ]
+  },
+  {
+    "id": "ESMS-TWR-1",
+    "kind": "TWR",
+    "positionIndicator": "ESMS",
+    "unit": "STURUP TOWER",
+    "hours": "H24",
+    "remarks": "PRIMARY",
+    "frequencies": [
+      "118.805"
+    ]
+  },
+  {
+    "id": "ESMS-TWR-2",
+    "kind": "TWR",
+    "positionIndicator": "ESMS",
+    "unit": "STURUP TOWER",
+    "hours": "HO",
+    "remarks": null,
+    "frequencies": [
+      "121.705"
+    ]
+  },
+  {
+    "id": "ESMS-TWR-3",
+    "kind": "TWR",
+    "positionIndicator": "ESMS",
+    "unit": "STURUP TOWER",
+    "hours": "H24",
+    "remarks": null,
+    "frequencies": [
+      "121.500"
+    ]
+  },
+  {
+    "id": "ESMS-ATIS-4",
+    "kind": "ATIS",
+    "positionIndicator": "ESMS",
+    "unit": "STURUP ATIS",
+    "hours": "H24",
+    "remarks": "D-ATIS service available",
+    "frequencies": [
+      "129.280"
+    ]
+  },
+  {
+    "id": "ESMT-TWR-1",
+    "kind": "TWR",
+    "positionIndicator": "ESMT",
+    "unit": "HALMSTAD TOWER",
+    "hours": "HO",
+    "remarks": "PRIMARY",
+    "frequencies": [
+      "130.105"
+    ]
+  },
+  {
+    "id": "ESMT-TWR-2",
+    "kind": "TWR",
+    "positionIndicator": "ESMT",
+    "unit": "HALMSTAD TOWER",
+    "hours": "HO",
+    "remarks": null,
+    "frequencies": [
+      "135.055",
+      "121.500"
+    ]
+  },
+  {
+    "id": "ESMV-TWR-1",
+    "kind": "TWR",
+    "positionIndicator": "ESMV",
+    "unit": "HAGSHULT TOWER",
+    "hours": "HX",
+    "remarks": "VDF",
+    "frequencies": [
+      "136.250"
+    ]
+  },
+  {
+    "id": "ESMV-TWR-2",
+    "kind": "TWR",
+    "positionIndicator": "ESMV",
+    "unit": "HAGSHULT TOWER",
+    "hours": "HX",
+    "remarks": null,
+    "frequencies": [
+      "121.500"
+    ]
+  },
+  {
+    "id": "ESMV-APP-3",
+    "kind": "APP",
+    "positionIndicator": "ESMV",
+    "unit": "HAGSHULT APPROACH",
+    "hours": "HX",
+    "remarks": null,
+    "frequencies": [
+      "121.150"
+    ]
+  },
+  {
+    "id": "ESMV-APP-4",
+    "kind": "APP",
+    "positionIndicator": "ESMV",
+    "unit": "HAGSHULT APPROACH",
+    "hours": "HX",
+    "remarks": "VDF\nBy directive from ATS",
+    "frequencies": [
+      "132.250"
+    ]
+  },
+  {
+    "id": "ESMV-PAR-5",
+    "kind": "PAR",
+    "positionIndicator": "ESMV",
+    "unit": "HAGSHULT PRECISION",
+    "hours": "HX",
+    "remarks": "MIL operations only",
+    "frequencies": [
+      "125.800"
+    ]
+  },
+  {
+    "id": "ESMX-TWR-1",
+    "kind": "TWR",
+    "positionIndicator": "ESMX",
+    "unit": "KRONOBERG TOWER",
+    "hours": "HO",
+    "remarks": "PRIMARY",
+    "frequencies": [
+      "118.155"
+    ]
+  },
+  {
+    "id": "ESMX-TWR-2",
+    "kind": "TWR",
+    "positionIndicator": "ESMX",
+    "unit": "KRONOBERG TOWER",
+    "hours": "HO",
+    "remarks": null,
+    "frequencies": [
+      "121.500"
+    ]
+  },
+  {
+    "id": "ESND-AFIS-1",
+    "kind": "AFIS",
+    "positionIndicator": "ESND",
+    "unit": "SVEG INFORMATION",
+    "hours": "HO",
+    "remarks": null,
+    "frequencies": [
+      "122.205",
+      "121.500"
+    ]
+  },
+  {
+    "id": "ESNG-AFIS-1",
+    "kind": "AFIS",
+    "positionIndicator": "ESNG",
+    "unit": "GÄLLIVARE INFORMATION",
+    "hours": "HO",
+    "remarks": null,
+    "frequencies": [
+      "122.330",
+      "121.500"
+    ]
+  },
+  {
+    "id": "ESNK-AFIS-1",
+    "kind": "AFIS",
+    "positionIndicator": "ESNK",
+    "unit": "KRAMFORS INFORMATION",
+    "hours": "HO",
+    "remarks": null,
+    "frequencies": [
+      "122.155",
+      "121.500"
+    ]
+  },
+  {
+    "id": "ESNL-AFIS-1",
+    "kind": "AFIS",
+    "positionIndicator": "ESNL",
+    "unit": "LYCKSELE INFORMATION",
+    "hours": "HO",
+    "remarks": null,
+    "frequencies": [
+      "122.230",
+      "121.500"
+    ]
+  },
+  {
+    "id": "ESNN-TWR-1",
+    "kind": "TWR",
+    "positionIndicator": "ESNN",
+    "unit": "SUNDSVALL TOWER",
+    "hours": "HO",
+    "remarks": "PRIMARY",
+    "frequencies": [
+      "129.555"
+    ]
+  },
+  {
+    "id": "ESNN-TWR-2",
+    "kind": "TWR",
+    "positionIndicator": "ESNN",
+    "unit": "SUNDSVALL TOWER",
+    "hours": "HX",
+    "remarks": "By directive from TWR",
+    "frequencies": [
+      "118.105"
+    ]
+  },
+  {
+    "id": "ESNN-TWR-3",
+    "kind": "TWR",
+    "positionIndicator": "ESNN",
+    "unit": "SUNDSVALL TOWER",
+    "hours": "HO",
+    "remarks": null,
+    "frequencies": [
+      "121.500"
+    ]
+  },
+  {
+    "id": "ESNN-ATIS-4",
+    "kind": "ATIS",
+    "positionIndicator": "ESNN",
+    "unit": "SUNDSVALL ATIS",
+    "hours": "HO",
+    "remarks": null,
+    "frequencies": [
+      "127.405"
+    ]
+  },
+  {
+    "id": "ESNO-TWR-1",
+    "kind": "TWR",
+    "positionIndicator": "ESNO",
+    "unit": "ÖVIK TOWER",
+    "hours": "HO",
+    "remarks": "PRIMARY",
+    "frequencies": [
+      "122.255"
+    ]
+  },
+  {
+    "id": "ESNO-TWR-2",
+    "kind": "TWR",
+    "positionIndicator": "ESNO",
+    "unit": "ÖVIK TOWER",
+    "hours": "HX",
+    "remarks": "By directive from TWR",
+    "frequencies": [
+      "118.905"
+    ]
+  },
+  {
+    "id": "ESNO-TWR-3",
+    "kind": "TWR",
+    "positionIndicator": "ESNO",
+    "unit": "ÖVIK TOWER",
+    "hours": "HO",
+    "remarks": null,
+    "frequencies": [
+      "121.500"
+    ]
+  },
+  {
+    "id": "ESNQ-TWR-1",
+    "kind": "TWR",
+    "positionIndicator": "ESNQ",
+    "unit": "KIRUNA TOWER",
+    "hours": "HO",
+    "remarks": "PRIMARY\nLRG",
+    "frequencies": [
+      "130.155"
+    ]
+  },
+  {
+    "id": "ESNQ-TWR-2",
+    "kind": "TWR",
+    "positionIndicator": "ESNQ",
+    "unit": "KIRUNA TOWER",
+    "hours": "HO",
+    "remarks": "De-icing",
+    "frequencies": [
+      "121.775"
+    ]
+  },
+  {
+    "id": "ESNQ-TWR-3",
+    "kind": "TWR",
+    "positionIndicator": "ESNQ",
+    "unit": "KIRUNA TOWER",
+    "hours": "HX",
+    "remarks": "By directive from ATS",
+    "frequencies": [
+      "122.100"
+    ]
+  },
+  {
+    "id": "ESNQ-TWR-4",
+    "kind": "TWR",
+    "positionIndicator": "ESNQ",
+    "unit": "KIRUNA TOWER",
+    "hours": "HO",
+    "remarks": null,
+    "frequencies": [
+      "121.500"
+    ]
+  },
+  {
+    "id": "ESNS-TWR-1",
+    "kind": "TWR",
+    "positionIndicator": "ESNS",
+    "unit": "SKELLEFTEÅ TOWER",
+    "hours": "HO",
+    "remarks": "PRIMARY\nVDF",
+    "frequencies": [
+      "122.055"
+    ]
+  },
+  {
+    "id": "ESNS-TWR-2",
+    "kind": "TWR",
+    "positionIndicator": "ESNS",
+    "unit": "SKELLEFTEÅ TOWER",
+    "hours": "HO",
+    "remarks": "VDF",
+    "frequencies": [
+      "121.500"
+    ]
+  },
+  {
+    "id": "ESNU-TWR-1",
+    "kind": "TWR",
+    "positionIndicator": "ESNU",
+    "unit": "UMEÅ TOWER",
+    "hours": "HO",
+    "remarks": "PRIMARY",
+    "frequencies": [
+      "119.805"
+    ]
+  },
+  {
+    "id": "ESNU-TWR-2",
+    "kind": "TWR",
+    "positionIndicator": "ESNU",
+    "unit": "UMEÅ TOWER",
+    "hours": "HO",
+    "remarks": "By directive from TWR",
+    "frequencies": [
+      "118.080"
+    ]
+  },
+  {
+    "id": "ESNU-TWR-3",
+    "kind": "TWR",
+    "positionIndicator": "ESNU",
+    "unit": "UMEÅ TOWER",
+    "hours": "HO",
+    "remarks": null,
+    "frequencies": [
+      "121.500"
+    ]
+  },
+  {
+    "id": "ESNU-TWR-4",
+    "kind": "TWR",
+    "positionIndicator": "ESNU",
+    "unit": "UMEÅ DE-ICING",
+    "hours": "HO",
+    "remarks": null,
+    "frequencies": [
+      "121.775"
+    ]
+  },
+  {
+    "id": "ESNV-AFIS-1",
+    "kind": "AFIS",
+    "positionIndicator": "ESNV",
+    "unit": "VILHELMINA INFORMATION",
+    "hours": "HO",
+    "remarks": null,
+    "frequencies": [
+      "122.555",
+      "121.500"
+    ]
+  },
+  {
+    "id": "ESNX-TWR/AFIS-1",
+    "kind": "TWR/AFIS",
+    "positionIndicator": "ESNX",
+    "unit": "ARVIDSJAUR TOWER/INFORMATION",
+    "hours": "HX",
+    "remarks": "PRIMARY",
+    "frequencies": [
+      "122.730"
+    ]
+  },
+  {
+    "id": "ESNX-TWR/AFIS-2",
+    "kind": "TWR/AFIS",
+    "positionIndicator": "ESNX",
+    "unit": "ARVIDSJAUR TOWER/INFORMATION",
+    "hours": "HX",
+    "remarks": null,
+    "frequencies": [
+      "121.500"
+    ]
+  },
+  {
+    "id": "ESNZ-TWR/APP-1",
+    "kind": "TWR/APP",
+    "positionIndicator": "ESNZ",
+    "unit": "ÖSTERSUND TOWER",
+    "hours": "HO",
+    "remarks": "PRIMARY",
+    "frequencies": [
+      "135.655"
+    ]
+  },
+  {
+    "id": "ESNZ-TWR/APP-2",
+    "kind": "TWR/APP",
+    "positionIndicator": "ESNZ",
+    "unit": "ÖSTERSUND TOWER",
+    "hours": "HX",
+    "remarks": "By directive from ATS",
+    "frequencies": [
+      "122.100"
+    ]
+  },
+  {
+    "id": "ESNZ-TWR/APP-3",
+    "kind": "TWR/APP",
+    "positionIndicator": "ESNZ",
+    "unit": "ÖSTERSUND TOWER",
+    "hours": "HO",
+    "remarks": "By directive from ATS",
+    "frequencies": [
+      "130.905"
+    ]
+  },
+  {
+    "id": "ESNZ-TWR/APP-4",
+    "kind": "TWR/APP",
+    "positionIndicator": "ESNZ",
+    "unit": "ÖSTERSUND TOWER",
+    "hours": "HO",
+    "remarks": "De-icing",
+    "frequencies": [
+      "131.705"
+    ]
+  },
+  {
+    "id": "ESNZ-TWR/APP-5",
+    "kind": "TWR/APP",
+    "positionIndicator": "ESNZ",
+    "unit": "ÖSTERSUND TOWER",
+    "hours": "HO",
+    "remarks": null,
+    "frequencies": [
+      "121.500"
+    ]
+  },
+  {
+    "id": "ESOE-TWR-1",
+    "kind": "TWR",
+    "positionIndicator": "ESOE",
+    "unit": "ÖREBRO TOWER",
+    "hours": "HO",
+    "remarks": "PRIMARY",
+    "frequencies": [
+      "120.280"
+    ]
+  },
+  {
+    "id": "ESOE-TWR-2",
+    "kind": "TWR",
+    "positionIndicator": "ESOE",
+    "unit": "ÖREBRO TOWER",
+    "hours": "HX",
+    "remarks": null,
+    "frequencies": [
+      "133.605"
+    ]
+  },
+  {
+    "id": "ESOE-TWR-3",
+    "kind": "TWR",
+    "positionIndicator": "ESOE",
+    "unit": "ÖREBRO TOWER",
+    "hours": "HO",
+    "remarks": null,
+    "frequencies": [
+      "121.500"
+    ]
+  },
+  {
+    "id": "ESOE-TWR-4",
+    "kind": "TWR",
+    "positionIndicator": "ESOE",
+    "unit": "ÖREBRO DE-ICING",
+    "hours": "HO",
+    "remarks": null,
+    "frequencies": [
+      "121.905"
+    ]
+  },
+  {
+    "id": "ESOH-AFIS-1",
+    "kind": "AFIS",
+    "positionIndicator": "ESOH",
+    "unit": "HAGFORS INFORMATION",
+    "hours": "HO",
+    "remarks": null,
+    "frequencies": [
+      "122.230",
+      "121.500"
+    ]
+  },
+  {
+    "id": "ESOK-TWR-1",
+    "kind": "TWR",
+    "positionIndicator": "ESOK",
+    "unit": "KARLSTAD TOWER",
+    "hours": "HO",
+    "remarks": "PRIMARY\nVDF",
+    "frequencies": [
+      "119.455"
+    ]
+  },
+  {
+    "id": "ESOK-TWR-2",
+    "kind": "TWR",
+    "positionIndicator": "ESOK",
+    "unit": "KARLSTAD TOWER",
+    "hours": "HO",
+    "remarks": "VDF",
+    "frequencies": [
+      "121.500"
+    ]
+  },
+  {
+    "id": "ESOW-TWR-1",
+    "kind": "TWR",
+    "positionIndicator": "ESOW",
+    "unit": "VÄSTERÅS TOWER",
+    "hours": "HO",
+    "remarks": "PRIMARY\nVDF",
+    "frequencies": [
+      "130.605"
+    ]
+  },
+  {
+    "id": "ESOW-TWR-2",
+    "kind": "TWR",
+    "positionIndicator": "ESOW",
+    "unit": "VÄSTERÅS TOWER",
+    "hours": "HO",
+    "remarks": null,
+    "frequencies": [
+      "121.500"
+    ]
+  },
+  {
+    "id": "ESOW-APP-3",
+    "kind": "APP",
+    "positionIndicator": "ESOW",
+    "unit": "VÄSTERÅS APPROACH",
+    "hours": "HO",
+    "remarks": "VDF",
+    "frequencies": [
+      "125.955"
+    ]
+  },
+  {
+    "id": "ESOW-APP-4",
+    "kind": "APP",
+    "positionIndicator": "ESOW",
+    "unit": "VÄSTERÅS APPROACH",
+    "hours": "HO",
+    "remarks": null,
+    "frequencies": [
+      "121.500"
+    ]
+  },
+  {
+    "id": "ESOW-ATIS-5",
+    "kind": "ATIS",
+    "positionIndicator": "ESOW",
+    "unit": "VÄSTERÅS ATIS",
+    "hours": "HO",
+    "remarks": null,
+    "frequencies": [
+      "127.555"
+    ]
+  },
+  {
+    "id": "ESPA-TWR-1",
+    "kind": "TWR",
+    "positionIndicator": "ESPA",
+    "unit": "KALLAX TOWER",
+    "hours": "HO",
+    "remarks": "PRIMARY\nVDF",
+    "frequencies": [
+      "128.200"
+    ]
+  },
+  {
+    "id": "ESPA-TWR-2",
+    "kind": "TWR",
+    "positionIndicator": "ESPA",
+    "unit": "KALLAX TOWER",
+    "hours": "HO",
+    "remarks": "VDF",
+    "frequencies": [
+      "121.500"
+    ]
+  },
+  {
+    "id": "ESPA-APP-3",
+    "kind": "APP",
+    "positionIndicator": "ESPA",
+    "unit": "KALLAX APPROACH",
+    "hours": "HO",
+    "remarks": "VDF",
+    "frequencies": [
+      "125.450",
+      "130.800"
+    ]
+  },
+  {
+    "id": "ESPA-PAR-4",
+    "kind": "PAR",
+    "positionIndicator": "ESPA",
+    "unit": "KALLAX PRECISION",
+    "hours": "HO",
+    "remarks": "Not for civil use",
+    "frequencies": [
+      "119.000"
+    ]
+  },
+  {
+    "id": "ESPE-TWR-1",
+    "kind": "TWR",
+    "positionIndicator": "ESPE",
+    "unit": "VIDSEL TOWER",
+    "hours": "HO",
+    "remarks": "PRIMARY\nVDF",
+    "frequencies": [
+      "130.400"
+    ]
+  },
+  {
+    "id": "ESPE-TWR-2",
+    "kind": "TWR",
+    "positionIndicator": "ESPE",
+    "unit": "VIDSEL TOWER",
+    "hours": "HO",
+    "remarks": "VDF",
+    "frequencies": [
+      "121.500"
+    ]
+  },
+  {
+    "id": "ESPE-APP-3",
+    "kind": "APP",
+    "positionIndicator": "ESPE",
+    "unit": "VIDSEL APPROACH",
+    "hours": "HO",
+    "remarks": "VDF",
+    "frequencies": [
+      "119.200",
+      "124.150"
+    ]
+  },
+  {
+    "id": "ESPE-PAR-4",
+    "kind": "PAR",
+    "positionIndicator": "ESPE",
+    "unit": "VIDSEL PRECISION",
+    "hours": "HO",
+    "remarks": "MIL operations only. No VDF",
+    "frequencies": [
+      "135.400"
+    ]
+  },
+  {
+    "id": "ESSA-TWR-1",
+    "kind": "TWR",
+    "positionIndicator": "ESSA",
+    "unit": "ARLANDA TOWER",
+    "hours": "H24",
+    "remarks": "RWY 01L/19R and CTR Sector West",
+    "frequencies": [
+      "118.505"
+    ]
+  },
+  {
+    "id": "ESSA-TWR-2",
+    "kind": "TWR",
+    "positionIndicator": "ESSA",
+    "unit": "ARLANDA TOWER",
+    "hours": "H24",
+    "remarks": "RWY 01R/19L",
+    "frequencies": [
+      "125.130"
+    ]
+  },
+  {
+    "id": "ESSA-TWR-3",
+    "kind": "TWR",
+    "positionIndicator": "ESSA",
+    "unit": "ARLANDA TOWER",
+    "hours": "H24",
+    "remarks": "RWY 08/26 and CTR Sector East",
+    "frequencies": [
+      "128.730"
+    ]
+  },
+  {
+    "id": "ESSA-TWR-4",
+    "kind": "TWR",
+    "positionIndicator": "ESSA",
+    "unit": "ARLANDA TOWER",
+    "hours": "O/R",
+    "remarks": "SAR\nMay be used for COM with Airport Fire and Rescue on GND when instructed by TWR",
+    "frequencies": [
+      "123.100"
+    ]
+  },
+  {
+    "id": "ESSA-TWR-5",
+    "kind": "TWR",
+    "positionIndicator": "ESSA",
+    "unit": "ARLANDA TOWER",
+    "hours": "H24",
+    "remarks": null,
+    "frequencies": [
+      "121.500"
+    ]
+  },
+  {
+    "id": "ESSA-TWR-6",
+    "kind": "TWR",
+    "positionIndicator": "ESSA",
+    "unit": "ARLANDA GROUND",
+    "hours": "H24",
+    "remarks": "Push-back and taxi instructions. See ESSA Ground Movement Charts",
+    "frequencies": [
+      "121.705",
+      "121.930",
+      "121.980"
+    ]
+  },
+  {
+    "id": "ESSA-TWR-7",
+    "kind": "TWR",
+    "positionIndicator": "ESSA",
+    "unit": "ARLANDA CLEARANCE DELIVERY",
+    "hours": "H24",
+    "remarks": "ATC clearance",
+    "frequencies": [
+      "121.830"
+    ]
+  },
+  {
+    "id": "ESSA-APP-8",
+    "kind": "APP",
+    "positionIndicator": "ESSA",
+    "unit": "STOCKHOLM APPROACH",
+    "hours": "H24",
+    "remarks": null,
+    "frequencies": [
+      "123.755"
+    ]
+  },
+  {
+    "id": "ESSA-ATIS-9",
+    "kind": "ATIS",
+    "positionIndicator": "ESSA",
+    "unit": "ARLANDA ATIS ARRIVAL",
+    "hours": "H24",
+    "remarks": "D-ATIS service available",
+    "frequencies": [
+      "119.005"
+    ]
+  },
+  {
+    "id": "ESSA-ATIS-10",
+    "kind": "ATIS",
+    "positionIndicator": "ESSA",
+    "unit": "ARLANDA ATIS DEPARTURE",
+    "hours": "H24",
+    "remarks": "D-ATIS service available",
+    "frequencies": [
+      "121.630"
+    ]
+  },
+  {
+    "id": "ESSB-TWR-1",
+    "kind": "TWR",
+    "positionIndicator": "ESSB",
+    "unit": "BROMMA TOWER",
+    "hours": "HO",
+    "remarks": "PRIMARY",
+    "frequencies": [
+      "118.105"
+    ]
+  },
+  {
+    "id": "ESSB-TWR-2",
+    "kind": "TWR",
+    "positionIndicator": "ESSB",
+    "unit": "BROMMA TOWER",
+    "hours": "HO",
+    "remarks": null,
+    "frequencies": [
+      "121.500"
+    ]
+  },
+  {
+    "id": "ESSB-TWR-3",
+    "kind": "TWR",
+    "positionIndicator": "ESSB",
+    "unit": "BROMMA GROUND",
+    "hours": "HO",
+    "remarks": "Taxi freq (start-up and taxi instructions)",
+    "frequencies": [
+      "121.605"
+    ]
+  },
+  {
+    "id": "ESSB-ATIS-4",
+    "kind": "ATIS",
+    "positionIndicator": "ESSB",
+    "unit": "BROMMA ATIS",
+    "hours": "HO",
+    "remarks": null,
+    "frequencies": [
+      "122.455"
+    ]
+  },
+  {
+    "id": "ESSD-TWR-1",
+    "kind": "TWR",
+    "positionIndicator": "ESSD",
+    "unit": "BORLÄNGE TOWER",
+    "hours": "HO",
+    "remarks": "PRIMARY\nVDF",
+    "frequencies": [
+      "127.305"
+    ]
+  },
+  {
+    "id": "ESSD-TWR-2",
+    "kind": "TWR",
+    "positionIndicator": "ESSD",
+    "unit": "BORLÄNGE TOWER",
+    "hours": "HO",
+    "remarks": "VDF",
+    "frequencies": [
+      "121.500"
+    ]
+  },
+  {
+    "id": "ESSL-TWR-1",
+    "kind": "TWR",
+    "positionIndicator": "ESSL",
+    "unit": "SAAB TOWER",
+    "hours": "HO",
+    "remarks": "PRIMARY\nDesignated operational coverage 25 NM/4000 ft",
+    "frequencies": [
+      "118.805"
+    ]
+  },
+  {
+    "id": "ESSL-TWR-2",
+    "kind": "TWR",
+    "positionIndicator": "ESSL",
+    "unit": "SAAB TOWER",
+    "hours": "HO",
+    "remarks": null,
+    "frequencies": [
+      "133.105",
+      "121.500"
+    ]
+  },
+  {
+    "id": "ESSL-APP-3",
+    "kind": "APP",
+    "positionIndicator": "ESSL",
+    "unit": "ÖSTGÖTA APPROACH",
+    "hours": "HO",
+    "remarks": null,
+    "frequencies": [
+      "132.955"
+    ]
+  },
+  {
+    "id": "ESSL-APP-4",
+    "kind": "APP",
+    "positionIndicator": "ESSL",
+    "unit": "ÖSTGÖTA APPROACH",
+    "hours": "HX",
+    "remarks": null,
+    "frequencies": [
+      "135.850"
+    ]
+  },
+  {
+    "id": "ESSP-TWR-1",
+    "kind": "TWR",
+    "positionIndicator": "ESSP",
+    "unit": "KUNGSÄNGEN TOWER",
+    "hours": "HO",
+    "remarks": "PRIMARY",
+    "frequencies": [
+      "120.355"
+    ]
+  },
+  {
+    "id": "ESSP-TWR-2",
+    "kind": "TWR",
+    "positionIndicator": "ESSP",
+    "unit": "KUNGSÄNGEN TOWER",
+    "hours": "HO",
+    "remarks": null,
+    "frequencies": [
+      "121.500"
+    ]
+  },
+  {
+    "id": "ESSP-APP-3",
+    "kind": "APP",
+    "positionIndicator": "ESSP",
+    "unit": "ÖSTGÖTA APPROACH",
+    "hours": "HO",
+    "remarks": null,
+    "frequencies": [
+      "132.955"
+    ]
+  },
+  {
+    "id": "ESST-AFIS-1",
+    "kind": "AFIS",
+    "positionIndicator": "ESST",
+    "unit": "TORSBY INFORMATION",
+    "hours": "HX",
+    "remarks": null,
+    "frequencies": [
+      "122.055",
+      "121.500"
+    ]
+  },
+  {
+    "id": "ESSU-AFIS-1",
+    "kind": "AFIS",
+    "positionIndicator": "ESSU",
+    "unit": "ESKILSTUNA INFORMATION",
+    "hours": "HO",
+    "remarks": "VDF",
+    "frequencies": [
+      "126.855",
+      "121.500"
+    ]
+  },
+  {
+    "id": "ESSV-TWR-1",
+    "kind": "TWR",
+    "positionIndicator": "ESSV",
+    "unit": "VISBY TOWER",
+    "hours": "HO",
+    "remarks": "PRIMARY\nVDF",
+    "frequencies": [
+      "120.305"
+    ]
+  },
+  {
+    "id": "ESSV-TWR-2",
+    "kind": "TWR",
+    "positionIndicator": "ESSV",
+    "unit": "VISBY TOWER",
+    "hours": "HO",
+    "remarks": "VDF",
+    "frequencies": [
+      "121.500"
+    ]
+  },
+  {
+    "id": "ESSV-APP-3",
+    "kind": "APP",
+    "positionIndicator": "ESSV",
+    "unit": "VISBY APPROACH",
+    "hours": "HO",
+    "remarks": "VDF",
+    "frequencies": [
+      "126.155"
+    ]
+  },
+  {
+    "id": "ESTA-TWR-1",
+    "kind": "TWR",
+    "positionIndicator": "ESTA",
+    "unit": "ANGELHOLM TOWER",
+    "hours": "HO",
+    "remarks": "PRIMARY",
+    "frequencies": [
+      "127.105"
+    ]
+  },
+  {
+    "id": "ESTA-TWR-2",
+    "kind": "TWR",
+    "positionIndicator": "ESTA",
+    "unit": "ANGELHOLM TOWER",
+    "hours": "HO",
+    "remarks": null,
+    "frequencies": [
+      "121.500"
+    ]
+  },
+  {
+    "id": "ESTA-APP-3",
+    "kind": "APP",
+    "positionIndicator": "ESTA",
+    "unit": "ÄNGELHOLM APPROACH",
+    "hours": "HO",
+    "remarks": null,
+    "frequencies": [
+      "132.455"
+    ]
+  },
+  {
+    "id": "ESTL-TWR-1",
+    "kind": "TWR",
+    "positionIndicator": "ESTL",
+    "unit": "LJUNGBYHED TOWER",
+    "hours": "HO",
+    "remarks": "PRIMARY",
+    "frequencies": [
+      "130.705"
+    ]
+  },
+  {
+    "id": "ESTL-TWR-2",
+    "kind": "TWR",
+    "positionIndicator": "ESTL",
+    "unit": "LJUNGBYHED TOWER",
+    "hours": "HX",
+    "remarks": null,
+    "frequencies": [
+      "129.705"
+    ]
+  },
+  {
+    "id": "ESTL-TWR-3",
+    "kind": "TWR",
+    "positionIndicator": "ESTL",
+    "unit": "LJUNGBYHED TOWER",
+    "hours": "HO",
+    "remarks": null,
+    "frequencies": [
+      "121.500"
+    ]
+  },
+  {
+    "id": "ESTL-TWR-4",
+    "kind": "TWR",
+    "positionIndicator": "ESTL",
+    "unit": "LJUNGBYHED GROUND",
+    "hours": "HX",
+    "remarks": "Taxi freq",
+    "frequencies": [
+      "121.655"
+    ]
+  },
+  {
+    "id": "ESTL-APP-5",
+    "kind": "APP",
+    "positionIndicator": "ESTL",
+    "unit": "LJUNGBYHED APPROACH",
+    "hours": "HO",
+    "remarks": null,
+    "frequencies": [
+      "129.555"
+    ]
+  },
+  {
+    "id": "ESTL-ATIS-6",
+    "kind": "ATIS",
+    "positionIndicator": "ESTL",
+    "unit": "LJUNGBYHED ATIS",
+    "hours": "HO",
+    "remarks": null,
+    "frequencies": [
+      "132.755"
+    ]
+  },
+  {
+    "id": "ESUP-AFIS-1",
+    "kind": "AFIS",
+    "positionIndicator": "ESUP",
+    "unit": "PAJALA INFORMATION",
+    "hours": "HO",
+    "remarks": null,
+    "frequencies": [
+      "118.380",
+      "121.500"
+    ]
+  },
+  {
+    "id": "ESUT-AFIS-1",
+    "kind": "AFIS",
+    "positionIndicator": "ESUT",
+    "unit": "HEMAVAN INFORMATION",
+    "hours": "HO",
+    "remarks": null,
+    "frequencies": [
+      "122.980",
+      "121.500"
+    ]
+  },
+  {
+    "id": "EKRN:TMA:ROENNE TMA A",
+    "kind": "TMA",
+    "positionIndicator": "EKRN",
+    "unit": "ROENNE TMA A",
+    "hours": null,
+    "remarks": null,
+    "frequencies": [
+      "134.980",
+      "118.330"
+    ]
+  },
+  {
+    "id": "EKRN:TMA:ROENNE TOWER",
+    "kind": "TMA",
+    "positionIndicator": "EKRN",
+    "unit": "ROENNE TOWER",
+    "hours": null,
+    "remarks": null,
+    "frequencies": [
+      "118.330"
+    ]
+  }
+]

@@ -51,21 +51,24 @@ The deploy script now treats:
 - `DEPLOY_PATH` as the explicit webroot for the target domain
 - `DEPLOY_PATH=.` as a legacy value and remaps it to `webroots/www`
 
-Publish with:
+Create `.deploy.env` from `.deploy.env.example`, then publish with:
 
 ```bash
 npm run deploy
 ```
 
-Required deploy variables are loaded from `../AMC/.env`:
+Required deploy variables live in `./.deploy.env`:
 
 ```bash
 DEPLOY_HOST=...
 DEPLOY_PORT=22
 DEPLOY_USER=...
 DEPLOY_PASS=...
-DEPLOY_PATH=webroots/www
+DEPLOY_PATH=path/to/vfrplan-live-webroot
+DEPLOY_EXPECTED_PATH_FRAGMENT=vfrplan
 ```
+
+`Flightplan` must never reuse `AMC` deploy credentials or deploy path. Use a separate target for `vfrplan.se`.
 
 For `vfrplan.se`, point `DEPLOY_PATH` at that domain's actual webroot, not at a `flightplan` subdirectory.
 

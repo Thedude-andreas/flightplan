@@ -1,4 +1,4 @@
-import { swedishNavaids } from './generated/radio-nav.se'
+import { getSwedishNavaids } from './aviationData'
 import type { NearbyAirport } from './weather'
 import type { FlightPlanInput } from './types'
 import type { NotamSupplement } from './notam'
@@ -327,7 +327,7 @@ function routeIntersectsPolygon(routeLegs: FlightPlanInput['routeLegs'], polygon
 function matchNearbyNavaids(routeLegs: FlightPlanInput['routeLegs'], rawText: string, maxDistanceNm: number) {
   const normalizedEntry = ` ${normalizeForMatch(rawText)} `
 
-  return swedishNavaids
+  return getSwedishNavaids()
     .map((navaid) => {
       const ident = navaid.ident ? normalizeForMatch(navaid.ident) : null
       const name = navaid.name ? normalizeForMatch(navaid.name) : null

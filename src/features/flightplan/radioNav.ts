@@ -1,16 +1,17 @@
 import type { FlightPlanInput, RadioNavEntry, RoutePointInput } from './types'
-import { swedishAirspaces } from './generated/airspaces.se'
-import { swedishAirports } from './generated/airports.se'
 import {
-  swedishAirspaceFrequencies,
-  swedishAirportFrequencies,
-  swedishAccSectors,
-  swedishNavaids,
+  getSwedishAccSectors,
+  getSwedishAirports,
+  getSwedishAirspaceFrequencies,
+  getSwedishAirspaces,
+  getSwedishAirportFrequencies,
+  getSwedishNavaids,
   type SwedishAccSector,
+  type SwedishAirspace,
   type SwedishAirspaceFrequency,
   type SwedishAirportFrequency,
   type SwedishNavaid,
-} from './generated/radio-nav.se'
+} from './aviationData'
 
 const maxSuggestedEntries = 12
 const maxAirportEntriesPerEndpoint = 2
@@ -141,7 +142,7 @@ function pointInPolygon(lat: number, lon: number, polygon: number[][][]) {
 }
 
 function airspaceContainsPoint(
-  airspace: (typeof swedishAirspaces)[number],
+  airspace: SwedishAirspace,
   lat: number,
   lon: number,
 ) {
@@ -329,13 +330,13 @@ function pointInAccSector(sector: SwedishAccSector, lat: number, lon: number) {
 }
 
 function findAirportRadioRecords(icao: string) {
-  return swedishAirportFrequencies.filter(
+  return getSwedishAirportFrequencies().filter(
     (record) => record.positionIndicator === icao && !isDirectiveOnlyService(record),
   )
 }
 
 function findAirportAirspaceFallbackRecords(icao: string) {
-  return swedishAirspaceFrequencies.filter(
+  return getSwedishAirspaceFrequencies().filter(
     (record) => record.positionIndicator === icao && record.kind !== 'FIR',
   )
 }
@@ -367,14 +368,14 @@ function isUncontrolledAirportService(record: SwedishAirportFrequency) {
   )
 }
 
-function findAirspaceRadioRecords(airspace: (typeof swedishAirspaces)[number]) {
+function findAirspaceRadioRecords(airspace: SwedishAirspace) {
   const icao = airspace.positionIndicator
   if (!icao) {
     return []
   }
 
   const direct = dedupeAirspaceFrequencyRecords(
-    swedishAirspaceFrequencies.filter(
+    getSwedishAirspaceFrequencies().filter(
       (record) =>
         record.positionIndicator === icao &&
         (record.kind === airspace.kind || (airspace.kind === 'TIZ' && record.kind === 'TIA')),
@@ -386,7 +387,7 @@ function findAirspaceRadioRecords(airspace: (typeof swedishAirspaces)[number]) {
   }
 
   if (airspace.kind === 'CTR' || airspace.kind === 'TIZ') {
-    const airportRecords = swedishAirportFrequencies
+    const airportRecords = getSwedishAirportFrequencies()
       .filter((record) => record.positionIndicator === icao)
       .filter((record) => !isDirectiveOnlyService(record))
       .filter((record) => isTowerService(record))
@@ -426,7 +427,7 @@ function inferAirportIcaoFromPoint(point: RoutePointInput | null | undefined) {
     return ''
   }
 
-  const nearestAirport = swedishAirports
+  const nearestAirport = getSwedishAirports()
     .map((airport) => ({
       icao: airport.icao ?? '',
       distance: distanceNm(point.lat, point.lon, airport.lat, airport.lon),
@@ -458,7 +459,7 @@ function buildNearbyUncontrolledAirportEntries(plan: FlightPlanInput) {
   const encountered = new Set<string>()
   const entries: { entry: RadioNavEntry; progressNm: number }[] = []
 
-  for (const airport of swedishAirports) {
+  for (const airport of getSwedishAirports()) {
     const icao = airport.icao?.trim().toUpperCase()
     if (!icao) {
       continue
@@ -511,7 +512,7 @@ function buildSwedenControlEntries(plan: FlightPlanInput) {
   const encountered = new Map<string, SwedishAccSector>()
 
   for (const point of routePoints) {
-    const sectorsAtPoint = swedishAccSectors.filter((sector) => pointInAccSector(sector, point.lat, point.lon))
+    const sectorsAtPoint = getSwedishAccSectors().filter((sector) => pointInAccSector(sector, point.lat, point.lon))
     for (const sector of sectorsAtPoint) {
       if (!encountered.has(sector.id)) {
         encountered.set(sector.id, sector)
@@ -545,7 +546,7 @@ function findSuggestedNavaids(plan: FlightPlanInput) {
   const entries: { entry: RadioNavEntry; progressNm: number; lateralDistanceNm: number }[] = []
   const seenIds = new Set<string>()
 
-  for (const navaid of swedishNavaids) {
+  for (const navaid of getSwedishNavaids()) {
     const maxDistanceNm = navaidRangeNm(navaid)
     if (maxDistanceNm <= 0 || seenIds.has(navaid.id)) {
       continue
@@ -575,24 +576,32 @@ function findSuggestedNavaids(plan: FlightPlanInput) {
     .sort((a, b) => a.lateralDistanceNm - b.lateralDistanceNm || a.progressNm - b.progressNm)
 }
 
-const knownAutoEntryKeys = new Set<string>([
-  ...swedishAirspaceFrequencies.flatMap(formatAirspaceEntry),
-  ...swedishAirportFrequencies
-    .filter((record) => !isDirectiveOnlyService(record))
-    .flatMap(formatAirportEntry),
-  ...swedishNavaids.map(formatNavaidEntry),
-  ...swedishAccSectors.flatMap((sector) => {
-    const suffix = sector.sectorName.match(/ACC sector\s+(.+)$/i)?.[1] ?? sector.sectorCode
-    const label = `Sweden CTL ${suffix}`.trim()
-    return sector.frequencies.map((frequency) => ({
-      name: label,
-      frequency: /^\d{3}\.\d{3}$/.test(frequency) ? `${frequency} MHz` : frequency,
-    }))
-  }),
-].map(createEntryKey))
+let knownAutoEntryKeys: Set<string> | null = null
+
+function getKnownAutoEntryKeys() {
+  if (!knownAutoEntryKeys) {
+    knownAutoEntryKeys = new Set<string>([
+      ...getSwedishAirspaceFrequencies().flatMap(formatAirspaceEntry),
+      ...getSwedishAirportFrequencies()
+        .filter((record) => !isDirectiveOnlyService(record))
+        .flatMap(formatAirportEntry),
+      ...getSwedishNavaids().map(formatNavaidEntry),
+      ...getSwedishAccSectors().flatMap((sector) => {
+        const suffix = sector.sectorName.match(/ACC sector\s+(.+)$/i)?.[1] ?? sector.sectorCode
+        const label = `Sweden CTL ${suffix}`.trim()
+        return sector.frequencies.map((frequency) => ({
+          name: label,
+          frequency: /^\d{3}\.\d{3}$/.test(frequency) ? `${frequency} MHz` : frequency,
+        }))
+      }),
+    ].map(createEntryKey))
+  }
+
+  return knownAutoEntryKeys
+}
 
 function isAutoManagedEntry(entry: RadioNavEntry) {
-  return knownAutoEntryKeys.has(createEntryKey(entry))
+  return getKnownAutoEntryKeys().has(createEntryKey(entry))
 }
 
 export function buildSuggestedRadioNav(plan: FlightPlanInput) {
@@ -617,7 +626,7 @@ export function buildSuggestedRadioNav(plan: FlightPlanInput) {
   const crossedAirspaces = plan.routeLegs
     .flatMap((leg) => {
       const points = sampleLegPoints(leg.from, leg.to)
-      return points.flatMap((point) => swedishAirspaces.filter((airspace) => airspaceContainsPoint(airspace, point.lat, point.lon)))
+      return points.flatMap((point) => getSwedishAirspaces().filter((airspace) => airspaceContainsPoint(airspace, point.lat, point.lon)))
     })
     .flatMap(findAirspaceRadioRecords)
 

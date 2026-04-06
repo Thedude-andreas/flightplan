@@ -8,6 +8,7 @@ import { clearDraft, loadDraft, saveDraft } from '../../../lib/storage/draftStor
 import { getErrorMessage } from '../../../lib/supabase/errors'
 import type { DraftEnvelope, SaveState } from '../../../shared/types/persistence'
 import { createFlightPlan, getFlightPlanById, updateFlightPlan } from '../api/flightPlansRepository'
+import { preloadSwedishAviationData } from '../aviationData'
 import { createEmptyFlightPlan, createInitialFlightPlan } from '../data'
 import type { FlightPlanInput } from '../types'
 
@@ -96,6 +97,8 @@ export function FlightPlanEditorPage() {
   const [persistedSnapshot, setPersistedSnapshot] = useState<PersistedSnapshot | null>(null)
   const [saveState, setSaveState] = useState<SaveState>('idle')
   const [loading, setLoading] = useState(true)
+  const [aviationReady, setAviationReady] = useState(false)
+  const [aviationError, setAviationError] = useState('')
   const [error, setError] = useState('')
   const [copyName, setCopyName] = useState('')
   const [isCopyDialogOpen, setIsCopyDialogOpen] = useState(false)
@@ -218,6 +221,27 @@ export function FlightPlanEditorPage() {
       isActive = false
     }
   }, [id, user])
+
+  useEffect(() => {
+    let isActive = true
+
+    preloadSwedishAviationData()
+      .then(() => {
+        if (isActive) {
+          setAviationReady(true)
+          setAviationError('')
+        }
+      })
+      .catch((nextError) => {
+        if (isActive) {
+          setAviationError(getErrorMessage(nextError, 'Kunde inte ladda svenska flygdata för editorn.'))
+        }
+      })
+
+    return () => {
+      isActive = false
+    }
+  }, [])
 
   useEffect(() => {
     if (!draftKey || !currentPlan || !didHydrateRef.current) {
@@ -354,7 +378,15 @@ export function FlightPlanEditorPage() {
     setIsClearRouteDialogOpen(false)
   }
 
-  if (loading || !initialPlan) {
+  if (aviationError) {
+    return (
+      <section className="app-panel">
+        <div className="app-card">{aviationError}</div>
+      </section>
+    )
+  }
+
+  if (loading || !initialPlan || !aviationReady) {
     return (
       <section className="app-panel">
         <div className="app-card">Laddar editor...</div>

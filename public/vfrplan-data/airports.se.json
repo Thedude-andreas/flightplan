@@ -1,0 +1,5739 @@
+{
+  "generatedAt": "2026-04-03T19:43:23.855Z",
+  "source": "LFV AD 1.1 + AD 2",
+  "inputPath": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html",
+  "ad2Source": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js",
+  "count": 139,
+  "airports": [
+    {
+      "name": "ALINGSÅS",
+      "icao": "ESGI",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "575659N 0123441E",
+        "lat": 57.94972222222222,
+        "lon": 12.578055555555554
+      },
+      "location": "1.8 NM NE",
+      "elevationFt": 226,
+      "runways": [
+        {
+          "designator": "01/19",
+          "dimensionsMeters": "600 x 30",
+          "surface": "GRASS"
+        }
+      ],
+      "runwayLighting": [
+        "No"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "100LL"
+      ],
+      "communicationFrequencies": [
+        "123.650"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "ALINGSÅS FLYGKLUBB",
+      "contactLines": [
+        "+46 322 148 87",
+        "+46 322 63 31 98"
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "ANDERSTORP",
+      "icao": "ESMP",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "571554N 0133606E",
+        "lat": 57.265,
+        "lon": 13.601666666666667
+      },
+      "location": "1 NM SW",
+      "elevationFt": 507,
+      "runways": [
+        {
+          "designator": "04/22",
+          "dimensionsMeters": "1000 x 20",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "No"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "-"
+      ],
+      "communicationFrequencies": [
+        "123.200"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "SRW ANDERSTORP AB",
+      "contactLines": [
+        "+46 371 56 41 00",
+        "+46 706 49 85 06",
+        "www.srwanderstorp.se",
+        "airport@srwanderstorp.se",
+        "PPR mandatory for RWY and heliport.",
+        "Heliport located SE THR RWY 04.",
+        "PSN: 571537N 0133542E",
+        "Heliport only avbl for ambulance and rescue flights."
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "ARBOGA",
+      "icao": "ESQO",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "592318N 0155515E",
+        "lat": 59.388333333333335,
+        "lon": 15.920833333333333
+      },
+      "location": "2 NM SE",
+      "elevationFt": 33,
+      "runways": [
+        {
+          "designator": "15/33",
+          "dimensionsMeters": "1700 x 40",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "No"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "-"
+      ],
+      "communicationFrequencies": [
+        "123.150"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "SAAB",
+      "contactLines": [
+        "+46 589 818 44",
+        "PPR",
+        "Only traffic with special agreement allowed.",
+        "PPR only in case of exception.",
+        "THR 33 displaced 300 m.",
+        "Limited fire fighting, rescue and handling service O/R.",
+        "Glider flying."
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "ARBRÅ",
+      "icao": "ESUB",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "613045N 0162221E",
+        "lat": 61.5125,
+        "lon": 16.3725
+      },
+      "location": "1.5 NM N",
+      "elevationFt": 378,
+      "runways": [
+        {
+          "designator": "18/36",
+          "dimensionsMeters": "700 x 30",
+          "surface": "GRASS"
+        }
+      ],
+      "runwayLighting": [
+        "No"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "91/96"
+      ],
+      "communicationFrequencies": [
+        "123.200"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "ARBRÅ FLYGKLUBB",
+      "contactLines": [
+        "+46 278 454 54",
+        "+46 705 84 07 00"
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "ARVIDSJAUR",
+      "icao": "ESNX",
+      "detailsInAd2": true,
+      "arp": {
+        "lat": 65.59027777777777,
+        "lon": 19.281944444444445
+      },
+      "location": null,
+      "elevationFt": null,
+      "runways": [
+        {
+          "designator": "12/30",
+          "dimensionsMeters": "2500 x 45",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "Yes"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "TWR/AFIS"
+      ],
+      "communicationFrequencies": [
+        "Yes"
+      ],
+      "category": "Licensed, instrument AD",
+      "ownerOperator": "Municipal",
+      "contactLines": [],
+      "source": {
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
+      }
+    },
+    {
+      "name": "ARVIKA",
+      "icao": "ESKV",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "594030N 0123822E",
+        "lat": 59.675,
+        "lon": 12.639444444444443
+      },
+      "location": "NE 2 NM from Arvika",
+      "elevationFt": 237,
+      "runways": [
+        {
+          "designator": "01/19",
+          "dimensionsMeters": "1150 x 30",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "Yes"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "91UL"
+      ],
+      "communicationFrequencies": [
+        "123.350"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "ARVIKA FLYGKLUBB",
+      "contactLines": [
+        "+46 734 64 34 06",
+        "More than three TGL only permitted weekdays 0700-1600 (0600-1500).",
+        "THR 19 displaced 200 m.",
+        "PCL on freq 123.350 MHz for 15 sec duration followed by a double click.",
+        "After departure RWY 19, climb straight ahead and no left turn until after passing S of highway 61.",
+        "Other activities including motor vehicles may occur on RWY, TWY and APN.",
+        "Wildlife common in aerodrome area. Sporadic snow clearance.",
+        "Credit cards accepted for payment of fuel.",
+        "info@arvikaflygklubb.se",
+        "www.arvikaflygklubb.se"
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "AVESTA",
+      "icao": "ESVA",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "601049N 0160722E",
+        "lat": 60.180277777777775,
+        "lon": 16.122777777777777
+      },
+      "location": "2.6 NM NNW",
+      "elevationFt": 320,
+      "runways": [
+        {
+          "designator": "15/33",
+          "dimensionsMeters": "850 x 40",
+          "surface": "GRASS"
+        }
+      ],
+      "runwayLighting": [
+        "No"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "91/96"
+      ],
+      "communicationFrequencies": [
+        "123.550"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "AVESTA FLYGKLUBB",
+      "contactLines": [
+        "+46 70 219 40 24",
+        "+46 70 557 10 05",
+        "THR 15 displaced 50 m",
+        "Glider flying"
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "BORGLANDA",
+      "icao": "ESMB",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "565147N 0163922E",
+        "lat": 56.863055555555555,
+        "lon": 16.65611111111111
+      },
+      "location": "0.7 NM SW Borgholm",
+      "elevationFt": 118,
+      "runways": [
+        {
+          "designator": "03/21",
+          "dimensionsMeters": "625 x 50",
+          "surface": "GRASS"
+        }
+      ],
+      "runwayLighting": [
+        "No"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "-"
+      ],
+      "communicationFrequencies": [
+        "123.550"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "Municipal",
+      "contactLines": [
+        "+46 485 104 00 (AD)",
+        "+46 706 62 07 95",
+        "PPR OCT-APR",
+        "Right hand traffic circuit to RWY 03."
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "BORLÄNGE",
+      "icao": "ESSD",
+      "detailsInAd2": true,
+      "arp": {
+        "lat": 60.42222222222222,
+        "lon": 15.515
+      },
+      "location": null,
+      "elevationFt": null,
+      "runways": [
+        {
+          "designator": "14/32",
+          "dimensionsMeters": "2313 x 45",
+          "surface": "ASPH"
+        },
+        {
+          "designator": "12/30",
+          "dimensionsMeters": "720 x 40",
+          "surface": "GRASS"
+        }
+      ],
+      "runwayLighting": [
+        "Yes",
+        "No"
+      ],
+      "atsServices": [
+        "TWR"
+      ],
+      "fuelTypes": [],
+      "communicationFrequencies": [
+        "Yes"
+      ],
+      "category": "Licensed, instrument AD",
+      "ownerOperator": "Municipal",
+      "contactLines": [],
+      "source": {
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
+      }
+    },
+    {
+      "name": "BORÅS",
+      "icao": "ESGE",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "574145N 0125042E",
+        "lat": 57.69583333333333,
+        "lon": 12.845
+      },
+      "location": "3.5 NM SW",
+      "elevationFt": 588,
+      "runways": [
+        {
+          "designator": "04L/22R",
+          "dimensionsMeters": "800 x 18",
+          "surface": "ASPH"
+        },
+        {
+          "designator": "04R/22L",
+          "dimensionsMeters": "800 x 50",
+          "surface": "GRASS"
+        }
+      ],
+      "runwayLighting": [
+        "Yes",
+        "No"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "100LL",
+        "91/96UL",
+        "Jet A1"
+      ],
+      "communicationFrequencies": [
+        "123.525"
+      ],
+      "category": "Licensed AD",
+      "ownerOperator": "Municipal",
+      "contactLines": [
+        "+46 33 25 43 58",
+        "www.borasflygplats.se",
+        "OPR Borås flygplatsförening",
+        "PPR during 15 NOV-15 APR",
+        "Flying activity only permitted :",
+        "MON-THU 0600-2100 (0500-2000)",
+        "FRI 0600-1900 (0500-1800)",
+        "SAT-SUN, HOL SEP-MAY 0700-1900 (0600-1800)",
+        "SAT-SUN, HOL JUN-AUG 0700-1700 (0600-1600).",
+        "Flying activity are not allowed Good Friday, Easter Eve, Whitsun Eve, Whitsunday, Midsummer Eve, first connected SAT-SUN in JUL, Christmas Eve, Christmas Day and Day after Christmas Day.",
+        "Landing with gliders excepted from hours and days above.",
+        "TGL not allowed for visiting ACFT and HEL.",
+        "Grass surface soft at precipitation.",
+        "For gliders right hand traffic circuit to RWY 04R.",
+        "PCL on freq 123.525 MHz, 10 sec duration.",
+        "After take-off RWY 22R/L turn left immediately."
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "BRATTFORSHEDEN",
+      "icao": "ESSM",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "593630N 0135444E",
+        "lat": 59.608333333333334,
+        "lon": 13.912222222222223
+      },
+      "location": null,
+      "elevationFt": 588,
+      "runways": [
+        {
+          "designator": "08/26",
+          "dimensionsMeters": "800 x 50",
+          "surface": "GRASS"
+        }
+      ],
+      "runwayLighting": [
+        "Yes"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "100LL O/R"
+      ],
+      "communicationFrequencies": [
+        "-"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "BRATTFORSHEDENS FLYGKLUBB",
+      "contactLines": [
+        "+46 553 210 71",
+        "APR-OCT extensive winchlaunching of gliders."
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "BUNGE",
+      "icao": "ESVB",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "575100N 0190218E",
+        "lat": 57.85,
+        "lon": 19.038333333333334
+      },
+      "location": "0.5 NM SE",
+      "elevationFt": 66,
+      "runways": [
+        {
+          "designator": "09/27",
+          "dimensionsMeters": "675 x 30",
+          "surface": "ASPH"
+        },
+        {
+          "designator": "16/34",
+          "dimensionsMeters": "675 x 30",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "No",
+        "No"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "-"
+      ],
+      "communicationFrequencies": [
+        "123.400"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "Private",
+      "contactLines": [
+        "+46 704 96 86 41",
+        "PPR"
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "DALA-JÄRNA",
+      "icao": "ESKD",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "603322N 0142238E",
+        "lat": 60.55611111111111,
+        "lon": 14.377222222222223
+      },
+      "location": "5 NM ENE Vansbro",
+      "elevationFt": 773,
+      "runways": [
+        {
+          "designator": "03/21",
+          "dimensionsMeters": "900 x 24",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "Yes"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "100LL"
+      ],
+      "communicationFrequencies": [
+        "123.350"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "VÄSTERDALARNAS FLYGKLUBB",
+      "contactLines": [
+        "+46 281 203 82",
+        "+46 281 202 60",
+        "THR 03 displaced 100 m.",
+        "Repeated take-offs and landings not allowed:",
+        "MON-FRI 2100-0600 (2000-0500)",
+        "SAT, SUN, HOL 2100-0800 (2000-0700)",
+        "Exemption can be applied for with the airport manager."
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "EDSBYN",
+      "icao": "ESUY",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "612313N 0155000E",
+        "lat": 61.386944444444445,
+        "lon": 15.833333333333334
+      },
+      "location": "1 NM NE",
+      "elevationFt": 515,
+      "runways": [
+        {
+          "designator": "11/29",
+          "dimensionsMeters": "700 x 40",
+          "surface": "GRASS"
+        }
+      ],
+      "runwayLighting": [
+        "No"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "80/87"
+      ],
+      "communicationFrequencies": [
+        "123.550"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "EDSBYN FLYGKLUBB",
+      "contactLines": [
+        "+46 271 211 50",
+        "+46 271 222 14",
+        "THR 11 displaced 160 m."
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "EKSHÄRAD",
+      "icao": "ESKH",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "600917N 0133143E",
+        "lat": 60.15472222222222,
+        "lon": 13.528611111111111
+      },
+      "location": "1.5 NM SSE",
+      "elevationFt": 460,
+      "runways": [
+        {
+          "designator": "15/33",
+          "dimensionsMeters": "540 x 45",
+          "surface": "GRASS"
+        }
+      ],
+      "runwayLighting": [
+        "No"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "100LL"
+      ],
+      "communicationFrequencies": [
+        "-"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "EKSHÄRAD FLYGKLUBB",
+      "contactLines": [
+        "+46 563 404 66",
+        "+46 563 400 01",
+        "THR 15 displaced 115 m."
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "EKSJÖ/RÄNNESLÄTT",
+      "icao": "ESMC",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "574012N 0145631E",
+        "lat": 57.669999999999995,
+        "lon": 14.941944444444445
+      },
+      "location": "0.5 NM W",
+      "elevationFt": 720,
+      "runways": [
+        {
+          "designator": "01/19",
+          "dimensionsMeters": "1000 x 30",
+          "surface": "GRASS"
+        }
+      ],
+      "runwayLighting": [
+        "No"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "100LL",
+        "91/96"
+      ],
+      "communicationFrequencies": [
+        "123.425"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "NORRA SMÅLANDS FLYGKLUBB",
+      "contactLines": [
+        "+46 381 160 50",
+        "PPR TEL +46 381 181 03 (Ing 2)",
+        "THR 01 displaced 200 m.",
+        "THR 19 displaced 120 m.",
+        "Right hand traffic circuit to RWY 01.",
+        "Within ES R39"
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "ENKÖPING/LÅNGTORA",
+      "icao": "ESVL",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "594450N 0170842E",
+        "lat": 59.74722222222222,
+        "lon": 17.145
+      },
+      "location": "6.5 NM NNE Enköping",
+      "elevationFt": 49,
+      "runways": [
+        {
+          "designator": "12/30",
+          "dimensionsMeters": "720 x 200",
+          "surface": "GRASS"
+        },
+        {
+          "designator": "07/25",
+          "dimensionsMeters": "670 x 200",
+          "surface": "GRASS"
+        }
+      ],
+      "runwayLighting": [
+        "No",
+        "No"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "91/96"
+      ],
+      "communicationFrequencies": [
+        "123.525"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "STOCKHOLMS SEGELFLYGKLUBB",
+      "contactLines": [
+        "+46 706 68 50 11",
+        "www.ssfk.se",
+        "PPR See website",
+        "Repeated/practice take-offs and landings not allowed.",
+        "Glider traffic, circuit always north of RWY.",
+        "Motor traffic, circuit always south of RWY.",
+        "Mainly gliding activity from APR-OCT."
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "ESKILSTUNA",
+      "icao": "ESSU",
+      "detailsInAd2": true,
+      "arp": {
+        "lat": 59.352222222222224,
+        "lon": 16.708333333333332
+      },
+      "location": null,
+      "elevationFt": null,
+      "runways": [
+        {
+          "designator": "18/36",
+          "dimensionsMeters": "1886 x 35",
+          "surface": "CONC/ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "Yes"
+      ],
+      "atsServices": [
+        "AFIS"
+      ],
+      "fuelTypes": [],
+      "communicationFrequencies": [
+        "Yes"
+      ],
+      "category": "Licensed, instrument AD",
+      "ownerOperator": "Municipal",
+      "contactLines": [],
+      "source": {
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
+      }
+    },
+    {
+      "name": "ESKILSTUNA/EKEBY",
+      "icao": "ESSC",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "592302N 0162631E",
+        "lat": 59.38388888888889,
+        "lon": 16.441944444444445
+      },
+      "location": null,
+      "elevationFt": 43,
+      "runways": [
+        {
+          "designator": "05/23",
+          "dimensionsMeters": "850 x 150",
+          "surface": "GRASS"
+        }
+      ],
+      "runwayLighting": [
+        "No"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "91/96"
+      ],
+      "communicationFrequencies": [
+        "123.200"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "Municipal",
+      "contactLines": [
+        "+46 16 51 34 89",
+        "+46 16 14 03 57",
+        "+46 16 51 34 77",
+        "For gliding only",
+        "PPR"
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "ESLÖV",
+      "icao": "ESME",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "555054N 0131952E",
+        "lat": 55.848333333333336,
+        "lon": 13.331111111111111
+      },
+      "location": "1 NM NE",
+      "elevationFt": 296,
+      "runways": [
+        {
+          "designator": "12/30",
+          "dimensionsMeters": "799 x 20",
+          "surface": "ASPH"
+        },
+        {
+          "designator": "06/24",
+          "dimensionsMeters": "450 x 30",
+          "surface": "GRASS"
+        }
+      ],
+      "runwayLighting": [
+        "Yes",
+        "No"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "100LL O/R"
+      ],
+      "communicationFrequencies": [
+        "123.150"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "Municipal",
+      "contactLines": [
+        "+46 705 54 70 00",
+        "THR 06 displaced 90 m.",
+        "PPR for take-off/landing exercises by visiting ACFT, +46 705 54 70 00. RWY 06/24 not to be used for repeated take-off/landing exercises. Right hand traffic circuit when RWY 24 and 30 is in use."
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "FAGERHULT",
+      "icao": "ESMF",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "562316N 0132814E",
+        "lat": 56.38777777777778,
+        "lon": 13.470555555555556
+      },
+      "location": "1 NM N",
+      "elevationFt": 378,
+      "runways": [
+        {
+          "designator": "17/35",
+          "dimensionsMeters": "590 x 30",
+          "surface": "GRASS"
+        }
+      ],
+      "runwayLighting": [
+        "No"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "-"
+      ],
+      "communicationFrequencies": [
+        "-"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "Private",
+      "contactLines": [
+        "+46 706 27 22 76",
+        "+46 703 82 33 74",
+        "THR 17 displaced 100 m",
+        "THR 35 displaced 30 m"
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "FALKENBERG/MORUP",
+      "icao": "ESGF",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "565807N 0122314E",
+        "lat": 56.968611111111116,
+        "lon": 12.387222222222222
+      },
+      "location": null,
+      "elevationFt": 23,
+      "runways": [
+        {
+          "designator": "09/27",
+          "dimensionsMeters": "700 x 30",
+          "surface": "GRASS"
+        }
+      ],
+      "runwayLighting": [
+        "Yes"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "100LL"
+      ],
+      "communicationFrequencies": [
+        "-"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "FALKENBERGS FLYGKLUBB",
+      "contactLines": [
+        "+46 346 944 80",
+        "+46 346 943 13"
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "FALKÖPING",
+      "icao": "ESGK",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "581012N 0133516E",
+        "lat": 58.169999999999995,
+        "lon": 13.587777777777779
+      },
+      "location": "NE 1.5 NM from Falköping",
+      "elevationFt": 785,
+      "runways": [
+        {
+          "designator": "04/22",
+          "dimensionsMeters": "1316 x 30",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "Yes"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "100LL O/R"
+      ],
+      "communicationFrequencies": [
+        "123.350"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "Municipal",
+      "contactLines": [
+        "+46 515 806 30",
+        "PPR NOV-APR",
+        "PCL on freq 123.350 MHz.",
+        "Right hand circuit to RWY 04.",
+        "APR-OCT, winch launching of gliders.",
+        "Infrequent winter maintenance.",
+        "Other activities may occur on RWY, TWY and apron."
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "FJÄLLBACKA",
+      "icao": "ESTF",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "583749N 0111854E",
+        "lat": 58.63027777777778,
+        "lon": 11.315000000000001
+      },
+      "location": "1.5 NM NNE",
+      "elevationFt": 6,
+      "runways": [
+        {
+          "designator": "06/24",
+          "dimensionsMeters": "740 x 34",
+          "surface": "GRASS"
+        }
+      ],
+      "runwayLighting": [
+        "No"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "100LL"
+      ],
+      "communicationFrequencies": [
+        "123.200"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "Municipal",
+      "contactLines": [
+        "+46 705 33 78 16",
+        "+46 525 180 00 (Exch)",
+        "+46 705 12 49 35",
+        "PPR",
+        "estf@telia.com"
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "GAGNEF",
+      "icao": "ESVG",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "603303N 0150441E",
+        "lat": 60.55083333333333,
+        "lon": 15.078055555555554
+      },
+      "location": "2.7 NM S",
+      "elevationFt": 575,
+      "runways": [
+        {
+          "designator": "08/26",
+          "dimensionsMeters": "600 x 30",
+          "surface": "GRASS"
+        }
+      ],
+      "runwayLighting": [
+        "No"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "-"
+      ],
+      "communicationFrequencies": [
+        "123.550"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "GAGNEF FLYGKLUBB",
+      "contactLines": [
+        "+46 730 52 59 89",
+        "+46 706 65 51 79",
+        "info@gagnefsflygklubb.se",
+        "www.gagnefsflygklubb.se",
+        "Right hand traffic circuit to RWY 08.",
+        "Other activities may occur on RWY.",
+        "RWY conditions wet and swampy after heavy rain."
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "GARGNÄS",
+      "icao": "ESUG",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "651819N 0175832E",
+        "lat": 65.30527777777777,
+        "lon": 17.975555555555555
+      },
+      "location": "0.3 NM SE",
+      "elevationFt": 980,
+      "runways": [
+        {
+          "designator": "17/35",
+          "dimensionsMeters": "940 x 30",
+          "surface": "GRASS"
+        }
+      ],
+      "runwayLighting": [
+        "No"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "100LL"
+      ],
+      "communicationFrequencies": [
+        "123.450"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "Municipal",
+      "contactLines": [
+        "+46 952 213 29",
+        "+46 952 212 08",
+        "+46 706 07 27 32",
+        "PPR",
+        "THR 17 displaced 50 m",
+        "THR 35 displaced 90 m",
+        "Right hand traffic circuit to RWY 35."
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "GNESTA/VÄNGSÖ",
+      "icao": "ESSZ",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "590604N 0171240E",
+        "lat": 59.10111111111111,
+        "lon": 17.211111111111112
+      },
+      "location": "4.5 NM NW Gnesta",
+      "elevationFt": 56,
+      "runways": [
+        {
+          "designator": "03/21",
+          "dimensionsMeters": "770 x 30",
+          "surface": "GRASS"
+        },
+        {
+          "designator": "15/33",
+          "dimensionsMeters": "700 x 30",
+          "surface": "GRASS"
+        }
+      ],
+      "runwayLighting": [
+        "No",
+        "Yes"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "91/96"
+      ],
+      "communicationFrequencies": [
+        "123.375"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "ÖSTRA SÖRMLANDS FLYGKLUBB",
+      "contactLines": [
+        "info@osfk.se",
+        "PPR 2100-0500 (2000-0400).",
+        "THR 03 displaced 170 m.",
+        "THR 33 displaced 85 m.",
+        "TGL prohibited 2000-0600 (1900-0500).",
+        "After TKOF RWY 15/33, climb on",
+        "RWY HDG to MNM 1500ft AMSL.",
+        "Use RWY 03/21 only in strong wind.",
+        "Avoid overflying of built-up areas.",
+        "PCL RWY 15/33 on 123.375 MHz,",
+        "10 sec duration.",
+        "Caution, glider flying close to airport"
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "GRYTTJOM",
+      "icao": "ESKG",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "601710N 0172546E",
+        "lat": 60.28611111111111,
+        "lon": 17.429444444444446
+      },
+      "location": "4.5 NM SW Tierp",
+      "elevationFt": 105,
+      "runways": [
+        {
+          "designator": "17/35",
+          "dimensionsMeters": "809 x 27",
+          "surface": "GRASS"
+        }
+      ],
+      "runwayLighting": [
+        "No"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "-"
+      ],
+      "communicationFrequencies": [
+        "123.400"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "STOCKHOLMS FALLSKÄRMSKLUBB",
+      "contactLines": [
+        "+46 293 502 51",
+        "+46 705 76 84 71",
+        "PPR MAY-OCT",
+        "Right hand traffic circuit to RWY 35.",
+        "MAY-OCT intensive parachute jumping.",
+        "Rough RWY surface"
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "GÄLLIVARE",
+      "icao": "ESNG",
+      "detailsInAd2": true,
+      "arp": {
+        "lat": 67.13305555555554,
+        "lon": 20.81222222222222
+      },
+      "location": null,
+      "elevationFt": null,
+      "runways": [
+        {
+          "designator": "12/30",
+          "dimensionsMeters": "1714 x 45",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "Yes"
+      ],
+      "atsServices": [
+        "AFIS"
+      ],
+      "fuelTypes": [],
+      "communicationFrequencies": [
+        "Yes"
+      ],
+      "category": "Licensed, instrument AD",
+      "ownerOperator": "Municipal",
+      "contactLines": [],
+      "source": {
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
+      }
+    },
+    {
+      "name": "GÄVLE",
+      "icao": "ESSK",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "603536N 0165705E",
+        "lat": 60.593333333333334,
+        "lon": 16.95138888888889
+      },
+      "location": "SW 8 NM from Gävle",
+      "elevationFt": 224,
+      "runways": [
+        {
+          "designator": "18/36",
+          "dimensionsMeters": "2000 x 45",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "Yes"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "-"
+      ],
+      "communicationFrequencies": [
+        "123.600"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "Municipal",
+      "contactLines": [
+        "+46 26 17 82 60",
+        "PPR H24 RWY18/36 Grass RWY not affected. For permission",
+        "TEL +46 26 420 67 84.",
+        "After TKOF RWY 18/36, including grass RWY, light ACFT (<2000 kg) shall climb straight ahead to MNM 500 ft GND before initiating turn.",
+        "Light ACFT (<2000 kg) shall avoid overflying village of Rörberg east of aerodrome below 1200 ft AMSL.",
+        "For gliders using grass RWY 36 right hand circuit applies.",
+        "Other activities may occur on RWY, TWY and APN.",
+        "PCL on freq 123.600 MHz, 10 sec duration."
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "GÖTEBORG/LANDVETTER",
+      "icao": "ESGG",
+      "detailsInAd2": true,
+      "arp": {
+        "lat": 57.66,
+        "lon": 12.29111111111111
+      },
+      "location": null,
+      "elevationFt": null,
+      "runways": [
+        {
+          "designator": "03/21",
+          "dimensionsMeters": "3299 x 45",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "Yes"
+      ],
+      "atsServices": [
+        "TWR"
+      ],
+      "fuelTypes": [],
+      "communicationFrequencies": [
+        "Yes"
+      ],
+      "category": "Licensed, instrument AD",
+      "ownerOperator": "Swedavia AB",
+      "contactLines": [],
+      "source": {
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
+      }
+    },
+    {
+      "name": "GÖTEBORG/STALLBACKA",
+      "icao": "ESGT",
+      "detailsInAd2": true,
+      "arp": {
+        "lat": 58.31805555555556,
+        "lon": 12.345
+      },
+      "location": null,
+      "elevationFt": null,
+      "runways": [
+        {
+          "designator": "15/33",
+          "dimensionsMeters": "1710 x 30",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "Yes"
+      ],
+      "atsServices": [
+        "TWR"
+      ],
+      "fuelTypes": [],
+      "communicationFrequencies": [
+        "Yes"
+      ],
+      "category": "Licensed, instrument AD",
+      "ownerOperator": "Municipal",
+      "contactLines": [],
+      "source": {
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
+      }
+    },
+    {
+      "name": "GÖTEBORG/SÄVE",
+      "icao": "ESGP",
+      "detailsInAd2": true,
+      "arp": {
+        "lat": 57.775555555555556,
+        "lon": 11.870555555555557
+      },
+      "location": null,
+      "elevationFt": null,
+      "runways": [
+        {
+          "designator": "01/19",
+          "dimensionsMeters": "1085 x 45",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "Yes"
+      ],
+      "atsServices": [
+        "TWR"
+      ],
+      "fuelTypes": [],
+      "communicationFrequencies": [
+        "Yes"
+      ],
+      "category": "Licensed AD",
+      "ownerOperator": "Private",
+      "contactLines": [],
+      "source": {
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
+      }
+    },
+    {
+      "name": "GÖTENE/BRÄNNEBRONA",
+      "icao": "ESGN",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "583443N 0133638E",
+        "lat": 58.578611111111115,
+        "lon": 13.610555555555555
+      },
+      "location": "4.3 NM NE Götene",
+      "elevationFt": 259,
+      "runways": [
+        {
+          "designator": "12/30",
+          "dimensionsMeters": "600 x 40",
+          "surface": "GRASS"
+        }
+      ],
+      "runwayLighting": [
+        "No"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "91/96"
+      ],
+      "communicationFrequencies": [
+        "123.400"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "BRÄNNEBRONA FLYGKLUBB",
+      "contactLines": [
+        "+46 511 532 84",
+        "+46 707 98 19 94"
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "HAGFORS",
+      "icao": "ESOH",
+      "detailsInAd2": true,
+      "arp": {
+        "lat": 60.02111111111111,
+        "lon": 13.578888888888889
+      },
+      "location": null,
+      "elevationFt": null,
+      "runways": [
+        {
+          "designator": "18/36",
+          "dimensionsMeters": "1508 x 30",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "Yes"
+      ],
+      "atsServices": [
+        "AFIS"
+      ],
+      "fuelTypes": [],
+      "communicationFrequencies": [
+        "Yes"
+      ],
+      "category": "Licensed, instrument AD",
+      "ownerOperator": "Municipal",
+      "contactLines": [],
+      "source": {
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
+      }
+    },
+    {
+      "name": "HAGSHULT",
+      "icao": "ESMV",
+      "detailsInAd2": true,
+      "arp": {
+        "lat": 57.29222222222222,
+        "lon": 14.136944444444444
+      },
+      "location": null,
+      "elevationFt": null,
+      "runways": [
+        {
+          "designator": "04/22",
+          "dimensionsMeters": "2020 x 40",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "Yes"
+      ],
+      "atsServices": [
+        "TWR"
+      ],
+      "fuelTypes": [],
+      "communicationFrequencies": [
+        "Yes"
+      ],
+      "category": "MIL, non-licensed AD",
+      "ownerOperator": "FM/Swedish Armed Forces",
+      "contactLines": [],
+      "source": {
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
+      }
+    },
+    {
+      "name": "HALLVIKEN",
+      "icao": "ESNA",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "634418N 0152732E",
+        "lat": 63.73833333333334,
+        "lon": 15.458888888888888
+      },
+      "location": "8 NM SSW Strömsund",
+      "elevationFt": 1119,
+      "runways": [
+        {
+          "designator": "14/32",
+          "dimensionsMeters": "800 x 15",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "No"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "-"
+      ],
+      "communicationFrequencies": [
+        "123.550"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "STRÖMSUNDS FLYGKLUBB",
+      "contactLines": [
+        "+46 70 666 44 19",
+        "+46 70 646 64 19",
+        "PPR",
+        "THR 14 displaced 200 m."
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "HALMSTAD",
+      "icao": "ESMT",
+      "detailsInAd2": true,
+      "arp": {
+        "lat": 56.69083333333333,
+        "lon": 12.82
+      },
+      "location": null,
+      "elevationFt": null,
+      "runways": [
+        {
+          "designator": "01/19",
+          "dimensionsMeters": "2268 x 45",
+          "surface": "ASPH"
+        },
+        {
+          "designator": "06/24",
+          "dimensionsMeters": "609 x 30",
+          "surface": "GRASS"
+        }
+      ],
+      "runwayLighting": [
+        "Yes",
+        "No"
+      ],
+      "atsServices": [
+        "TWR"
+      ],
+      "fuelTypes": [],
+      "communicationFrequencies": [
+        "Yes"
+      ],
+      "category": "Licensed, instrument AD",
+      "ownerOperator": "Municipal",
+      "contactLines": [],
+      "source": {
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
+      }
+    },
+    {
+      "name": "HEDE/HEDLANDA",
+      "icao": "ESNC",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "622432N 0134450E",
+        "lat": 62.40888888888889,
+        "lon": 13.747222222222222
+      },
+      "location": "6 NM E",
+      "elevationFt": 1460,
+      "runways": [
+        {
+          "designator": "06/24",
+          "dimensionsMeters": "1175 x 33",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "No"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "100LL"
+      ],
+      "communicationFrequencies": [
+        "123.150"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "HEDLANDA FLYGFÖRENING",
+      "contactLines": [
+        "+46 684 120 92 (AD)",
+        "+46 684 66 85 90"
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "HEMAVAN TÄRNABY",
+      "icao": "ESUT",
+      "detailsInAd2": true,
+      "arp": {
+        "lat": 65.80611111111111,
+        "lon": 15.082777777777778
+      },
+      "location": null,
+      "elevationFt": null,
+      "runways": [
+        {
+          "designator": "15/33",
+          "dimensionsMeters": "1445 x 30",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "Yes"
+      ],
+      "atsServices": [
+        "AFIS"
+      ],
+      "fuelTypes": [],
+      "communicationFrequencies": [
+        "Yes"
+      ],
+      "category": "Licensed, instrument AD",
+      "ownerOperator": "Municipal",
+      "contactLines": [],
+      "source": {
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
+      }
+    },
+    {
+      "name": "HERRLJUNGA",
+      "icao": "ESGH",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "580146N 0130629E",
+        "lat": 58.029444444444444,
+        "lon": 13.108055555555556
+      },
+      "location": "3.8 NM SE",
+      "elevationFt": 480,
+      "runways": [
+        {
+          "designator": "18/36",
+          "dimensionsMeters": "900 x 70",
+          "surface": "GRASS"
+        }
+      ],
+      "runwayLighting": [
+        "No"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "100LL"
+      ],
+      "communicationFrequencies": [
+        "123.650"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "HERRLJUNGA FLYGKLUBB",
+      "contactLines": [
+        "+46 513 230 29",
+        "+46 513 502 19",
+        "THR 18 displaced 75 m.",
+        "THR 36 displaced 135 m."
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "HUDIKSVALL",
+      "icao": "ESNH",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "614606N 0170450E",
+        "lat": 61.76833333333333,
+        "lon": 17.080555555555556
+      },
+      "location": "2.7 NM NNW",
+      "elevationFt": 95,
+      "runways": [
+        {
+          "designator": "12/30",
+          "dimensionsMeters": "1320 x 30",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "No"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "Jet A1",
+        "O/R"
+      ],
+      "communicationFrequencies": [
+        "-"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "AIRLIFT HELICOPTER SWEDEN AB",
+      "contactLines": [
+        "+46 650 165 00",
+        "+46 703 92 40 48",
+        "PPR",
+        "THR 12 displaced 89 m.",
+        "THR 30 displaced 180 m.",
+        "Motor activities on RWY may occur."
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "HULTSFRED-VIMMERBY",
+      "icao": "ESSF",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "573133N 0154924E",
+        "lat": 57.52583333333333,
+        "lon": 15.823333333333332
+      },
+      "location": "NNW 2 NM Hultsfred",
+      "elevationFt": 365,
+      "runways": [
+        {
+          "designator": "12/30",
+          "dimensionsMeters": "1945 x 40",
+          "surface": "CONC"
+        }
+      ],
+      "runwayLighting": [
+        "Yes"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "100LL O/R",
+        "Jet A1",
+        "O/R"
+      ],
+      "communicationFrequencies": [
+        "123.550"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "Private",
+      "contactLines": [
+        "+46 73 096 95 52",
+        "PPR 7 days PN",
+        "PCL mandatory H24.",
+        "PCL by 5 pulses of aprx 1 sec duration on freq 123.550 MHz.",
+        "www.hultsfredairport.se"
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "HÄLLEFORS",
+      "icao": "ESVH",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "595203N 0142525E",
+        "lat": 59.8675,
+        "lon": 14.42361111111111
+      },
+      "location": "6 NM NW",
+      "elevationFt": 600,
+      "runways": [
+        {
+          "designator": "18/36",
+          "dimensionsMeters": "720 x 15",
+          "surface": "GRAVEL"
+        }
+      ],
+      "runwayLighting": [
+        "No"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "100LL"
+      ],
+      "communicationFrequencies": [
+        "123.150"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "HÄLLEFORS FLYGKLUBB",
+      "contactLines": [
+        "+46 591 170 82 (AD)",
+        "+46 591 121 90",
+        "THR 18 displaced 130 m.",
+        "THR 36 displaced 180 m.",
+        "Right hand traffic circuit to RWY 36."
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "HÄRNÖSAND/MYRAN",
+      "icao": "ESUH",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "623801N 0175853E",
+        "lat": 62.63361111111111,
+        "lon": 17.981388888888887
+      },
+      "location": null,
+      "elevationFt": 271,
+      "runways": [
+        {
+          "designator": "10/28",
+          "dimensionsMeters": "800 x 23",
+          "surface": "GRAVEL"
+        }
+      ],
+      "runwayLighting": [
+        "No"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "100LL"
+      ],
+      "communicationFrequencies": [
+        "123.450"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "HÄRNÖSAND FLYGKLUBB",
+      "contactLines": [
+        "+46 611 167 60",
+        "+46 611 186 44",
+        "+46 611 155 26",
+        "+46 611 229 96",
+        "Right hand traffic circuit to RWY 28."
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "HÄSSLEHOLM/BOKEBERG",
+      "icao": "ESFA",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "560801N 0135244E",
+        "lat": 56.13361111111111,
+        "lon": 13.87888888888889
+      },
+      "location": "3.8 NM ESE",
+      "elevationFt": 105,
+      "runways": [
+        {
+          "designator": "04/22",
+          "dimensionsMeters": "830 x 40",
+          "surface": "GRASS"
+        }
+      ],
+      "runwayLighting": [
+        "No"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "91/96UL"
+      ],
+      "communicationFrequencies": [
+        "123.600"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "HÄSSLEHOLM FLYGKLUBB",
+      "contactLines": [
+        "+46 44 853 64",
+        "THR 22 displaced 120 m"
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "HÖGANÄS",
+      "icao": "ESMH",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "561105N 0123433E",
+        "lat": 56.18472222222222,
+        "lon": 12.575833333333334
+      },
+      "location": "1 NM SE",
+      "elevationFt": 21,
+      "runways": [
+        {
+          "designator": "14/32",
+          "dimensionsMeters": "800 x 50",
+          "surface": "GRASS"
+        },
+        {
+          "designator": "06/24",
+          "dimensionsMeters": "460 x 50",
+          "surface": "GRASS"
+        }
+      ],
+      "runwayLighting": [
+        "Yes",
+        "No"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "100LL",
+        "91/96 UL",
+        "Jet A1"
+      ],
+      "communicationFrequencies": [
+        "123.550"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "NORDVÄSTRA SKÅNES FLYGKLUBB",
+      "contactLines": [
+        "+46 42 34 29 80 (AD)",
+        "+46 702 50 26 19",
+        "RWY 14/32:",
+        "length during darkness 650m.",
+        "PCL RWY 14/32:",
+        "transmit 15 sec on 123.550",
+        "Right hand traffic circuit to RWY 06 and 32.",
+        "Lighted obst 194 ft GND W THR 06.",
+        "www.nsf.se"
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "IDRE",
+      "icao": "ESUE",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "615211N 0124122E",
+        "lat": 61.86972222222222,
+        "lon": 12.689444444444444
+      },
+      "location": "1 NM NW",
+      "elevationFt": 1480,
+      "runways": [
+        {
+          "designator": "15/33",
+          "dimensionsMeters": "1558 x 30",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "Yes"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "100LL",
+        "Jet A1"
+      ],
+      "communicationFrequencies": [
+        "131.505"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "Private",
+      "contactLines": [
+        "+46 768 50 31 31",
+        "+46 708 10 44 68",
+        "PPR",
+        "THR 15 displaced 591 m.",
+        "Right hand traffic circuit to RWY 33.",
+        "www.idrefjallensairport.se"
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "JOKKMOKK",
+      "icao": "ESNJ",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "662948N 0200851E",
+        "lat": 66.49666666666667,
+        "lon": 20.1475
+      },
+      "location": "10 NM SE",
+      "elevationFt": 904,
+      "runways": [
+        {
+          "designator": "14/32",
+          "dimensionsMeters": "2000 x 25",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "Yes"
+      ],
+      "atsServices": [
+        "TWR"
+      ],
+      "fuelTypes": [],
+      "communicationFrequencies": [
+        "128.450"
+      ],
+      "category": "MIL, non-licensed AD",
+      "ownerOperator": "FM/Swedish Armed Forces",
+      "contactLines": [
+        "PPR 72 HR TEL: +46 920 23 43 02"
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "JÖNKÖPING",
+      "icao": "ESGJ",
+      "detailsInAd2": true,
+      "arp": {
+        "lat": 57.75833333333333,
+        "lon": 14.069166666666666
+      },
+      "location": null,
+      "elevationFt": null,
+      "runways": [
+        {
+          "designator": "01/19",
+          "dimensionsMeters": "2203 x 45",
+          "surface": "ASPH"
+        },
+        {
+          "designator": "11/29",
+          "dimensionsMeters": "525 x 25",
+          "surface": "GRASS"
+        }
+      ],
+      "runwayLighting": [
+        "Yes",
+        "No"
+      ],
+      "atsServices": [
+        "TWR"
+      ],
+      "fuelTypes": [],
+      "communicationFrequencies": [
+        "Yes"
+      ],
+      "category": "Licensed, instrument AD",
+      "ownerOperator": "Municipal",
+      "contactLines": [],
+      "source": {
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
+      }
+    },
+    {
+      "name": "KALMAR",
+      "icao": "ESMQ",
+      "detailsInAd2": true,
+      "arp": {
+        "lat": 56.68555555555555,
+        "lon": 16.2875
+      },
+      "location": null,
+      "elevationFt": null,
+      "runways": [
+        {
+          "designator": "16/34",
+          "dimensionsMeters": "2050 x 45",
+          "surface": "ASPH"
+        },
+        {
+          "designator": "05/23",
+          "dimensionsMeters": "656 x 40",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "Yes",
+        "No"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "TWR/APP"
+      ],
+      "communicationFrequencies": [
+        "Yes"
+      ],
+      "category": "Licensed, instrument AD",
+      "ownerOperator": "Municipal",
+      "contactLines": [],
+      "source": {
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
+      }
+    },
+    {
+      "name": "KARLSBORG",
+      "icao": "ESIA",
+      "detailsInAd2": true,
+      "arp": {
+        "lat": 58.51361111111111,
+        "lon": 14.507222222222222
+      },
+      "location": null,
+      "elevationFt": null,
+      "runways": [
+        {
+          "designator": "06/24",
+          "dimensionsMeters": "2289 x 40",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "Yes"
+      ],
+      "atsServices": [
+        "TWR"
+      ],
+      "fuelTypes": [],
+      "communicationFrequencies": [
+        "Yes"
+      ],
+      "category": "MIL, non-licensed AD",
+      "ownerOperator": "FM/Swedish Armed Forces",
+      "contactLines": [],
+      "source": {
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
+      }
+    },
+    {
+      "name": "KARLSKOGA",
+      "icao": "ESKK",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "592040N 0142941E",
+        "lat": 59.34444444444445,
+        "lon": 14.49472222222222
+      },
+      "location": "1.5 NM NNW",
+      "elevationFt": 400,
+      "runways": [
+        {
+          "designator": "03/21",
+          "dimensionsMeters": "1499 x 30",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "Yes"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "100LL",
+        "Jet A1"
+      ],
+      "communicationFrequencies": [
+        "123.525"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "Private",
+      "contactLines": [
+        "+46 586 533 60",
+        "+46 586 517 31",
+        "PPR",
+        "Right hand traffic circuit to RWY 21.",
+        "Other motor and glider activity may occur."
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "KARLSTAD",
+      "icao": "ESOK",
+      "detailsInAd2": true,
+      "arp": {
+        "lat": 59.44472222222222,
+        "lon": 13.3375
+      },
+      "location": null,
+      "elevationFt": null,
+      "runways": [
+        {
+          "designator": "03/21",
+          "dimensionsMeters": "2516 x 45",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "Yes"
+      ],
+      "atsServices": [
+        "TWR"
+      ],
+      "fuelTypes": [],
+      "communicationFrequencies": [
+        "Yes"
+      ],
+      "category": "Licensed, instrument AD",
+      "ownerOperator": "Municipal",
+      "contactLines": [],
+      "source": {
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
+      }
+    },
+    {
+      "name": "KATRINEHOLM",
+      "icao": "ESVK",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "590120N 0161313E",
+        "lat": 59.02222222222222,
+        "lon": 16.220277777777778
+      },
+      "location": "1 NM N",
+      "elevationFt": 132,
+      "runways": [
+        {
+          "designator": "15/33",
+          "dimensionsMeters": "700 x 40",
+          "surface": "GRASS"
+        }
+      ],
+      "runwayLighting": [
+        "No"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "91/96"
+      ],
+      "communicationFrequencies": [
+        "123.200"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "KATRINEHOLM FLYGKLUBB",
+      "contactLines": [
+        "+46 150 150 72 (AD)",
+        "+46 705 40 01 93",
+        "+46 702 74 16 54",
+        "PPR",
+        "THR 33 displaced 100 m.",
+        "Right hand traffic circuit for powered aircraft when RWY 33 is in use."
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "KIRUNA",
+      "icao": "ESNQ",
+      "detailsInAd2": true,
+      "arp": {
+        "lat": 67.82138888888889,
+        "lon": 20.335555555555555
+      },
+      "location": null,
+      "elevationFt": null,
+      "runways": [
+        {
+          "designator": "03/21",
+          "dimensionsMeters": "2502 x 45",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "Yes"
+      ],
+      "atsServices": [
+        "TWR"
+      ],
+      "fuelTypes": [],
+      "communicationFrequencies": [
+        "Yes"
+      ],
+      "category": "Licensed, instrument AD",
+      "ownerOperator": "Swedavia AB",
+      "contactLines": [],
+      "source": {
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
+      }
+    },
+    {
+      "name": "KRAMFORS-SOLLEFTEÅ",
+      "icao": "ESNK",
+      "detailsInAd2": true,
+      "arp": {
+        "lat": 63.04861111111111,
+        "lon": 17.76888888888889
+      },
+      "location": null,
+      "elevationFt": null,
+      "runways": [
+        {
+          "designator": "17/35",
+          "dimensionsMeters": "2001 x 45",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "Yes"
+      ],
+      "atsServices": [
+        "AFIS"
+      ],
+      "fuelTypes": [],
+      "communicationFrequencies": [
+        "Yes"
+      ],
+      "category": "Licensed, instrument AD",
+      "ownerOperator": "Municipal",
+      "contactLines": [],
+      "source": {
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
+      }
+    },
+    {
+      "name": "KRISTIANSTAD",
+      "icao": "ESMK",
+      "detailsInAd2": true,
+      "arp": {
+        "lat": 55.92055555555555,
+        "lon": 14.085277777777778
+      },
+      "location": null,
+      "elevationFt": null,
+      "runways": [
+        {
+          "designator": "01/19",
+          "dimensionsMeters": "2215 x 45",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "Yes"
+      ],
+      "atsServices": [
+        "TWR"
+      ],
+      "fuelTypes": [],
+      "communicationFrequencies": [
+        "Yes"
+      ],
+      "category": "Licensed, instrument AD",
+      "ownerOperator": "Municipal",
+      "contactLines": [],
+      "source": {
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
+      }
+    },
+    {
+      "name": "KÅGERÖD",
+      "icao": "ESMJ",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "555942N 0130312E",
+        "lat": 55.995,
+        "lon": 13.053333333333335
+      },
+      "location": null,
+      "elevationFt": 276,
+      "runways": [
+        {
+          "designator": "11/29",
+          "dimensionsMeters": "800 x 35",
+          "surface": "GRASS"
+        }
+      ],
+      "runwayLighting": [
+        "No"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "-"
+      ],
+      "communicationFrequencies": [
+        "-"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "Private",
+      "contactLines": [
+        "+46 418 802 50",
+        "+46 418 802 51",
+        "PPR",
+        "THR 11 displaced 200 m.",
+        "THR 29 displaced 150 m."
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "KÖPING",
+      "icao": "ESVQ",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "593139N 0155811E",
+        "lat": 59.527499999999996,
+        "lon": 15.969722222222222
+      },
+      "location": null,
+      "elevationFt": 25,
+      "runways": [
+        {
+          "designator": "07/25",
+          "dimensionsMeters": "700 x 50",
+          "surface": "GRASS"
+        }
+      ],
+      "runwayLighting": [
+        "Yes"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "100LL",
+        "UL91"
+      ],
+      "communicationFrequencies": [
+        "123.150"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "KÖPINGS FLYGKLUBB",
+      "contactLines": [
+        "+46 730 94 70 51",
+        "+46 736 29 09 05",
+        "+46 705 11 01 69",
+        "Traffic pattern 1000 ft AMSL.",
+        "THR 07 displaced 100 m.",
+        "Right hand traffic circuit to RWY 25.",
+        "Avoid noise sensitive areas.",
+        "Climb to 700 ft AMSL track 050 or 230 until initiating turn.",
+        "PPR for all take-off and landing exercises.",
+        "No TGL 1900-0700 (1800-0600).",
+        "No flying below 2000 ft over city.",
+        "Model flying area south of RWY, GND-1550 ft AMSL.",
+        "PCL on freq 123.150 MHz, 12 sec duration.",
+        "kopings.fk@gmail.com",
+        "www.kopingsfk.se"
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "LANDSKRONA",
+      "icao": "ESML",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "555640N 0125210E",
+        "lat": 55.94444444444444,
+        "lon": 12.869444444444445
+      },
+      "location": "4.3 NM NNE",
+      "elevationFt": 194,
+      "runways": [
+        {
+          "designator": "12R/30L",
+          "dimensionsMeters": "1180 x 30",
+          "surface": "ASPH"
+        },
+        {
+          "designator": "12L/30R",
+          "dimensionsMeters": "1050 x 90",
+          "surface": "GRASS"
+        }
+      ],
+      "runwayLighting": [
+        "Yes",
+        "No"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "100LL",
+        "91/96UL"
+      ],
+      "communicationFrequencies": [
+        "123.350"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "Municipal",
+      "contactLines": [
+        "+46 418 750 10",
+        "+46 418 750 34 (Fax)",
+        "PPR for repeated take-offs and landings.",
+        "THR 12R displaced 105 m.",
+        "THR 30L displaced 60 m.",
+        "Right hand traffic circuit to RWY 12R for powered aeroplanes and helicopters and to RWY 30R for gliders. PCL on freq 123.350 MHz,",
+        "3 transmissions within 5 sec.",
+        "Motor activity may occur."
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "LIDKÖPING",
+      "icao": "ESGL",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "582755N 0131028E",
+        "lat": 58.46527777777778,
+        "lon": 13.174444444444443
+      },
+      "location": "2.5 NM S Lidköping",
+      "elevationFt": 200,
+      "runways": [
+        {
+          "designator": "06/24",
+          "dimensionsMeters": "1990 x 45",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "Yes"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "100LL",
+        "91/96",
+        "Jet A1"
+      ],
+      "communicationFrequencies": [
+        "131.765"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "Municipal",
+      "contactLines": [
+        "+46 709 68 92 23",
+        "+46 702 19 18 03 Glider info",
+        "PPR only aircraft over 5700 kg.",
+        "PCL on freq 131.765 MHz, 10 sec duration.",
+        "Repeated take-off and landing exercises (TGL) during darkness only permitted ordinary Tuesdays 1800-2000 (1700-1900).",
+        "Repeated take-off and landing exercises 0600-1800 (0500-1700).",
+        "Solar panels along runway south side 30 m from edge.",
+        "andre.persson@lidkoping.se",
+        "www.lidkopingairport.com"
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "LINKÖPING/MALMEN",
+      "icao": "ESCF",
+      "detailsInAd2": true,
+      "arp": {
+        "lat": 58.39611111111111,
+        "lon": 15.521944444444445
+      },
+      "location": null,
+      "elevationFt": null,
+      "runways": [
+        {
+          "designator": "01/19",
+          "dimensionsMeters": "2214 x 35",
+          "surface": "ASPH"
+        },
+        {
+          "designator": "08/26",
+          "dimensionsMeters": "1870 x 37",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "Yes",
+        "Yes"
+      ],
+      "atsServices": [
+        "TWR"
+      ],
+      "fuelTypes": [],
+      "communicationFrequencies": [
+        "Yes"
+      ],
+      "category": "MIL, licensed, instrument AD",
+      "ownerOperator": "FM/Swedish Armed Forces",
+      "contactLines": [],
+      "source": {
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
+      }
+    },
+    {
+      "name": "LINKÖPING/SAAB",
+      "icao": "ESSL",
+      "detailsInAd2": true,
+      "arp": {
+        "lat": 58.406388888888884,
+        "lon": 15.679722222222221
+      },
+      "location": null,
+      "elevationFt": null,
+      "runways": [
+        {
+          "designator": "11/29",
+          "dimensionsMeters": "2135 x 45",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "Yes"
+      ],
+      "atsServices": [
+        "TWR"
+      ],
+      "fuelTypes": [],
+      "communicationFrequencies": [
+        "Yes"
+      ],
+      "category": "Licensed, instrument AD",
+      "ownerOperator": "Private",
+      "contactLines": [],
+      "source": {
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
+      }
+    },
+    {
+      "name": "LJUNGBY/FERINGE",
+      "icao": "ESMG",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "565701N 0135518E",
+        "lat": 56.95027777777778,
+        "lon": 13.921666666666667
+      },
+      "location": "7 NM NE Ljungby",
+      "elevationFt": 538,
+      "runways": [
+        {
+          "designator": "01/19",
+          "dimensionsMeters": "1150 x 30",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "No"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "100LL",
+        "Jet A1"
+      ],
+      "communicationFrequencies": [
+        "123.015"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "FERINGE FLYGKLUBB",
+      "contactLines": [
+        "+46 705 98 19 85",
+        "+46 370 819 85",
+        "PPR",
+        "Motor activities may occur.",
+        "www.feringeairport.se/"
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "LJUNGBYHED",
+      "icao": "ESTL",
+      "detailsInAd2": true,
+      "arp": {
+        "lat": 56.08527777777778,
+        "lon": 13.206944444444444
+      },
+      "location": null,
+      "elevationFt": null,
+      "runways": [
+        {
+          "designator": "11L/29R",
+          "dimensionsMeters": "1998 x 40",
+          "surface": "ASPH"
+        },
+        {
+          "designator": "11R/29L",
+          "dimensionsMeters": "1986 x 40",
+          "surface": "CONC/ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "No",
+        "Yes"
+      ],
+      "atsServices": [
+        "TWR"
+      ],
+      "fuelTypes": [],
+      "communicationFrequencies": [
+        "Yes"
+      ],
+      "category": "Licensed, instrument AD",
+      "ownerOperator": "Municipal",
+      "contactLines": [],
+      "source": {
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
+      }
+    },
+    {
+      "name": "LJUSDAL",
+      "icao": "ESUL",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "614901N 0160015E",
+        "lat": 61.816944444444445,
+        "lon": 16.004166666666666
+      },
+      "location": "2.0 NM WSW",
+      "elevationFt": 485,
+      "runways": [
+        {
+          "designator": "09/27",
+          "dimensionsMeters": "620 x 35",
+          "surface": "GRASS"
+        }
+      ],
+      "runwayLighting": [
+        "No"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "100LL",
+        "91/96"
+      ],
+      "communicationFrequencies": [
+        "123.200"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "LJUSDAL FLYGKLUBB",
+      "contactLines": [
+        "+46 651 107 46",
+        "+46 651 334 56",
+        "+46 706 95 50 09",
+        "Overflying of surface quarry on 614800N 0155900E 1000m S of Ljusdal AD should be avoided below 2000 ft AMSL."
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "LUDVIKA",
+      "icao": "ESSG",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "600518N 0150547E",
+        "lat": 60.08833333333334,
+        "lon": 15.096388888888889
+      },
+      "location": "2 NM WSW Ludvika",
+      "elevationFt": 894,
+      "runways": [
+        {
+          "designator": "01/19",
+          "dimensionsMeters": "819 x 30",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "Yes"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "91/96"
+      ],
+      "communicationFrequencies": [
+        "123.150"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "Municipal",
+      "contactLines": [
+        "+46 70 328 17 27",
+        "Turbulence over RWY when wind from the east.",
+        "Motor activities on RWY weekdays",
+        "1 APR-30 SEP",
+        "0600-1200 (0500-1100)",
+        "1 OCT-31 MAR",
+        "0600-1500 (0500-1400)"
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "LULEÅ/KALLAX",
+      "icao": "ESPA",
+      "detailsInAd2": true,
+      "arp": {
+        "lat": 65.54333333333334,
+        "lon": 22.12361111111111
+      },
+      "location": null,
+      "elevationFt": null,
+      "runways": [
+        {
+          "designator": "14/32",
+          "dimensionsMeters": "3350 x 45",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "Yes"
+      ],
+      "atsServices": [
+        "TWR"
+      ],
+      "fuelTypes": [],
+      "communicationFrequencies": [
+        "Yes"
+      ],
+      "category": "MIL, licensed, instrument AD",
+      "ownerOperator": "Swedavia AB",
+      "contactLines": [],
+      "source": {
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
+      }
+    },
+    {
+      "name": "LYCKSELE",
+      "icao": "ESNL",
+      "detailsInAd2": true,
+      "arp": {
+        "lat": 64.5475,
+        "lon": 18.717777777777776
+      },
+      "location": null,
+      "elevationFt": null,
+      "runways": [
+        {
+          "designator": "14/32",
+          "dimensionsMeters": "2092 x 45",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "Yes"
+      ],
+      "atsServices": [
+        "AFIS"
+      ],
+      "fuelTypes": [],
+      "communicationFrequencies": [
+        "Yes"
+      ],
+      "category": "Licensed, instrument AD",
+      "ownerOperator": "Municipal",
+      "contactLines": [],
+      "source": {
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
+      }
+    },
+    {
+      "name": "MALMÖ",
+      "icao": "ESMS",
+      "detailsInAd2": true,
+      "arp": {
+        "lat": 55.54833333333333,
+        "lon": 13.353333333333333
+      },
+      "location": null,
+      "elevationFt": null,
+      "runways": [
+        {
+          "designator": "17/35",
+          "dimensionsMeters": "2800 x 45",
+          "surface": "ASPH"
+        },
+        {
+          "designator": "11/29",
+          "dimensionsMeters": "799 x 18",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "Yes",
+        "No"
+      ],
+      "atsServices": [
+        "TWR"
+      ],
+      "fuelTypes": [],
+      "communicationFrequencies": [
+        "Yes"
+      ],
+      "category": "Licensed, instrument AD",
+      "ownerOperator": "Swedavia AB",
+      "contactLines": [],
+      "source": {
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
+      }
+    },
+    {
+      "name": "MALUNG/SKINNLANDA",
+      "icao": "ESVM",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "603932N 0134336E",
+        "lat": 60.65888888888889,
+        "lon": 13.726666666666667
+      },
+      "location": "1.7 NM SSE",
+      "elevationFt": 975,
+      "runways": [
+        {
+          "designator": "16/34",
+          "dimensionsMeters": "800 x 23",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "Yes"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "91/96"
+      ],
+      "communicationFrequencies": [
+        "123.330"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "MALUNGS FLYGKLUBB",
+      "contactLines": [
+        "+46 702 76 22 89",
+        "+46 705 80 91 80",
+        "+46 703 98 33 20",
+        "Right hand traffic circuit when RWY 16 is in use.",
+        "RWY and lightning facilities TEMPO CLSD during winter season. Info on www.malungsflygklubb.se"
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "MELLANSEL",
+      "icao": "ESUI",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "632331N 0181914E",
+        "lat": 63.39194444444444,
+        "lon": 18.320555555555554
+      },
+      "location": "13 NM NW Örnsköldsvik",
+      "elevationFt": 265,
+      "runways": [
+        {
+          "designator": "09/27",
+          "dimensionsMeters": "795 x 35",
+          "surface": "GRASS"
+        }
+      ],
+      "runwayLighting": [
+        "No"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "91/96"
+      ],
+      "communicationFrequencies": [
+        "123.400"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "MELLANSELS FLYGKLUBB",
+      "contactLines": [
+        "+46 660 910 54",
+        "+46 660 922 00",
+        "Further 235 m available in emergency when landing RWY 27."
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "MOHED",
+      "icao": "ESUM",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "611728N 0165047E",
+        "lat": 61.29111111111111,
+        "lon": 16.84638888888889
+      },
+      "location": "6 NM W Söderhamn",
+      "elevationFt": 215,
+      "runways": [
+        {
+          "designator": "12/30",
+          "dimensionsMeters": "800 x 30",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "Yes"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "91/96"
+      ],
+      "communicationFrequencies": [
+        "123.600"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "Municipal",
+      "contactLines": [
+        "+46 703 51 50 66"
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "MORA/SILJAN",
+      "icao": "ESKM",
+      "detailsInAd2": true,
+      "arp": {
+        "lat": 60.95861111111111,
+        "lon": 14.510555555555555
+      },
+      "location": null,
+      "elevationFt": null,
+      "runways": [
+        {
+          "designator": "16/34",
+          "dimensionsMeters": "1814 x 45",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "Yes"
+      ],
+      "atsServices": [
+        "AFIS"
+      ],
+      "fuelTypes": [],
+      "communicationFrequencies": [
+        "Yes"
+      ],
+      "category": "Licensed, instrument AD",
+      "ownerOperator": "Municipal",
+      "contactLines": [],
+      "source": {
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
+      }
+    },
+    {
+      "name": "MUNKFORS",
+      "icao": "ESKO",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "594756N 0132926E",
+        "lat": 59.79888888888889,
+        "lon": 13.490555555555554
+      },
+      "location": "1.6 NM S",
+      "elevationFt": 279,
+      "runways": [
+        {
+          "designator": "03/21",
+          "dimensionsMeters": "700 x 40",
+          "surface": "GRASS"
+        }
+      ],
+      "runwayLighting": [
+        "No"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "100LL"
+      ],
+      "communicationFrequencies": [
+        "-"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "MUNKFORS FLYGKLUBB",
+      "contactLines": [
+        "+46 705 22 63 24",
+        "+46 760 10 59 76",
+        "PPR",
+        "Hangar"
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "NORRKÖPING/KUNGSÄNGEN",
+      "icao": "ESSP",
+      "detailsInAd2": true,
+      "arp": {
+        "lat": 58.586111111111116,
+        "lon": 16.24638888888889
+      },
+      "location": null,
+      "elevationFt": null,
+      "runways": [
+        {
+          "designator": "09/27",
+          "dimensionsMeters": "2205 x 45",
+          "surface": "ASPH"
+        },
+        {
+          "designator": "11/29",
+          "dimensionsMeters": "600 x 35",
+          "surface": "GRASS"
+        }
+      ],
+      "runwayLighting": [
+        "Yes",
+        "No"
+      ],
+      "atsServices": [
+        "TWR"
+      ],
+      "fuelTypes": [],
+      "communicationFrequencies": [
+        "Yes"
+      ],
+      "category": "Licensed, instrument AD",
+      "ownerOperator": "Municipal",
+      "contactLines": [],
+      "source": {
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
+      }
+    },
+    {
+      "name": "NORRTÄLJE",
+      "icao": "ESSN",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "594358N 0184147E",
+        "lat": 59.73277777777778,
+        "lon": 18.69638888888889
+      },
+      "location": "1.6 NM S",
+      "elevationFt": 40,
+      "runways": [
+        {
+          "designator": "07/25",
+          "dimensionsMeters": "830 x 18",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "Yes"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "100LL",
+        "91/96",
+        "Jet A1"
+      ],
+      "communicationFrequencies": [
+        "123.325"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "ROSLAGENS FLYGKLUBB",
+      "contactLines": [
+        "+46 176 163 08",
+        "info@rfk.nu",
+        "RWY 07 down slope.",
+        "RWY 25 up slope.",
+        "Right hand traffic circuit to RWY 07.",
+        "RWY lights 3 m outside ASPH edge.",
+        "Only 650 meter starting from THR RWY 25.",
+        "PCL on freq 123.325 MHz 8 sec duration.",
+        "PPR for TGL during darkness.",
+        "TGL not allowed 2100-0600 (2000-0500) during weekdays and 1800-0800 (1700-0700) during HOL."
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "OPTAND",
+      "icao": "ESNM",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "630731N 0144830E",
+        "lat": 63.125277777777775,
+        "lon": 14.808333333333334
+      },
+      "location": "5 NM SE Östersund",
+      "elevationFt": 1236,
+      "runways": [
+        {
+          "designator": "18/36",
+          "dimensionsMeters": "1000 x 18",
+          "surface": "ASPH"
+        },
+        {
+          "designator": "15/33",
+          "dimensionsMeters": "750 x 40",
+          "surface": "GRASS"
+        }
+      ],
+      "runwayLighting": [
+        "Yes",
+        "No"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "100LL"
+      ],
+      "communicationFrequencies": [
+        "123.550"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "ÖSTERSUNDS FLYGKLUBB",
+      "contactLines": [
+        "+46 63 352 45",
+        "+46 63 51 01 50",
+        "Right hand traffic circuit to RWY 33 and 36.",
+        "Situated near restricted area ES R08C."
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "ORSA",
+      "icao": "ESNR",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "611132N 0144309E",
+        "lat": 61.19222222222222,
+        "lon": 14.719166666666666
+      },
+      "location": "1 NM WNW Mässbacken",
+      "elevationFt": 683,
+      "runways": [
+        {
+          "designator": "03/21",
+          "dimensionsMeters": "1000 x 30",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "No"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "-"
+      ],
+      "communicationFrequencies": [
+        "123.400"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "ORSA TALLHED FLYGSÄLLSKAP",
+      "contactLines": [
+        "+46 250 55 01 47",
+        "+46 705 48 13 81",
+        "+46 706 38 10 70",
+        "+46 762 73 11 01",
+        "Motor activities on RWY may occur.",
+        "Grass area preferably for ultra light, winchlaunching of gliders and parachute jumping."
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "OSKARSHAMN",
+      "icao": "ESMO",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "572107N 0162954E",
+        "lat": 57.35194444444445,
+        "lon": 16.498333333333335
+      },
+      "location": "NNE 5.4 NM from Oskarshamn",
+      "elevationFt": 96,
+      "runways": [
+        {
+          "designator": "01/19",
+          "dimensionsMeters": "1504 x 30",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "No"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "-"
+      ],
+      "communicationFrequencies": [
+        "123.350"
+      ],
+      "category": "Non-Licensed AD",
+      "ownerOperator": "Municipal",
+      "contactLines": [
+        "+46 72 214 10 68",
+        "+46 70 925 45 05",
+        "servicecenter@oskarshamn.se",
+        "www.oskarshamn.se/flygplatsen",
+        "No snow clearance during winterperiod.",
+        "Other activities may occur on RWY, TWY and apron see NOTAM."
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "OVIKEN",
+      "icao": "ESUO",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "630230N 0140005E",
+        "lat": 63.041666666666664,
+        "lon": 14.001388888888888
+      },
+      "location": null,
+      "elevationFt": 1640,
+      "runways": [
+        {
+          "designator": "18/36",
+          "dimensionsMeters": "750 x 20",
+          "surface": "GRASS"
+        }
+      ],
+      "runwayLighting": [
+        "No"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "91UL",
+        "100LL",
+        "O/R"
+      ],
+      "communicationFrequencies": [
+        "123.150"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "Private",
+      "contactLines": [
+        "+46 702 88 64 19",
+        "+46 706 41 59 41",
+        "PPR",
+        "Hangar",
+        "Caution - Low level turbulence/Lee wave rotor in wind directions from SW to NW."
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "PAJALA",
+      "icao": "ESUP",
+      "detailsInAd2": true,
+      "arp": {
+        "lat": 67.24583333333334,
+        "lon": 23.06888888888889
+      },
+      "location": null,
+      "elevationFt": null,
+      "runways": [
+        {
+          "designator": "11/29",
+          "dimensionsMeters": "2300 x 45",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "Yes"
+      ],
+      "atsServices": [
+        "AFIS"
+      ],
+      "fuelTypes": [],
+      "communicationFrequencies": [
+        "Yes"
+      ],
+      "category": "Licensed, instrument AD",
+      "ownerOperator": "Municipal",
+      "contactLines": [],
+      "source": {
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
+      }
+    },
+    {
+      "name": "PITEÅ",
+      "icao": "ESNP",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "652354N 0211539E",
+        "lat": 65.39833333333334,
+        "lon": 21.260833333333334
+      },
+      "location": "8 NM NW",
+      "elevationFt": 43,
+      "runways": [
+        {
+          "designator": "16/34",
+          "dimensionsMeters": "1000 x 25",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "Yes"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "91 UL",
+        "Jet A1"
+      ],
+      "communicationFrequencies": [
+        "123.550"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "PITEÅ FLYGKLUBB",
+      "contactLines": [
+        "+46 70 645 38 87",
+        "PPR, SMS preferred.",
+        "Right hand traffic circuit for RWY 16.",
+        "https://pfk.pitea-flygklubb.se/"
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "RAMSELE",
+      "icao": "ESUR",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "632925N 0162901E",
+        "lat": 63.49027777777778,
+        "lon": 16.483611111111113
+      },
+      "location": "2.7 NM S",
+      "elevationFt": 660,
+      "runways": [
+        {
+          "designator": "14/32",
+          "dimensionsMeters": "740 x 30",
+          "surface": "GRASS"
+        }
+      ],
+      "runwayLighting": [
+        "No"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "100LL",
+        "91/96"
+      ],
+      "communicationFrequencies": [
+        "123.600"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "RAMSELE FLYGKLUBB",
+      "contactLines": [
+        "+46 623 200 05",
+        "+46 623 320 18",
+        "THR 14 displaced 30 m.",
+        "THR 32 displaced 60 m."
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "RONNEBY",
+      "icao": "ESDF",
+      "detailsInAd2": true,
+      "arp": {
+        "lat": 56.266666666666666,
+        "lon": 15.265
+      },
+      "location": null,
+      "elevationFt": null,
+      "runways": [
+        {
+          "designator": "01/19",
+          "dimensionsMeters": "2331 x 45",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "Yes"
+      ],
+      "atsServices": [
+        "TWR"
+      ],
+      "fuelTypes": [],
+      "communicationFrequencies": [
+        "Yes"
+      ],
+      "category": "MIL, licensed instrument AD",
+      "ownerOperator": "FM/Swedish Armed Forces",
+      "contactLines": [],
+      "source": {
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
+      }
+    },
+    {
+      "name": "RÅDA",
+      "icao": "ESFR",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "582953N 0130311E",
+        "lat": 58.49805555555556,
+        "lon": 13.053055555555556
+      },
+      "location": null,
+      "elevationFt": 246,
+      "runways": [
+        {
+          "designator": "18/36",
+          "dimensionsMeters": "1987 x 35",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "Yes"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "-"
+      ],
+      "communicationFrequencies": [
+        "-"
+      ],
+      "category": "MIL, non-licensed AD",
+      "ownerOperator": "FM/Swedish Armed Forces",
+      "contactLines": [
+        "+46 510 87 75 00 (Airport manager)",
+        "PPR",
+        "Permission will be granted in exceptional cases only."
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "SANDVIK",
+      "icao": "ESFS",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "570406N 0165151E",
+        "lat": 57.068333333333335,
+        "lon": 16.86416666666667
+      },
+      "location": "16 NM NNE Borgholm",
+      "elevationFt": 36,
+      "runways": [
+        {
+          "designator": "17/35",
+          "dimensionsMeters": "600 x 25",
+          "surface": "GRASS"
+        }
+      ],
+      "runwayLighting": [
+        "No"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "-"
+      ],
+      "communicationFrequencies": [
+        "123.450"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "Private",
+      "contactLines": [
+        "+46 720 62 60 53",
+        "+46 704 61 66 75",
+        "+46 705 40 33 76",
+        "PPR",
+        "Available APR-SEP"
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "SILJANSNÄS",
+      "icao": "ESVS",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "604706N 0144938E",
+        "lat": 60.785,
+        "lon": 14.827222222222222
+      },
+      "location": "1 NM NW",
+      "elevationFt": 611,
+      "runways": [
+        {
+          "designator": "14L/32R",
+          "dimensionsMeters": "850 x 35",
+          "surface": "GRASS"
+        },
+        {
+          "designator": "14R/32L",
+          "dimensionsMeters": "850 x 16",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "No",
+        "No"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "100LL",
+        "91/96"
+      ],
+      "communicationFrequencies": [
+        "123.550"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "SILJANSNÄS FLYGKLUBB",
+      "contactLines": [
+        "+46 247 228 80",
+        "+46 247 228 51",
+        "Right hand traffic circuit to RWY 14."
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "SJÖBO SÖVDE",
+      "icao": "ESMI",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "553554N 0134038E",
+        "lat": 55.598333333333336,
+        "lon": 13.677222222222222
+      },
+      "location": "2 NM SSW Sjöbo",
+      "elevationFt": 118,
+      "runways": [
+        {
+          "designator": "12/30",
+          "dimensionsMeters": "950 x 50",
+          "surface": "GRASS"
+        }
+      ],
+      "runwayLighting": [
+        "Yes"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "91/96 UL"
+      ],
+      "communicationFrequencies": [
+        "123.650"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "Municipal",
+      "contactLines": [
+        "+46 416 160 51",
+        "For powered aircraft right hand traffic circuit when RWY 30 is in use.",
+        "For gliders right hand traffic circuit when RWY 12 is in use.",
+        "APR-NOV extensive launchning of gliders."
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "SKELLEFTEÅ",
+      "icao": "ESNS",
+      "detailsInAd2": true,
+      "arp": {
+        "lat": 64.62472222222222,
+        "lon": 21.076944444444443
+      },
+      "location": null,
+      "elevationFt": null,
+      "runways": [
+        {
+          "designator": "10/28",
+          "dimensionsMeters": "2520 x 45",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "Yes"
+      ],
+      "atsServices": [
+        "TWR"
+      ],
+      "fuelTypes": [],
+      "communicationFrequencies": [
+        "Yes"
+      ],
+      "category": "Licensed, instrument AD",
+      "ownerOperator": "Municipal",
+      "contactLines": [],
+      "source": {
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
+      }
+    },
+    {
+      "name": "SKÖVDE",
+      "icao": "ESGR",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "582722N 0135822E",
+        "lat": 58.45611111111111,
+        "lon": 13.972777777777777
+      },
+      "location": "5.4 NM NE from Skövde",
+      "elevationFt": 324,
+      "runways": [
+        {
+          "designator": "01/19",
+          "dimensionsMeters": "1736 x 30",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "Yes"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "91/96"
+      ],
+      "communicationFrequencies": [
+        "123.055"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "Municipal",
+      "contactLines": [
+        "+46 500 49 86 00",
+        "info@esgr.se",
+        "PPR 01 NOV-31 MAR",
+        "PCL on freq 123.055 MHz, 10 sec duration."
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "SMÅLANDSSTENAR",
+      "icao": "ESMY",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "571007N 0132624E",
+        "lat": 57.16861111111111,
+        "lon": 13.44
+      },
+      "location": null,
+      "elevationFt": 540,
+      "runways": [
+        {
+          "designator": "04/22",
+          "dimensionsMeters": "915 x 15",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "Yes"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "100LL"
+      ],
+      "communicationFrequencies": [
+        "123.200"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "AB VARMFÖRZINKNING",
+      "contactLines": [
+        "+46 371 343 00 MON-FRI 0630-1530 (0530-1430)",
+        "info@varmforzinkning.se",
+        "PPR",
+        "After TKOF RWY 22 climb on RWY heading until 700 ft AMSL (160 ft AGL). Turn right and climb on heading 235° to MNM 1500 ft AMSL (1000 ft AGL).",
+        "PCL on freq 123.200 MHz, 20 sec duration."
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "SOLLEFTEÅ",
+      "icao": "ESNB",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "631016N 0165908E",
+        "lat": 63.17111111111111,
+        "lon": 16.985555555555557
+      },
+      "location": "2.4 NM WSW",
+      "elevationFt": 433,
+      "runways": [
+        {
+          "designator": "14/32",
+          "dimensionsMeters": "820 x 30",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "No"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "Jet A1"
+      ],
+      "communicationFrequencies": [
+        "123.350"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "SOLLEFTEÅ FLYGKLUBB",
+      "contactLines": [
+        "+46 702 81 65 24",
+        "solleftea.flygklubb@gmail.com"
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "STEGEBORG",
+      "icao": "ESVE",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "582600N 0163618E",
+        "lat": 58.43333333333333,
+        "lon": 16.605
+      },
+      "location": null,
+      "elevationFt": 6,
+      "runways": [
+        {
+          "designator": "08/26",
+          "dimensionsMeters": "800 x 30",
+          "surface": "GRASS"
+        }
+      ],
+      "runwayLighting": [
+        "No"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "-"
+      ],
+      "communicationFrequencies": [
+        "123.550"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "STEGEBORGS EGENDOM AB",
+      "contactLines": [
+        "+46 121 420 04",
+        "stegeborg@stegeborg.se",
+        "www.stegeborg.se"
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "STOCKHOLM/ARLANDA",
+      "icao": "ESSA",
+      "detailsInAd2": true,
+      "arp": {
+        "lat": 59.651944444444446,
+        "lon": 17.91861111111111
+      },
+      "location": null,
+      "elevationFt": null,
+      "runways": [
+        {
+          "designator": "01L/19R",
+          "dimensionsMeters": "3301 x 45",
+          "surface": "ASPH"
+        },
+        {
+          "designator": "01R/19L",
+          "dimensionsMeters": "2500 x 45",
+          "surface": "ASPH"
+        },
+        {
+          "designator": "08/26",
+          "dimensionsMeters": "2500 x 45",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "Yes",
+        "Yes",
+        "Yes"
+      ],
+      "atsServices": [
+        "TWR"
+      ],
+      "fuelTypes": [],
+      "communicationFrequencies": [
+        "Yes"
+      ],
+      "category": "Licensed, instrument AD",
+      "ownerOperator": "Swedavia AB",
+      "contactLines": [],
+      "source": {
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
+      }
+    },
+    {
+      "name": "STOCKHOLM/BROMMA",
+      "icao": "ESSB",
+      "detailsInAd2": true,
+      "arp": {
+        "lat": 59.35444444444445,
+        "lon": 17.942222222222224
+      },
+      "location": null,
+      "elevationFt": null,
+      "runways": [
+        {
+          "designator": "12/30",
+          "dimensionsMeters": "1668 x 45",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "Yes"
+      ],
+      "atsServices": [
+        "TWR"
+      ],
+      "fuelTypes": [],
+      "communicationFrequencies": [
+        "Yes"
+      ],
+      "category": "Licensed, instrument AD",
+      "ownerOperator": "Swedavia AB",
+      "contactLines": [],
+      "source": {
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
+      }
+    },
+    {
+      "name": "STOCKHOLM/SKAVSTA",
+      "icao": "ESKN",
+      "detailsInAd2": true,
+      "arp": {
+        "lat": 58.78861111111111,
+        "lon": 16.90361111111111
+      },
+      "location": null,
+      "elevationFt": null,
+      "runways": [
+        {
+          "designator": "08/26",
+          "dimensionsMeters": "2878 x 45",
+          "surface": "ASPH"
+        },
+        {
+          "designator": "16/34",
+          "dimensionsMeters": "2043 x 40",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "Yes",
+        "Yes"
+      ],
+      "atsServices": [
+        "TWR"
+      ],
+      "fuelTypes": [],
+      "communicationFrequencies": [
+        "Yes"
+      ],
+      "category": "Licensed, instrument AD",
+      "ownerOperator": "Private",
+      "contactLines": [],
+      "source": {
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
+      }
+    },
+    {
+      "name": "STOCKHOLM/SKÅ-EDEBY",
+      "icao": "ESSE",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "592042N 0174426E",
+        "lat": 59.345,
+        "lon": 17.740555555555556
+      },
+      "location": "10 NM W",
+      "elevationFt": 17,
+      "runways": [
+        {
+          "designator": "11/29",
+          "dimensionsMeters": "800 x 50",
+          "surface": "GRASS"
+        },
+        {
+          "designator": "03/21",
+          "dimensionsMeters": "650 x 65",
+          "surface": "GRASS"
+        }
+      ],
+      "runwayLighting": [
+        "No",
+        "No"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "100LL",
+        "91/96 UL"
+      ],
+      "communicationFrequencies": [
+        "123.200"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "Municipal",
+      "contactLines": [
+        "+46 706 95 40 48",
+        "www.skaedebyflygfalt.se",
+        "PPR for commercial operations",
+        "NOV-APR soft or CLSD RWY, call for condition.",
+        "Helicopter traffic not accepted exc police and rescue operations.",
+        "ATZ established, ref ENR 2.2.",
+        "Hangar and repair.",
+        "TGL RWY 11 not allowed."
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "STOCKHOLM/VÄSTERÅS",
+      "icao": "ESOW",
+      "detailsInAd2": true,
+      "arp": {
+        "lat": 59.589444444444446,
+        "lon": 16.63361111111111
+      },
+      "location": null,
+      "elevationFt": null,
+      "runways": [
+        {
+          "designator": "01/19",
+          "dimensionsMeters": "2581 x 45",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "Yes"
+      ],
+      "atsServices": [
+        "TWR"
+      ],
+      "fuelTypes": [],
+      "communicationFrequencies": [
+        "Yes"
+      ],
+      "category": "Licensed, instrument AD",
+      "ownerOperator": "Municipal",
+      "contactLines": [],
+      "source": {
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
+      }
+    },
+    {
+      "name": "STORUMAN",
+      "icao": "ESUD",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "645739N 0174148E",
+        "lat": 64.96083333333334,
+        "lon": 17.696666666666665
+      },
+      "location": "ESE 16.0 NM from Storuman",
+      "elevationFt": 915,
+      "runways": [
+        {
+          "designator": "15/33",
+          "dimensionsMeters": "2283 x 40",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "No"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "-"
+      ],
+      "communicationFrequencies": [
+        "-"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "Municipal",
+      "contactLines": [
+        "+46 951 141 07",
+        "PPR"
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "STORVIK/LEMSTANÄS",
+      "icao": "ESOL",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "603516N 0163512E",
+        "lat": 60.58777777777778,
+        "lon": 16.586666666666666
+      },
+      "location": null,
+      "elevationFt": 210,
+      "runways": [
+        {
+          "designator": "06/24",
+          "dimensionsMeters": "620 x 23",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "No"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "91/96",
+        "Jet A1"
+      ],
+      "communicationFrequencies": [
+        "123.550"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "VÄSTRA GÄSTRIKE FLYGKLUBB",
+      "contactLines": [
+        "+46 290 375 97",
+        "Right hand traffic circuit to RWY 06.",
+        "THR 06 displaced 150 m."
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "STRÖMSTAD/NÄSINGE",
+      "icao": "ESGS",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "590101N 0112037E",
+        "lat": 59.01694444444444,
+        "lon": 11.343611111111112
+      },
+      "location": "7 NM NE",
+      "elevationFt": 115,
+      "runways": [
+        {
+          "designator": "03/21",
+          "dimensionsMeters": "900 x 53",
+          "surface": "GRASS"
+        }
+      ],
+      "runwayLighting": [
+        "No"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "91/96 UL",
+        "Jet A1"
+      ],
+      "communicationFrequencies": [
+        "123.550"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "Municipal",
+      "contactLines": [
+        "+46 526 190 00 (Exch)",
+        "+46 526 311 37",
+        "+46 733 74 72 00",
+        "+47 913 23 326",
+        "PPR"
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "SUNDBRO",
+      "icao": "ESKC",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "595522N 0173212E",
+        "lat": 59.922777777777775,
+        "lon": 17.53666666666667
+      },
+      "location": "5 NM NW Uppsala",
+      "elevationFt": 62,
+      "runways": [
+        {
+          "designator": "03/21",
+          "dimensionsMeters": "630 x 40",
+          "surface": "GRASS"
+        },
+        {
+          "designator": "08/26",
+          "dimensionsMeters": "470 x 60",
+          "surface": "GRASS"
+        },
+        {
+          "designator": "14/32",
+          "dimensionsMeters": "435 x 35",
+          "surface": "GRASS"
+        }
+      ],
+      "runwayLighting": [
+        "Yes",
+        "No",
+        "No"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "100LL",
+        "91/96"
+      ],
+      "communicationFrequencies": [
+        "123.350"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "UPPSALA FLYGKLUBB",
+      "contactLines": [
+        "+46 18 35 70 13 (AD)",
+        "+46 708 84 99 49 (Info, PPR)",
+        "+46 706 20 90 75 (Info, PPR)",
+        "www.uppsalaflygklubb.se",
+        "Situated within Uppsala CTR.",
+        "Right hand traffic circuit to RWY 03 and 08.",
+        "TKOF RWY 21: immediate right turn to track 217° MAG.",
+        "PCL on freq 123.350 MHz,",
+        "5 transmissions of APRX 0.5 sec during 10 sec.",
+        "Flying permitted:",
+        "MON-THU: 0700-1900 (0600-1800)",
+        "FRI: 0700-1600 (0600-1500)",
+        "SAT, SUN, day before HOL, HOL:",
+        "0800-1600 (0700-1500)",
+        "Other times PPR.",
+        "In addition between 15 JUN-15 AUG:",
+        "SUN, day before HOL, HOL: PPR",
+        "PPR for school flights and glider towing.",
+        "Landing with gliders exempted from PPR.",
+        "Fuel HX: Cash"
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "SUNDSVALL-TIMRÅ",
+      "icao": "ESNN",
+      "detailsInAd2": true,
+      "arp": {
+        "lat": 62.529444444444444,
+        "lon": 17.442777777777778
+      },
+      "location": null,
+      "elevationFt": null,
+      "runways": [
+        {
+          "designator": "16/34",
+          "dimensionsMeters": "1954 x 45",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "Yes"
+      ],
+      "atsServices": [
+        "TWR"
+      ],
+      "fuelTypes": [],
+      "communicationFrequencies": [
+        "Yes"
+      ],
+      "category": "Licensed, instrument AD",
+      "ownerOperator": "Municipal",
+      "contactLines": [],
+      "source": {
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
+      }
+    },
+    {
+      "name": "SUNNE",
+      "icao": "ESKU",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "595137N 0130646E",
+        "lat": 59.86027777777778,
+        "lon": 13.112777777777778
+      },
+      "location": "1.5 NM NW",
+      "elevationFt": 380,
+      "runways": [
+        {
+          "designator": "01/19",
+          "dimensionsMeters": "770 x 100",
+          "surface": "GRASS"
+        }
+      ],
+      "runwayLighting": [
+        "No"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "100LL"
+      ],
+      "communicationFrequencies": [
+        "123.200"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "Municipal",
+      "contactLines": [
+        "+46 565 101 11",
+        "+46 565 77 01 55",
+        "+46 703 73 05 66",
+        "THR 01 displaced 130 m."
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "SVEG",
+      "icao": "ESND",
+      "detailsInAd2": true,
+      "arp": {
+        "lat": 62.047777777777775,
+        "lon": 14.424166666666666
+      },
+      "location": null,
+      "elevationFt": null,
+      "runways": [
+        {
+          "designator": "09/27",
+          "dimensionsMeters": "1701 x 30",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "Yes"
+      ],
+      "atsServices": [
+        "AFIS"
+      ],
+      "fuelTypes": [],
+      "communicationFrequencies": [
+        "Yes"
+      ],
+      "category": "Licensed, instrument AD",
+      "ownerOperator": "Municipal",
+      "contactLines": [],
+      "source": {
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
+      }
+    },
+    {
+      "name": "SÅTENÄS",
+      "icao": "ESIB",
+      "detailsInAd2": true,
+      "arp": {
+        "lat": 58.42833333333333,
+        "lon": 12.71111111111111
+      },
+      "location": null,
+      "elevationFt": null,
+      "runways": [
+        {
+          "designator": "01/19",
+          "dimensionsMeters": "2264 x 45",
+          "surface": "ASPH"
+        },
+        {
+          "designator": "11/29",
+          "dimensionsMeters": "1933 x 40",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "Yes",
+        "Yes"
+      ],
+      "atsServices": [
+        "TWR"
+      ],
+      "fuelTypes": [],
+      "communicationFrequencies": [
+        "Yes"
+      ],
+      "category": "MIL, licensed, instument AD",
+      "ownerOperator": "FM/Swedish Armed Forces",
+      "contactLines": [],
+      "source": {
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
+      }
+    },
+    {
+      "name": "SÄFFLE",
+      "icao": "ESGY",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "590528N 0125730E",
+        "lat": 59.09111111111111,
+        "lon": 12.958333333333332
+      },
+      "location": "2.7 NM S",
+      "elevationFt": 151,
+      "runways": [
+        {
+          "designator": "01/19",
+          "dimensionsMeters": "690 x 50",
+          "surface": "GRASS"
+        }
+      ],
+      "runwayLighting": [
+        "No"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "91/96"
+      ],
+      "communicationFrequencies": [
+        "123.600"
+      ],
+      "category": "Licensed AD",
+      "ownerOperator": "SÄFFLE FLYGKLUBB",
+      "contactLines": [
+        "+46 533 180 29",
+        "+46 533 162 96",
+        "+46 705 09 04 92"
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "SÄLEN/SCANDINAVIAN MOUNTAINS",
+      "icao": "ESKS",
+      "detailsInAd2": true,
+      "arp": {
+        "lat": 61.164722222222224,
+        "lon": 12.83388888888889
+      },
+      "location": null,
+      "elevationFt": null,
+      "runways": [
+        {
+          "designator": "15/33",
+          "dimensionsMeters": "2500 x 45",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "Yes"
+      ],
+      "atsServices": [
+        "TWR"
+      ],
+      "fuelTypes": [],
+      "communicationFrequencies": [
+        "Yes"
+      ],
+      "category": "Licensed instrument AD",
+      "ownerOperator": "Private",
+      "contactLines": [],
+      "source": {
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
+      }
+    },
+    {
+      "name": "SÖDERHAMN",
+      "icao": "ESNY",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "611541N 0170554E",
+        "lat": 61.26138888888889,
+        "lon": 17.098333333333333
+      },
+      "location": "2.8 NM SE Söderhamn",
+      "elevationFt": 88,
+      "runways": [
+        {
+          "designator": "12/30",
+          "dimensionsMeters": "2524 x 40",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "No"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "100LL",
+        "Jet A1"
+      ],
+      "communicationFrequencies": [
+        "123.525"
+      ],
+      "category": "Non-licenced AD",
+      "ownerOperator": "Municipal",
+      "contactLines": [
+        "+46 270 75 000 (exch)",
+        "+46 270 75 134 (AD)",
+        "PPR 24 HR",
+        "Swedish MIL ACFT and all ACFT operating for Hosp, Police, Sea Rescue, Coast Guard and MSB duty exempted from PPR.",
+        "Fuel +46 70 632 54 54",
+        "Right hand traffic circuit RWY 12."
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "TIDAHOLM/BÄMMELSHED",
+      "icao": "ESGD",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "581131N 0135944E",
+        "lat": 58.19194444444444,
+        "lon": 13.995555555555555
+      },
+      "location": null,
+      "elevationFt": 456,
+      "runways": [
+        {
+          "designator": "04/22",
+          "dimensionsMeters": "675 x 50",
+          "surface": "GRASS"
+        }
+      ],
+      "runwayLighting": [
+        "No"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "91/96"
+      ],
+      "communicationFrequencies": [
+        "123.650"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "TIDAHOLMS FLYGKLUBB",
+      "contactLines": [
+        "+46 502 330 84",
+        "+46 708 33 08 41",
+        "PPR",
+        "Right hand traffic circuit to RWY 22. Downdraft may occur when easterly winds.",
+        "THR 04 displaced 15 m."
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "TIERP",
+      "icao": "ESKT",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "602042N 0172519E",
+        "lat": 60.345,
+        "lon": 17.421944444444446
+      },
+      "location": "2.7 NM W Tierp",
+      "elevationFt": 129,
+      "runways": [
+        {
+          "designator": "16/34",
+          "dimensionsMeters": "850 x 35",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "No"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "91/96"
+      ],
+      "communicationFrequencies": [
+        "123.400"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "TIERP ARENA AB",
+      "contactLines": [
+        "+46 76 78 60 088 Norra Upplands flygklubb",
+        "+46 73 65 22 211 AD manager",
+        "THR 34 displaced 100 m.",
+        "Right hand traffic circuit to RWY 34."
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "TORSBY",
+      "icao": "ESST",
+      "detailsInAd2": true,
+      "arp": {
+        "lat": 60.15472222222222,
+        "lon": 12.993611111111111
+      },
+      "location": null,
+      "elevationFt": null,
+      "runways": [
+        {
+          "designator": "16/34",
+          "dimensionsMeters": "1590 x 30",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "Yes"
+      ],
+      "atsServices": [
+        "AFIS"
+      ],
+      "fuelTypes": [],
+      "communicationFrequencies": [
+        "Yes"
+      ],
+      "category": "Licensed, instrument AD",
+      "ownerOperator": "Municipal",
+      "contactLines": [],
+      "source": {
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
+      }
+    },
+    {
+      "name": "UDDEVALLA/BACKAMO",
+      "icao": "ESGA",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "581038N 0115825E",
+        "lat": 58.17722222222222,
+        "lon": 11.973611111111111
+      },
+      "location": "10.4 NM S Uddevalla",
+      "elevationFt": 424,
+      "runways": [
+        {
+          "designator": "06/24",
+          "dimensionsMeters": "760 x 30",
+          "surface": "GRASS"
+        }
+      ],
+      "runwayLighting": [
+        "No"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "91/96",
+        "100LL"
+      ],
+      "communicationFrequencies": [
+        "123.550"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "Municipal",
+      "contactLines": [
+        "+46 522 233 65",
+        "+46 705 52 33 65",
+        "+46 522 69 60 00",
+        "PPR"
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "UDDEVALLA/RÖRKÄRR",
+      "icao": "ESGU",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "582204N 0114631E",
+        "lat": 58.367777777777775,
+        "lon": 11.775277777777779
+      },
+      "location": "5.0 NM NW",
+      "elevationFt": 120,
+      "runways": [
+        {
+          "designator": "03/21",
+          "dimensionsMeters": "655 x 30",
+          "surface": "GRASS"
+        }
+      ],
+      "runwayLighting": [
+        "No"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "91/96"
+      ],
+      "communicationFrequencies": [
+        "123.550"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "Private",
+      "contactLines": [
+        "+46 70 277 42 65",
+        "+46 70 757 72 62",
+        "+46 73 244 99 55",
+        "PPR"
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "UMEÅ",
+      "icao": "ESNU",
+      "detailsInAd2": true,
+      "arp": {
+        "lat": 63.793055555555554,
+        "lon": 20.279999999999998
+      },
+      "location": null,
+      "elevationFt": null,
+      "runways": [
+        {
+          "designator": "14/32",
+          "dimensionsMeters": "2302 x 45",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "Yes"
+      ],
+      "atsServices": [
+        "TWR"
+      ],
+      "fuelTypes": [],
+      "communicationFrequencies": [
+        "Yes"
+      ],
+      "category": "Licensed, instrument AD",
+      "ownerOperator": "Swedavia AB",
+      "contactLines": [],
+      "source": {
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
+      }
+    },
+    {
+      "name": "UPPSALA",
+      "icao": "ESCM",
+      "detailsInAd2": true,
+      "arp": {
+        "lat": 59.900277777777774,
+        "lon": 17.592499999999998
+      },
+      "location": null,
+      "elevationFt": null,
+      "runways": [
+        {
+          "designator": "08/26",
+          "dimensionsMeters": "1963 x 40",
+          "surface": "ASPH"
+        },
+        {
+          "designator": "03/21",
+          "dimensionsMeters": "1906 x 40",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "Yes",
+        "Yes"
+      ],
+      "atsServices": [
+        "TWR"
+      ],
+      "fuelTypes": [],
+      "communicationFrequencies": [
+        "Yes"
+      ],
+      "category": "MIL, non-licensed AD",
+      "ownerOperator": "FM/Swedish Armed Forces",
+      "contactLines": [],
+      "source": {
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
+      }
+    },
+    {
+      "name": "VARBERG",
+      "icao": "ESGV",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "570729N 0121341E",
+        "lat": 57.124722222222225,
+        "lon": 12.228055555555555
+      },
+      "location": "1.5 NM NW",
+      "elevationFt": 3,
+      "runways": [
+        {
+          "designator": "06/24",
+          "dimensionsMeters": "600 x 22",
+          "surface": "GRASS"
+        },
+        {
+          "designator": "12/30",
+          "dimensionsMeters": "560 x 40",
+          "surface": "GRASS"
+        }
+      ],
+      "runwayLighting": [
+        "No",
+        "Yes"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "91/96",
+        "100LL"
+      ],
+      "communicationFrequencies": [
+        "123.150"
+      ],
+      "category": "Licensed AD",
+      "ownerOperator": "Municipal",
+      "contactLines": [
+        "+46 340 198 00",
+        "+46 340 150 40",
+        "PPR 15 OKT-15 APR.",
+        "Special permission required to use RWY 06/24.",
+        "Helicopter traffic prohibited at AD.",
+        "PCL on freq 123.150 MHz, 10 sec duration."
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "VELLINGE",
+      "icao": "ESTT",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "552346N 0130131E",
+        "lat": 55.39611111111111,
+        "lon": 13.025277777777779
+      },
+      "location": null,
+      "elevationFt": 12,
+      "runways": [
+        {
+          "designator": "03/21",
+          "dimensionsMeters": "730 x 30",
+          "surface": "GRASS"
+        }
+      ],
+      "runwayLighting": [
+        "No"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "100LL",
+        "91/96"
+      ],
+      "communicationFrequencies": [
+        "123.400"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "SÖDERSLATTS FLYGKLUBB",
+      "contactLines": [
+        "+46 708 56 78 09",
+        "+46 709 54 76 32",
+        "+46 709 97 02 35",
+        "+46 768 70 30 32",
+        "Obstacle 1 NM NE AD",
+        "Right hand traffic circuit to RWY 03."
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "VIDSEL",
+      "icao": "ESPE",
+      "detailsInAd2": true,
+      "arp": {
+        "lat": 65.87527777777777,
+        "lon": 20.15
+      },
+      "location": null,
+      "elevationFt": null,
+      "runways": [
+        {
+          "designator": "11/29",
+          "dimensionsMeters": "2234 x 35",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "Yes"
+      ],
+      "atsServices": [
+        "TWR"
+      ],
+      "fuelTypes": [],
+      "communicationFrequencies": [
+        "Yes"
+      ],
+      "category": "MIL, non-licensed AD",
+      "ownerOperator": "FM/Swedish Armed Forces",
+      "contactLines": [],
+      "source": {
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
+      }
+    },
+    {
+      "name": "VILHELMINA",
+      "icao": "ESNV",
+      "detailsInAd2": true,
+      "arp": {
+        "lat": 64.5786111111111,
+        "lon": 16.83972222222222
+      },
+      "location": null,
+      "elevationFt": null,
+      "runways": [
+        {
+          "designator": "10/28",
+          "dimensionsMeters": "1500 x 30",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "Yes"
+      ],
+      "atsServices": [
+        "AFIS"
+      ],
+      "fuelTypes": [],
+      "communicationFrequencies": [
+        "Yes"
+      ],
+      "category": "Licensed, instrument AD",
+      "ownerOperator": "Municipal",
+      "contactLines": [],
+      "source": {
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
+      }
+    },
+    {
+      "name": "VISBY",
+      "icao": "ESSV",
+      "detailsInAd2": true,
+      "arp": {
+        "lat": 57.66277777777778,
+        "lon": 18.34611111111111
+      },
+      "location": null,
+      "elevationFt": null,
+      "runways": [
+        {
+          "designator": "03/21",
+          "dimensionsMeters": "2000 x 45",
+          "surface": "ASPH"
+        },
+        {
+          "designator": "10/28",
+          "dimensionsMeters": "1100 x 40",
+          "surface": "GRASS"
+        }
+      ],
+      "runwayLighting": [
+        "Yes",
+        "No"
+      ],
+      "atsServices": [
+        "TWR"
+      ],
+      "fuelTypes": [],
+      "communicationFrequencies": [
+        "Yes"
+      ],
+      "category": "Licensed, instrument AD",
+      "ownerOperator": "Swedavia AB",
+      "contactLines": [],
+      "source": {
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
+      }
+    },
+    {
+      "name": "VISINGSÖ",
+      "icao": "ESSI",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "580555N 0142409E",
+        "lat": 58.09861111111111,
+        "lon": 14.4025
+      },
+      "location": null,
+      "elevationFt": 309,
+      "runways": [
+        {
+          "designator": "15/33",
+          "dimensionsMeters": "800 x 25",
+          "surface": "GRASS"
+        },
+        {
+          "designator": "01/19",
+          "dimensionsMeters": "600 x 25",
+          "surface": "GRASS"
+        }
+      ],
+      "runwayLighting": [
+        "No",
+        "No"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "-"
+      ],
+      "communicationFrequencies": [
+        "123.500"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "JÖNKÖPINGS FLYGKLUBB",
+      "contactLines": [
+        "+46 390 402 77",
+        "+46 36 31 12 20"
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "VÅRGÅRDA",
+      "icao": "ESGO",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "580221N 0124709E",
+        "lat": 58.03916666666667,
+        "lon": 12.785833333333333
+      },
+      "location": "0.8 NM NW",
+      "elevationFt": 328,
+      "runways": [
+        {
+          "designator": "04/22",
+          "dimensionsMeters": "890 x 30",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "No"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "Jet A1 O/R"
+      ],
+      "communicationFrequencies": [
+        "123.650"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "VÅRGÅRDA FLYGPLATS AB",
+      "contactLines": [
+        "+46 707 91 35 94",
+        "PPR",
+        "THR 04 displaced 200 m.",
+        "THR 22 displaced 40 m.",
+        "Right hand circuit to RWY 22.",
+        "MAR-OCT intensive parachute jumping.",
+        "Motor activities on RWY may occur.",
+        "After take-off RWY 04 turn left immediately, climb on track 015° to 1000 ft GND before commencing turn.",
+        "After take-off RWY 22 turn left immediately, climb on track 210° to 1000 ft GND before commencing turn.",
+        "Overflying Vårgårda village SE of AD shall be avoided below 2300 ft MSL."
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "VÄSTERVIK",
+      "icao": "ESSW",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "574648N 0163125E",
+        "lat": 57.78,
+        "lon": 16.52361111111111
+      },
+      "location": "4 NM NW",
+      "elevationFt": 129,
+      "runways": [
+        {
+          "designator": "15/33",
+          "dimensionsMeters": "1199 x 30",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "Yes"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "100LL",
+        "Jet A1"
+      ],
+      "communicationFrequencies": [
+        "131.615"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "Municipal",
+      "contactLines": [
+        "+46 10 355 40 00",
+        "www.essw.se",
+        "PPR +46 703 98 27 30",
+        "THR 33 displaced 300 m.",
+        "PCL on freq 131.615 MHz, 20 sec duration."
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "VÄSTERÅS/JOHANNISBERG",
+      "icao": "ESSX",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "593433N 0163011E",
+        "lat": 59.575833333333335,
+        "lon": 16.503055555555555
+      },
+      "location": "2.5 NM SW",
+      "elevationFt": 25,
+      "runways": [
+        {
+          "designator": "05/23",
+          "dimensionsMeters": "850 x 23",
+          "surface": "ASPH"
+        },
+        {
+          "designator": "16/34",
+          "dimensionsMeters": "730 x 50",
+          "surface": "GRASS"
+        }
+      ],
+      "runwayLighting": [
+        "Yes",
+        "No"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "UL91"
+      ],
+      "communicationFrequencies": [
+        "123.650"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "Municipal",
+      "contactLines": [
+        "www.vasterasflygklubb.se/flygfaltet/",
+        "PPR",
+        "Right hand traffic circuit when RWY 05 or RWY 16 is in use.",
+        "THR RWY 16 displaced 190 m.",
+        "Take off and landing exercises not allowed:",
+        "MON-FRI 1700-0800 (1600-0700)",
+        "SAT-SUN 1500-0900 (1400-0800)",
+        "HOL H24.",
+        "ATZ established, ref ENR 2.2"
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "VÄXJÖ/KRONOBERG",
+      "icao": "ESMX",
+      "detailsInAd2": true,
+      "arp": {
+        "lat": 56.930277777777775,
+        "lon": 14.72888888888889
+      },
+      "location": null,
+      "elevationFt": null,
+      "runways": [
+        {
+          "designator": "01/19",
+          "dimensionsMeters": "2106 x 45",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "Yes"
+      ],
+      "atsServices": [
+        "TWR"
+      ],
+      "fuelTypes": [],
+      "communicationFrequencies": [
+        "Yes"
+      ],
+      "category": "Licensed, instrument AD",
+      "ownerOperator": "Municipal",
+      "contactLines": [],
+      "source": {
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
+      }
+    },
+    {
+      "name": "ÅLLEBERG",
+      "icao": "ESGC",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "580805N 0133609E",
+        "lat": 58.13472222222222,
+        "lon": 13.6025
+      },
+      "location": "3 NM SE Falköping",
+      "elevationFt": 1099,
+      "runways": [
+        {
+          "designator": "03/21",
+          "dimensionsMeters": "680 x 30",
+          "surface": "GRASS"
+        }
+      ],
+      "runwayLighting": [
+        "No"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "91/96 O/R"
+      ],
+      "communicationFrequencies": [
+        "123.400"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "SVENSKA SEGELFLYGFORBUNDET",
+      "contactLines": [
+        "+46 515 371 51",
+        "+46 515 371 63",
+        "PPR",
+        "Gliders only, direction of traffic circuit depending on wind direction.",
+        "Winch launching of gliders may occur.",
+        "www.segelflyget.se"
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "ÅNGE/TÄLJE",
+      "icao": "ESUJ",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "623355N 0155005E",
+        "lat": 62.56527777777777,
+        "lon": 15.834722222222222
+      },
+      "location": null,
+      "elevationFt": 427,
+      "runways": [
+        {
+          "designator": "14/32",
+          "dimensionsMeters": "838 x 30",
+          "surface": "GRASS"
+        }
+      ],
+      "runwayLighting": [
+        "No"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "-"
+      ],
+      "communicationFrequencies": [
+        "123.150"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "ÅNGE FLYGKLUBB",
+      "contactLines": [
+        "+46 701 77 40 86",
+        "+46 706 01 23 11",
+        "THR 32 displaced 57 m."
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "ÅRE ÖSTERSUND",
+      "icao": "ESNZ",
+      "detailsInAd2": true,
+      "arp": {
+        "lat": 63.19444444444444,
+        "lon": 14.500277777777777
+      },
+      "location": null,
+      "elevationFt": null,
+      "runways": [
+        {
+          "designator": "12/30",
+          "dimensionsMeters": "2500 x 45",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "Yes"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "TWR/APP"
+      ],
+      "communicationFrequencies": [
+        "Yes"
+      ],
+      "category": "Licensed, instrument AD",
+      "ownerOperator": "Swedavia AB",
+      "contactLines": [],
+      "source": {
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
+      }
+    },
+    {
+      "name": "ÅVIKEN/ÅVIKEN FLY CAMP",
+      "icao": "ESNF",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "631246N 0184457E",
+        "lat": 63.21277777777778,
+        "lon": 18.749166666666667
+      },
+      "location": "5 NM S Örnsköldsvik",
+      "elevationFt": 39,
+      "runways": [
+        {
+          "designator": "01/19",
+          "dimensionsMeters": "600 x 30",
+          "surface": "GRASS"
+        }
+      ],
+      "runwayLighting": [
+        "No"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "-"
+      ],
+      "communicationFrequencies": [
+        "123.400"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "AVIKEN FLY CAMP HIGH COAST AB",
+      "contactLines": [
+        "+46 704 69 68 07",
+        "PPR"
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "ÄLMHULT/MÖCKELN",
+      "icao": "ESMU",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "563414N 0140959E",
+        "lat": 56.57055555555556,
+        "lon": 14.16638888888889
+      },
+      "location": "2.5 NM NNE",
+      "elevationFt": 480,
+      "runways": [
+        {
+          "designator": "03/21",
+          "dimensionsMeters": "604 x 30",
+          "surface": "GRASS"
+        }
+      ],
+      "runwayLighting": [
+        "No"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "91/96",
+        "100LL"
+      ],
+      "communicationFrequencies": [
+        "123.600"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "ÄLMHULTS FLYGKLUBB",
+      "contactLines": [
+        "+46 476 147 44",
+        "+46 705 18 55 22",
+        "PPR",
+        "Right hand traffic circuit to RWY 03."
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "ÄLVSBYN",
+      "icao": "ESUV",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "653845N 0210341E",
+        "lat": 65.64583333333334,
+        "lon": 21.06138888888889
+      },
+      "location": "1.1 NM SE",
+      "elevationFt": 227,
+      "runways": [
+        {
+          "designator": "04/22",
+          "dimensionsMeters": "730 x 30",
+          "surface": "GRASS"
+        }
+      ],
+      "runwayLighting": [
+        "No"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "100LL"
+      ],
+      "communicationFrequencies": [
+        "123.350"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "ÄLVSBYN FLYGKLUBB",
+      "contactLines": [
+        "+46 929 558 10",
+        "+46 929 558 16",
+        "THR 04 displaced 90 m.",
+        "THR 22 displaced 80 m."
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "ÄNGELHOLM",
+      "icao": "ESTA",
+      "detailsInAd2": true,
+      "arp": {
+        "lat": 56.29111111111111,
+        "lon": 12.855
+      },
+      "location": null,
+      "elevationFt": null,
+      "runways": [
+        {
+          "designator": "14/32",
+          "dimensionsMeters": "1945 x 45",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "Yes"
+      ],
+      "atsServices": [
+        "TWR"
+      ],
+      "fuelTypes": [],
+      "communicationFrequencies": [
+        "Yes"
+      ],
+      "category": "Licensed, instrument AD",
+      "ownerOperator": "Private",
+      "contactLines": [],
+      "source": {
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
+      }
+    },
+    {
+      "name": "ÖLANDA",
+      "icao": "ESMZ",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "571943N 0170301E",
+        "lat": 57.328611111111115,
+        "lon": 17.05027777777778
+      },
+      "location": "5 NM N Böda",
+      "elevationFt": 27,
+      "runways": [
+        {
+          "designator": "15/33",
+          "dimensionsMeters": "600 x 23",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "No"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "-"
+      ],
+      "communicationFrequencies": [
+        "123.650"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "ÖLANDA FLYG- OCH MOTORKLUBB",
+      "contactLines": [
+        "+46 70 697 87 26",
+        "+46 73 351 80 10",
+        "PPR 1 OCT-30 APR"
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "ÖREBRO",
+      "icao": "ESOE",
+      "detailsInAd2": true,
+      "arp": {
+        "lat": 59.22805555555556,
+        "lon": 15.04
+      },
+      "location": null,
+      "elevationFt": null,
+      "runways": [
+        {
+          "designator": "01/19",
+          "dimensionsMeters": "3270 x 45",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "Yes"
+      ],
+      "atsServices": [
+        "TWR"
+      ],
+      "fuelTypes": [],
+      "communicationFrequencies": [
+        "Yes"
+      ],
+      "category": "Licensed, instrument AD",
+      "ownerOperator": "Municipal",
+      "contactLines": [],
+      "source": {
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
+      }
+    },
+    {
+      "name": "ÖRESTEN",
+      "icao": "ESGM",
+      "detailsInAd2": false,
+      "arp": {
+        "raw": "572643N 0123856E",
+        "lat": 57.445277777777775,
+        "lon": 12.648888888888889
+      },
+      "location": "5.4 NM SW Kinna",
+      "elevationFt": 378,
+      "runways": [
+        {
+          "designator": "06/24",
+          "dimensionsMeters": "680 x 35",
+          "surface": "GRASS"
+        }
+      ],
+      "runwayLighting": [
+        "No"
+      ],
+      "atsServices": [],
+      "fuelTypes": [
+        "100LL O/R"
+      ],
+      "communicationFrequencies": [
+        "123.200"
+      ],
+      "category": "Non-licensed AD",
+      "ownerOperator": "ÖRESTEN FLYGKLUBB",
+      "contactLines": [
+        "+46 320 400 23",
+        "+46 320 552 75",
+        "+46 300 54 38 30"
+      ],
+      "source": {
+        "document": "LFV AD 1.1",
+        "path": "/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html"
+      }
+    },
+    {
+      "name": "ÖRNSKÖLDSVIK",
+      "icao": "ESNO",
+      "detailsInAd2": true,
+      "arp": {
+        "lat": 63.407777777777774,
+        "lon": 18.9925
+      },
+      "location": null,
+      "elevationFt": null,
+      "runways": [
+        {
+          "designator": "12/30",
+          "dimensionsMeters": "2016 x 45",
+          "surface": "ASPH"
+        }
+      ],
+      "runwayLighting": [
+        "Yes"
+      ],
+      "atsServices": [
+        "TWR"
+      ],
+      "fuelTypes": [],
+      "communicationFrequencies": [
+        "Yes"
+      ],
+      "category": "Licensed, instrument AD",
+      "ownerOperator": "Municipal",
+      "contactLines": [],
+      "source": {
+        "document": "LFV AD 1.1 + AD 2",
+        "path": "https://aro.lfv.se/content/eaip/AIRAC%20AIP%20AMDT%202-2026_2026_03_19/searchIndex.js"
+      }
+    }
+  ]
+}

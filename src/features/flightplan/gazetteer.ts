@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react'
 import type { RoutePointInput, RouteLegInput } from './types'
-import { swedishAirports } from './generated/airports.se'
+import { getSwedishAirports } from './aviationData'
 import { formatCoordinateDms, snapCoordinate } from './coordinates'
 
 type AirportEntry = {
@@ -9,15 +9,6 @@ type AirportEntry = {
   lat: number
   lon: number
 }
-
-const airports: AirportEntry[] = swedishAirports
-  .filter((airport) => airport.name && airport.icao)
-  .map((airport) => ({
-    icao: airport.icao!,
-    name: `${airport.name}`,
-    lat: airport.lat,
-    lon: airport.lon,
-  }))
 
 const earthRadiusNm = 3440.065
 const airportDisplayToleranceNm = 0.15
@@ -81,6 +72,17 @@ function notifyPlacesUpdated() {
   for (const subscriber of placeSubscribers) {
     subscriber()
   }
+}
+
+function getAirportEntries(): AirportEntry[] {
+  return getSwedishAirports()
+    .filter((airport) => airport.name && airport.icao)
+    .map((airport) => ({
+      icao: airport.icao!,
+      name: `${airport.name}`,
+      lat: airport.lat,
+      lon: airport.lon,
+    }))
 }
 
 function expandPlaceKind(kindCode: CompactSwedishPlace[3]): SwedishPlaceKind {
@@ -149,6 +151,7 @@ export function useGazetteerVersion() {
 }
 
 function findNearestAirport(lat: number, lon: number) {
+  const airports = getAirportEntries()
   let nearest = airports[0]
   let minDistance = Number.POSITIVE_INFINITY
 
