@@ -61,6 +61,8 @@ DEPLOY_USER=...
 DEPLOY_PASS=...
 DEPLOY_PATH=path/to/vfrplan-live-webroot
 DEPLOY_EXPECTED_PATH_FRAGMENT=/webroots/your-site-id
+DEPLOY_PUBLIC_URL=https://vfrplan.se
+DEPLOY_HOSTKEY_ENTRY="ssh.example.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAA..."
 ```
 
 `Flightplan` must never reuse `AMC` deploy credentials or deploy path. Use a separate target for `vfrplan.se`.
@@ -69,6 +71,8 @@ For `vfrplan.se`, point `DEPLOY_PATH` at that domain's actual webroot, not at a 
 
 Do not point `DEPLOY_PATH` at the SSH home directory when publishing this app. That uploads files outside the live webroot and the public site will remain unchanged.
 `DEPLOY_EXPECTED_PATH_FRAGMENT` should match a stable substring of the resolved live path, for example `/webroots/b2860a8c`.
+`DEPLOY_PUBLIC_URL` should be the final public URL used for post-deploy smoke checks.
+`DEPLOY_HOSTKEY_ENTRY` must match one full `ssh-keyscan` line for the current SFTP host key.
 
 ## Auth and Supabase
 
@@ -83,9 +87,11 @@ Configure Supabase in `.env`:
 ```bash
 VITE_SUPABASE_URL=...
 VITE_SUPABASE_ANON_KEY=...
+VITE_PUBLIC_APP_URL=https://vfrplan.se
 ```
 
 `VITE_SUPABASE_ANON_KEY` can contain either the legacy anon key or Supabase's newer publishable key.
+`VITE_PUBLIC_APP_URL` should be the full public URL where the app is served. If omitted, auth links fall back to the current browser URL.
 
 Apply the SQL in [`supabase/migrations/20260403_001_auth_and_private_workspace.sql`](/Users/andreasmartensson/Library/CloudStorage/SynologyDrive-Synk/Projekt/Vibe/Flightplan/supabase/migrations/20260403_001_auth_and_private_workspace.sql) and enable:
 
@@ -97,6 +103,8 @@ Redirect URLs to configure in Supabase:
 
 - local dev: `http://localhost:5173/verify-email`
 - local reset: `http://localhost:5173/reset-password`
+- production verify: `https://your-domain/verify-email`
+- production reset: `https://your-domain/reset-password`
 
 For local Supabase development:
 

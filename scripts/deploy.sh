@@ -40,6 +40,16 @@ if ! command -v npm >/dev/null 2>&1; then
   exit 1
 fi
 
+if ! command -v ssh-keyscan >/dev/null 2>&1; then
+  echo "Missing required command: ssh-keyscan" >&2
+  exit 1
+fi
+
+if ! command -v curl >/dev/null 2>&1; then
+  echo "Missing required command: curl" >&2
+  exit 1
+fi
+
 tmp_lftp_script=""
 
 cleanup() {
@@ -57,6 +67,57 @@ run_lftp_script() {
   rm -f "$tmp_lftp_script"
   tmp_lftp_script=""
 }
+
+verify_host_key() {
+  local expected_entry="${DEPLOY_HOSTKEY_ENTRY:-}"
+
+  if [[ -z "$expected_entry" ]]; then
+    echo "Missing required deploy variable: DEPLOY_HOSTKEY_ENTRY" >&2
+    exit 1
+  fi
+
+  local scanned_keys
+  scanned_keys="$(ssh-keyscan -p "$DEPLOY_PORT" "$DEPLOY_HOST" 2>/dev/null || true)"
+
+  if [[ -z "$scanned_keys" ]]; then
+    echo "Failed to fetch SSH host keys from $DEPLOY_HOST:$DEPLOY_PORT" >&2
+    exit 1
+  fi
+
+  if ! printf '%s\n' "$scanned_keys" | grep -Fqx "$expected_entry"; then
+    echo "SSH host key verification failed for $DEPLOY_HOST:$DEPLOY_PORT" >&2
+    exit 1
+  fi
+}
+
+run_smoke_checks() {
+  local public_url="${DEPLOY_PUBLIC_URL:-}"
+
+  if [[ -z "$public_url" ]]; then
+    echo "Missing required deploy variable: DEPLOY_PUBLIC_URL" >&2
+    exit 1
+  fi
+
+  public_url="${public_url%/}"
+
+  curl --fail --silent --show-error --location \
+    --write-out '\nHTTP %{http_code} %{url_effective}\n' \
+    "$public_url/" >/dev/null
+
+  curl --fail --silent --show-error --location \
+    --write-out '\nHTTP %{http_code} %{url_effective}\n' \
+    "$public_url/login" >/dev/null
+
+  curl --fail --silent --show-error --location \
+    --write-out '\nHTTP %{http_code} %{url_effective}\n' \
+    "$public_url/vfrplan-data/airspaces.se.json" >/dev/null
+
+  curl --fail --silent --show-error --location \
+    --write-out '\nHTTP %{http_code} %{url_effective}\n' \
+    "$public_url/robots.txt" >/dev/null
+}
+
+verify_host_key
 
 resolve_remote_path() {
   run_lftp_script <<EOF
@@ -109,3 +170,5 @@ lcd "$ROOT_DIR/dist"
 mirror -R --delete --verbose --scan-all-first . .
 bye
 EOF
+
+run_smoke_checks
