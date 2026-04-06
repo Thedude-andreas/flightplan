@@ -1,4 +1,5 @@
 import { getSupabaseClient } from '../../../lib/supabase/client'
+import { getPublicAppUrl } from './publicUrl'
 
 function requireClient() {
   const client = getSupabaseClient()
@@ -21,7 +22,7 @@ export async function signInWithPassword(email: string, password: string) {
 
 export async function signUpWithPassword(email: string, password: string) {
   const supabase = requireClient()
-  const redirectTo = `${window.location.origin}/verify-email`
+  const redirectTo = getPublicAppUrl('/verify-email')
   const { error } = await supabase.auth.signUp({
     email,
     password,
@@ -50,7 +51,7 @@ export async function resendVerificationEmail(email: string) {
     type: 'signup',
     email,
     options: {
-      emailRedirectTo: `${window.location.origin}/verify-email`,
+      emailRedirectTo: getPublicAppUrl('/verify-email'),
     },
   })
 
@@ -62,7 +63,7 @@ export async function resendVerificationEmail(email: string) {
 export async function requestPasswordReset(email: string) {
   const supabase = requireClient()
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${window.location.origin}/reset-password`,
+    redirectTo: getPublicAppUrl('/reset-password'),
   })
 
   if (error) {
