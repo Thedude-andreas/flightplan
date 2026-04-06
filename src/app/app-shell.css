@@ -13,7 +13,7 @@
   background:
     linear-gradient(0deg, rgba(11, 22, 32, 0.4), rgba(11, 22, 32, 0.4)),
     linear-gradient(145deg, rgba(238, 242, 244, 0.2), rgba(196, 209, 217, 0.2)),
-    url('/login-background.png') center / cover no-repeat,
+    var(--public-layout-login-background) center / cover no-repeat,
     linear-gradient(145deg, #eef2f4 0%, #d7e1e7 48%, #c4d1d9 100%);
 }
 
