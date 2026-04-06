@@ -1,8 +1,8 @@
-# Redirect all non-file requests to the Flightplan SPA entrypoint when served under /flightplan/.
+# Redirect all non-file requests to the SPA entrypoint on vfrplan.se.
 <IfModule mod_rewrite.c>
   Options +FollowSymLinks -MultiViews
   RewriteEngine On
-  RewriteBase /flightplan/
+  RewriteBase /
 
   RewriteRule ^index\.html$ - [L]
 
@@ -10,7 +10,7 @@
   RewriteCond %{REQUEST_FILENAME} -d
   RewriteRule ^ - [L]
 
-  RewriteRule . /flightplan/index.html [L]
+  RewriteRule . /index.html [L]
 </IfModule>
 
 <IfModule mod_headers.c>

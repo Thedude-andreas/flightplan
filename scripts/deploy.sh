@@ -93,6 +93,10 @@ fi
 
 npm run build
 
+# Normalize dist permissions before SFTP upload so Apache can read all published files.
+find "$ROOT_DIR/dist" -type d -exec chmod 755 {} +
+find "$ROOT_DIR/dist" -type f -exec chmod 644 {} +
+
 run_lftp_script <<EOF
 set cmd:fail-exit yes
 set sftp:auto-confirm yes

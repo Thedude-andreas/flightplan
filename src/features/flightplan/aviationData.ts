@@ -1,3 +1,7 @@
+import { swedishAirports as embeddedAirports } from './generated/airports.se'
+import { swedishAirspaces as embeddedAirspaces } from './generated/airspaces.se'
+import { swedishNavaids as embeddedNavaids } from './generated/radio-nav.se'
+
 const dataBaseUrl = `${import.meta.env.BASE_URL}vfrplan-data`
 
 export type SwedishAirspaceGeometry =
@@ -104,9 +108,13 @@ type SwedishAviationData = {
 let aviationData: SwedishAviationData | null = null
 let aviationDataPromise: Promise<SwedishAviationData> | null = null
 
-async function fetchJson<T>(path: string) {
+async function fetchJson<T>(path: string, fallback?: () => T) {
   const response = await fetch(`${dataBaseUrl}/${path}`)
   if (!response.ok) {
+    if (fallback) {
+      return fallback()
+    }
+
     throw new Error(`Kunde inte ladda ${path} (${response.status}).`)
   }
 
@@ -139,9 +147,24 @@ export async function preloadSwedishAviationData() {
 
   if (!aviationDataPromise) {
     aviationDataPromise = Promise.all([
-      fetchJson<SwedishAirportsPayload>('airports.se.json'),
-      fetchJson<SwedishAirspacesPayload>('airspaces.se.json'),
-      fetchJson<SwedishRadioNavPayload>('radio-nav.se.json'),
+      fetchJson<SwedishAirportsPayload>('airports.se.json', () => ({
+        airports: embeddedAirports.map((airport) => ({
+          icao: airport.icao,
+          name: airport.name,
+          category: airport.category,
+          detailsInAd2: airport.detailsInAd2,
+          arp: {
+            lat: airport.lat,
+            lon: airport.lon,
+          },
+        })),
+      })),
+      fetchJson<SwedishAirspacesPayload>('airspaces.se.json', () => ({
+        airspaces: embeddedAirspaces,
+      })),
+      fetchJson<SwedishRadioNavPayload>('radio-nav.se.json', () => ({
+        navaids: embeddedNavaids,
+      })),
       fetchJson<SwedishAirspaceFrequency[]>('airspace-frequencies.se.json'),
       fetchJson<SwedishAirportFrequency[]>('airport-frequencies.se.json'),
       fetchJson<SwedishAccSector[]>('acc-sectors.se.json'),
