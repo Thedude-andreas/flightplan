@@ -421,7 +421,9 @@ export function FlightplanApp({
   }, [activeTab, onActiveTabChange])
 
   useEffect(() => {
-    if (activePanel !== 'weather') {
+    const shouldLoadWeather = activePanel === 'weather' || activeTab === 'map'
+
+    if (!shouldLoadWeather) {
       return
     }
 
@@ -452,9 +454,9 @@ export function FlightplanApp({
     }))
 
     Promise.all([
-      nearbyRouteAirports.length > 0
+      activePanel === 'weather' && nearbyRouteAirports.length > 0
         ? fetchWeatherForAirports(nearbyRouteAirports, controller.signal)
-        : Promise.resolve([]),
+        : Promise.resolve(weatherState.results),
       fetchLfvWeatherBriefing(),
     ])
       .then(([results, briefing]) => {
@@ -488,7 +490,7 @@ export function FlightplanApp({
       })
 
     return () => controller.abort()
-  }, [activePanel, nearbyRouteAirports, plan.routeLegs.length, weatherRefreshToken])
+  }, [activePanel, activeTab, nearbyRouteAirports, plan.routeLegs.length, weatherRefreshToken])
 
   useEffect(() => {
     if (activePanel !== 'notam') {
@@ -786,6 +788,7 @@ export function FlightplanApp({
               <FlightplanMapEditor
                 plan={plan}
                 derived={derived}
+                sigmetText={weatherState.sigmetText}
                 onRouteLegsChange={replaceRouteLegs}
                 focusedLegIndex={focusedLegIndex}
                 initialViewport={initialMapViewport}

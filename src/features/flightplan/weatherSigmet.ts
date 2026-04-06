@@ -30,6 +30,24 @@ export type RouteWeatherMatch = {
   matchKinds: string[]
 }
 
+type SigmetOverlayGeometry =
+  | { type: 'point'; point: RoutePoint }
+  | { type: 'polyline'; points: RoutePoint[] }
+  | { type: 'polygon'; points: RoutePoint[] }
+  | { type: 'circle'; centre: RoutePoint; radiusNm: number }
+
+export type RouteWeatherOverlay = {
+  id: string
+  title: string
+  rawText: string
+  distanceNm: number
+  progressNm: number
+  matchSummary: string
+  firCodes: string[]
+  matchKinds: string[]
+  geometry: SigmetOverlayGeometry
+}
+
 function degToRad(value: number) {
   return (value * Math.PI) / 180
 }
@@ -489,6 +507,121 @@ function getFirMatch(routeLegs: FlightPlanInput['routeLegs'], firCodes: string[]
   return null
 }
 
+function buildOverlayGeometry(rawText: string): SigmetOverlayGeometry | null {
+  const circleMatch = rawText.match(/\bWI\s+(\d{2,3})(KM|NM)\s+OF\s+(?:TC\s+)?CENTR(?:E|ED ON)\b/i)
+  const coordinates = extractCoordinates(rawText)
+
+  if (circleMatch && coordinates[0]) {
+    const radiusNm = circleMatch[2].toUpperCase() === 'KM'
+      ? Number(circleMatch[1]) * 0.539957
+      : Number(circleMatch[1])
+
+    return {
+      type: 'circle',
+      centre: coordinates[0],
+      radiusNm: round(radiusNm),
+    }
+  }
+
+  if (coordinates.length === 1) {
+    return {
+      type: 'point',
+      point: coordinates[0],
+    }
+  }
+
+  if (coordinates.length >= 2) {
+    const polygonPoints = isClosedPolygon(coordinates, rawText)
+      ? coordinates.slice(0, -1)
+      : null
+
+    if (polygonPoints && polygonPoints.length >= 3) {
+      return {
+        type: 'polygon',
+        points: polygonPoints,
+      }
+    }
+
+    return {
+      type: 'polyline',
+      points: coordinates,
+    }
+  }
+
+  return null
+}
+
+function buildRouteWeatherEntry(
+  routeLegs: FlightPlanInput['routeLegs'],
+  entry: string,
+  index: number,
+  maxDistanceNm: number,
+) {
+  const firCodes = extractFirCodes(entry)
+  const geometry = getBestGeometryMatch(routeLegs, entry)
+  const circleMatch = getCircleCentreMatch(routeLegs, entry)
+  const lineSideMatch = getLineSideMatch(routeLegs, entry)
+  const wideLineMatch = getWideLineMatch(routeLegs, entry)
+  const firMatch = getFirMatch(routeLegs, firCodes)
+  const candidates = [
+    geometry.bestDistance ? { ...geometry.bestDistance, kind: geometry.matchKinds[0] ?? 'coordinates' } : null,
+    circleMatch ? { distanceNm: circleMatch.distanceNm, progressNm: circleMatch.progressNm, kind: 'radius-centre' } : null,
+    lineSideMatch ? { distanceNm: lineSideMatch.distanceNm, progressNm: lineSideMatch.progressNm, kind: 'line-side' } : null,
+    wideLineMatch ? { distanceNm: wideLineMatch.distanceNm, progressNm: wideLineMatch.progressNm, kind: 'wide-line' } : null,
+    firMatch ? { ...firMatch, kind: 'fir' } : null,
+  ].filter((value): value is { distanceNm: number; progressNm: number; kind: string } => Boolean(value))
+
+  const best = candidates.reduce<typeof candidates[number] | null>(
+    (closest, current) => (!closest || current.distanceNm < closest.distanceNm ? current : closest),
+    null,
+  )
+
+  if (!best || best.distanceNm > maxDistanceNm) {
+    return null
+  }
+
+  const summaries: string[] = []
+  if (best.kind === 'fir' && firCodes.includes('ESAA')) {
+    summaries.push('ESAA FIR')
+  }
+  if (best.kind === 'radius-centre' && circleMatch) {
+    summaries.push(`Centrum/radie, närmast ${round(best.distanceNm)} NM`)
+  }
+  if (best.kind === 'line-side' && lineSideMatch) {
+    summaries.push(`${lineSideMatch.side} of line`)
+  }
+  if (best.kind === 'wide-line' && wideLineMatch) {
+    summaries.push(`Korridor ${wideLineMatch.widthNm} NM bred`)
+  }
+  if (best.kind !== 'fir' && geometry.coordinates.length > 0) {
+    summaries.push(
+      geometry.coordinates.length === 1
+        ? `PSN ${round(best.distanceNm)} NM från rutten`
+        : `${geometry.coordinates.length} koordinater/area, närmast ${round(best.distanceNm)} NM`,
+    )
+  }
+  if (/\b(?:N|NE|E|SE|S|SW|W|NW)\s+OF\s+LINE\b/i.test(entry)) {
+    summaries.push('Sidangivelse från linje förekommer')
+  }
+
+  return {
+    id: `${index}-${firCodes[0] ?? 'sigmet'}`,
+    title: deriveTitle(entry),
+    rawText: entry,
+    distanceNm: best.distanceNm,
+    progressNm: best.progressNm,
+    matchSummary: summaries.join(' · ') || `Närmast ${round(best.distanceNm)} NM från rutten`,
+    firCodes,
+    matchKinds: Array.from(new Set([
+      ...geometry.matchKinds,
+      ...(circleMatch ? ['radius-centre'] : []),
+      ...(lineSideMatch ? ['line-side'] : []),
+      ...(wideLineMatch ? ['wide-line'] : []),
+      ...(firMatch ? ['fir'] : []),
+    ])),
+  }
+}
+
 export function getRouteWeatherMatches(
   routeLegs: FlightPlanInput['routeLegs'],
   sectionText: string | null,
@@ -499,71 +632,82 @@ export function getRouteWeatherMatches(
   }
 
   return splitSigmetEntries(sectionText)
+    .map((entry, index) => buildRouteWeatherEntry(routeLegs, entry, index, maxDistanceNm))
+    .filter((value): value is RouteWeatherMatch => Boolean(value))
+    .sort((left, right) => left.progressNm - right.progressNm || left.distanceNm - right.distanceNm)
+}
+
+export function getRouteWeatherOverlays(
+  routeLegs: FlightPlanInput['routeLegs'],
+  sectionText: string | null,
+  maxDistanceNm = 50,
+): RouteWeatherOverlay[] {
+  if (routeLegs.length === 0 || !sectionText) {
+    return []
+  }
+
+  return splitSigmetEntries(sectionText)
     .map((entry, index) => {
-      const firCodes = extractFirCodes(entry)
-      const geometry = getBestGeometryMatch(routeLegs, entry)
-      const circleMatch = getCircleCentreMatch(routeLegs, entry)
-      const lineSideMatch = getLineSideMatch(routeLegs, entry)
-      const wideLineMatch = getWideLineMatch(routeLegs, entry)
-      const firMatch = getFirMatch(routeLegs, firCodes)
-      const candidates = [
-        geometry.bestDistance ? { ...geometry.bestDistance, kind: geometry.matchKinds[0] ?? 'coordinates' } : null,
-        circleMatch ? { distanceNm: circleMatch.distanceNm, progressNm: circleMatch.progressNm, kind: 'radius-centre' } : null,
-        lineSideMatch ? { distanceNm: lineSideMatch.distanceNm, progressNm: lineSideMatch.progressNm, kind: 'line-side' } : null,
-        wideLineMatch ? { distanceNm: wideLineMatch.distanceNm, progressNm: wideLineMatch.progressNm, kind: 'wide-line' } : null,
-        firMatch ? { ...firMatch, kind: 'fir' } : null,
-      ].filter((value): value is { distanceNm: number; progressNm: number; kind: string } => Boolean(value))
-
-      const best = candidates.reduce<typeof candidates[number] | null>(
-        (closest, current) => (!closest || current.distanceNm < closest.distanceNm ? current : closest),
-        null,
-      )
-
-      if (!best || best.distanceNm > maxDistanceNm) {
+      const match = buildRouteWeatherEntry(routeLegs, entry, index, maxDistanceNm)
+      if (!match) {
         return null
       }
 
-      const summaries: string[] = []
-      if (best.kind === 'fir' && firCodes.includes('ESAA')) {
-        summaries.push('ESAA FIR')
-      }
-      if (best.kind === 'radius-centre' && circleMatch) {
-        summaries.push(`Centrum/radie, närmast ${round(best.distanceNm)} NM`)
-      }
-      if (best.kind === 'line-side' && lineSideMatch) {
-        summaries.push(`${lineSideMatch.side} of line`)
-      }
-      if (best.kind === 'wide-line' && wideLineMatch) {
-        summaries.push(`Korridor ${wideLineMatch.widthNm} NM bred`)
-      }
-      if (best.kind !== 'fir' && geometry.coordinates.length > 0) {
-        summaries.push(
-          geometry.coordinates.length === 1
-            ? `PSN ${round(best.distanceNm)} NM från rutten`
-            : `${geometry.coordinates.length} koordinater/area, närmast ${round(best.distanceNm)} NM`,
-        )
-      }
-      if (/\b(?:N|NE|E|SE|S|SW|W|NW)\s+OF\s+LINE\b/i.test(entry)) {
-        summaries.push('Sidangivelse från linje förekommer')
+      const overlayGeometry = buildOverlayGeometry(entry)
+      if (!overlayGeometry) {
+        return null
       }
 
       return {
-        id: `${index}-${firCodes[0] ?? 'sigmet'}`,
-        title: deriveTitle(entry),
-        rawText: entry,
-        distanceNm: best.distanceNm,
-        progressNm: best.progressNm,
-        matchSummary: summaries.join(' · ') || `Närmast ${round(best.distanceNm)} NM från rutten`,
-        firCodes,
-        matchKinds: Array.from(new Set([
-          ...geometry.matchKinds,
-          ...(circleMatch ? ['radius-centre'] : []),
-          ...(lineSideMatch ? ['line-side'] : []),
-          ...(wideLineMatch ? ['wide-line'] : []),
-          ...(firMatch ? ['fir'] : []),
-        ])),
+        ...match,
+        geometry: overlayGeometry,
       }
     })
-    .filter((value): value is RouteWeatherMatch => Boolean(value))
+    .filter((value): value is RouteWeatherOverlay => Boolean(value))
     .sort((left, right) => left.progressNm - right.progressNm || left.distanceNm - right.distanceNm)
+}
+
+export function getAllWeatherOverlays(
+  sectionText: string | null,
+): RouteWeatherOverlay[] {
+  if (!sectionText) {
+    return []
+  }
+
+  return splitSigmetEntries(sectionText)
+    .map((entry, index) => {
+      const geometry = buildOverlayGeometry(entry)
+      if (!geometry) {
+        return null
+      }
+
+      const firCodes = extractFirCodes(entry)
+      const matchKinds: string[] =
+        geometry.type === 'circle'
+          ? ['radius-centre']
+          : geometry.type === 'polygon'
+            ? ['polygon']
+            : geometry.type === 'polyline'
+              ? ['coordinates']
+              : ['coordinates']
+
+      return {
+        id: `overlay-${index}-${firCodes[0] ?? 'sigmet'}`,
+        title: deriveTitle(entry),
+        rawText: entry,
+        distanceNm: 0,
+        progressNm: index,
+        matchSummary: geometry.type === 'circle'
+          ? 'Cirkulärt område från bulletin'
+          : geometry.type === 'polygon'
+            ? 'Yta från bulletin'
+            : geometry.type === 'polyline'
+              ? 'Linje från bulletin'
+              : 'Punkt från bulletin',
+        firCodes,
+        matchKinds,
+        geometry,
+      }
+    })
+    .filter((value): value is RouteWeatherOverlay => Boolean(value))
 }

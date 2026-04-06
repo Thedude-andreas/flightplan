@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   CircleMarker,
+  Circle,
   FeatureGroup,
   GeoJSON,
   MapContainer,
   Marker,
+  Pane,
+  Polygon,
   Popup,
   Polyline,
   TileLayer,
@@ -34,6 +37,7 @@ import {
   type MetarFlightCategory,
   type NearbyAirport,
 } from './weather'
+import { getAllWeatherOverlays, type RouteWeatherOverlay } from './weatherSigmet'
 import type { FlightPlanInput, FlightPlanDerived } from './types'
 
 type BasemapKey = 'topo' | 'osm'
@@ -97,6 +101,12 @@ const navaidMinZoom = 7
 const navaidLabelMinZoom = 9
 const directionArrowWaypointClearancePx = 22
 const maxVisibleAirspaceLowerFt = 9500
+const sigmetOverlayPalette = {
+  color: '#a61e4d',
+  fillColor: '#f05d88',
+  lineColor: '#b44300',
+  lineFill: '#ffd0a6',
+} as const
 
 export type FlightplanMapViewport = {
   center: [number, number]
@@ -493,6 +503,7 @@ function RouteInsertDragHandler({
 export function FlightplanMapEditor({
   plan,
   derived,
+  sigmetText = null,
   onRouteLegsChange,
   focusedLegIndex = null,
   initialViewport = null,
@@ -500,6 +511,7 @@ export function FlightplanMapEditor({
 }: {
   plan: FlightPlanInput
   derived: FlightPlanDerived
+  sigmetText?: string | null
   onRouteLegsChange: (legs: FlightPlanInput['routeLegs']) => void
   focusedLegIndex?: number | null
   initialViewport?: FlightplanMapViewport | null
@@ -576,6 +588,10 @@ export function FlightplanMapEditor({
           return lowerFeet == null || lowerFeet < maxVisibleAirspaceLowerFt
         }),
     [],
+  )
+  const routeWeatherOverlays = useMemo<RouteWeatherOverlay[]>(
+    () => getAllWeatherOverlays(sigmetText),
+    [sigmetText],
   )
   const visibleWeatherAirports = useMemo<NearbyAirport[]>(() => {
     if (!mapBounds) {
@@ -885,6 +901,8 @@ export function FlightplanMapEditor({
           </div>
         )}
         <MapContainer center={center} zoom={7} scrollWheelZoom className="fp-leaflet-map">
+          <Pane name="fp-navaid-pane" style={{ zIndex: 530 }} />
+          <Pane name="fp-airport-pane" style={{ zIndex: 560 }} />
           <TileLayer attribution={basemaps[basemap].attribution} url={basemaps[basemap].url} />
           <MapInstanceHandler onReady={setMapInstance} />
           <InitialViewportHandler
@@ -967,6 +985,88 @@ export function FlightplanMapEditor({
             />
           ) : null}
 
+          {routeWeatherOverlays.map((overlay) => {
+            const tooltipContent = (
+              <Tooltip sticky opacity={0.95} className="fp-weather-overlay-tooltip">
+                <div className="fp-airport-tooltip fp-weather-overlay-tooltip__content">
+                  <strong>{overlay.firCodes[0] ?? 'SIGMET/ARS/AIRMET'}</strong>
+                  <span>{overlay.matchSummary}</span>
+                  <span>{overlay.title}</span>
+                </div>
+              </Tooltip>
+            )
+
+            if (overlay.geometry.type === 'polygon') {
+              return (
+                <Polygon
+                  key={overlay.id}
+                  positions={overlay.geometry.points.map((point) => [point.lat, point.lon] as [number, number])}
+                  pathOptions={{
+                    color: sigmetOverlayPalette.color,
+                    weight: 2,
+                    fillColor: sigmetOverlayPalette.fillColor,
+                    fillOpacity: 0.16,
+                    dashArray: '6 4',
+                  }}
+                >
+                  {tooltipContent}
+                </Polygon>
+              )
+            }
+
+            if (overlay.geometry.type === 'polyline') {
+              return (
+                <Polyline
+                  key={overlay.id}
+                  positions={overlay.geometry.points.map((point) => [point.lat, point.lon] as [number, number])}
+                  pathOptions={{
+                    color: sigmetOverlayPalette.lineColor,
+                    weight: 3,
+                    opacity: 0.95,
+                    dashArray: '8 6',
+                  }}
+                >
+                  {tooltipContent}
+                </Polyline>
+              )
+            }
+
+            if (overlay.geometry.type === 'circle') {
+              return (
+                <Circle
+                  key={overlay.id}
+                  center={[overlay.geometry.centre.lat, overlay.geometry.centre.lon]}
+                  radius={overlay.geometry.radiusNm * 1852}
+                  pathOptions={{
+                    color: sigmetOverlayPalette.color,
+                    weight: 2,
+                    fillColor: sigmetOverlayPalette.fillColor,
+                    fillOpacity: 0.12,
+                    dashArray: '6 4',
+                  }}
+                >
+                  {tooltipContent}
+                </Circle>
+              )
+            }
+
+            return (
+              <CircleMarker
+                key={overlay.id}
+                center={[overlay.geometry.point.lat, overlay.geometry.point.lon]}
+                radius={6}
+                pathOptions={{
+                  color: sigmetOverlayPalette.color,
+                  weight: 2,
+                  fillColor: sigmetOverlayPalette.fillColor,
+                  fillOpacity: 0.9,
+                }}
+              >
+                {tooltipContent}
+              </CircleMarker>
+            )
+          })}
+
           {mapZoom >= navaidMinZoom
             ? swedishNavaids.map((navaid) => {
                 const palette = getNavaidPalette(navaid.kind)
@@ -977,6 +1077,7 @@ export function FlightplanMapEditor({
                       <Marker
                         position={[navaid.lat, navaid.lon]}
                         icon={createMapLabelIcon('fp-navaid-label-marker', navaid.ident)}
+                        pane="fp-navaid-pane"
                         interactive={false}
                         keyboard={false}
                         zIndexOffset={100}
@@ -984,6 +1085,7 @@ export function FlightplanMapEditor({
                     ) : null}
                     <CircleMarker
                       center={[navaid.lat, navaid.lon]}
+                      pane="fp-navaid-pane"
                       radius={palette.radius}
                       pathOptions={{
                         color: palette.color,
@@ -1017,22 +1119,22 @@ export function FlightplanMapEditor({
           {swedishAirports.map((airport) => {
             const airportMetar = airport.icao ? airportMetarsByIcao[airport.icao] : null
             const flightRules = classifyMetarFlightRules(airportMetar?.metarRawText ?? null)
-            const weatherLabel =
-              flightRules.category === 'VMC'
-                ? 'VMC'
-                : flightRules.category === 'MVMC'
-                  ? 'Marginal VMC'
-                  : flightRules.category === 'IMC'
-                    ? 'IMC'
-                    : 'Ingen METAR'
 
             return (
             <Marker
               key={airport.icao ?? `${airport.name}-${airport.lat}-${airport.lon}`}
               position={[airport.lat, airport.lon]}
               icon={createAirportIcon(flightRules.category)}
+              pane="fp-airport-pane"
               keyboard={false}
               zIndexOffset={90}
+              eventHandlers={{
+                click: (event) => {
+                  event.originalEvent.preventDefault()
+                  event.originalEvent.stopPropagation()
+                  addPointToEnd(airport.lat, airport.lon)
+                },
+              }}
             >
               {airport.icao && mapZoom >= airportLabelMinZoom ? (
                 <Tooltip
@@ -1049,9 +1151,6 @@ export function FlightplanMapEditor({
                 <div className="fp-airport-tooltip">
                   <strong>{airport.icao}</strong>
                   <span>{airport.name}</span>
-                  <span>Flygregler: {weatherLabel}</span>
-                  {flightRules.visibilityMeters != null ? <span>Sikt: {flightRules.visibilityMeters} m</span> : null}
-                  {flightRules.ceilingFeet != null ? <span>Ceiling: {flightRules.ceilingFeet} ft</span> : null}
                   {airportMetar?.metarRawText ? <span>{airportMetar.metarRawText}</span> : null}
                   <span>{formatCoordinateDms(airport.lat, 'lat')} {formatCoordinateDms(airport.lon, 'lon')}</span>
                 </div>
