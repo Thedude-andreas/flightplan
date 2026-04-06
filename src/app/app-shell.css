@@ -203,6 +203,18 @@
   gap: 16px;
 }
 
+.auth-form-state {
+  display: grid;
+  gap: 20px;
+}
+
+.auth-form-state--muted {
+  position: relative;
+  opacity: 0.38;
+  pointer-events: none;
+  filter: grayscale(0.2);
+}
+
 .auth-form label {
   display: grid;
   gap: 8px;

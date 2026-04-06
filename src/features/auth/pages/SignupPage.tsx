@@ -41,25 +41,27 @@ export function SignupPage() {
     <AuthFormShell title="Skapa konto" description="Registrera dig med email och verifiera adressen innan första inloggningen.">
       {error && <AuthNotice kind="error">{error}</AuthNotice>}
       {success && <AuthNotice kind="success">{success}</AuthNotice>}
-      <form className="auth-form" onSubmit={handleSubmit}>
-        <label>
-          <span>Email</span>
-          <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
-        </label>
-        <label>
-          <span>Lösenord</span>
-          <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} required minLength={8} />
-        </label>
-        <label>
-          <span>Bekräfta lösenord</span>
-          <input type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} required minLength={8} />
-        </label>
-        <button type="submit" disabled={!configured || submitting}>
-          {submitting ? 'Skapar konto...' : 'Skapa konto'}
-        </button>
-      </form>
-      <div className="auth-links">
-        <Link to="/login">Har du redan konto?</Link>
+      <div className={success ? 'auth-form-state auth-form-state--muted' : 'auth-form-state'}>
+        <form className="auth-form" onSubmit={handleSubmit}>
+          <label>
+            <span>Email</span>
+            <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
+          </label>
+          <label>
+            <span>Lösenord</span>
+            <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} required minLength={8} />
+          </label>
+          <label>
+            <span>Bekräfta lösenord</span>
+            <input type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} required minLength={8} />
+          </label>
+          <button type="submit" disabled={!configured || submitting || Boolean(success)}>
+            {submitting ? 'Skapar konto...' : 'Skapa konto'}
+          </button>
+        </form>
+        <div className="auth-links">
+          <Link to="/login">Har du redan konto?</Link>
+        </div>
       </div>
     </AuthFormShell>
   )

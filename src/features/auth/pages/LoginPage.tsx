@@ -9,6 +9,7 @@ import { getErrorMessage } from '../../../lib/supabase/errors'
 type LocationState = {
   from?: string
   configurationRequired?: boolean
+  emailVerified?: boolean
 }
 
 export function LoginPage() {
@@ -40,6 +41,9 @@ export function LoginPage() {
     <AuthFormShell title="Logga in" description="Fortsätt till dina färdplaner och flygplansprofiler.">
       {state?.configurationRequired && (
         <AuthNotice kind="error">Supabase saknar miljövariabler. Sätt `VITE_SUPABASE_URL` och `VITE_SUPABASE_ANON_KEY` först.</AuthNotice>
+      )}
+      {state?.emailVerified && (
+        <AuthNotice kind="success">Emailen är bekräftad. Du kan logga in nu.</AuthNotice>
       )}
       {error && <AuthNotice kind="error">{error}</AuthNotice>}
       <form className="auth-form" onSubmit={handleSubmit}>

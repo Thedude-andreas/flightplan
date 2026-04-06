@@ -3,9 +3,11 @@ import { Outlet, useLocation } from 'react-router-dom'
 import { AppVersionBadge } from '../shared/components/AppVersionBadge'
 import loginBackgroundUrl from '../assets/login-background.png'
 
+const scenicAuthPaths = ['/', '/login', '/signup', '/verify-email', '/forgot-password', '/reset-password']
+
 export function PublicLayout() {
   const location = useLocation()
-  const usesScreenshotBackground = location.pathname === '/' || location.pathname === '/login'
+  const usesScreenshotBackground = scenicAuthPaths.includes(location.pathname)
   const style = usesScreenshotBackground
     ? ({ '--public-layout-login-background': `url(${loginBackgroundUrl})` } as CSSProperties)
     : undefined
