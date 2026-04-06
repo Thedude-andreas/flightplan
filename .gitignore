@@ -12,6 +12,7 @@ dist
 dist-ssr
 *.local
 .env
+.deploy.env
 data/aviation/se/raw/geonames/
 data/aviation/se/raw/lfv/AIP_OFFLINE.metadata.json
 data/aviation/se/raw/lfv/AIP_OFFLINE.zip

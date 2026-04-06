@@ -1,4 +1,5 @@
 import { Outlet, useLocation } from 'react-router-dom'
+import { AppVersionBadge } from '../shared/components/AppVersionBadge'
 
 export function PublicLayout() {
   const location = useLocation()
@@ -10,6 +11,7 @@ export function PublicLayout() {
       <main className="public-layout__content">
         <Outlet />
       </main>
+      <AppVersionBadge />
     </div>
   )
 }

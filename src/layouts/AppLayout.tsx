@@ -1,5 +1,6 @@
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../features/auth/hooks/useAuth'
+import { AppVersionBadge } from '../shared/components/AppVersionBadge'
 
 export function AppLayout() {
   const { user } = useAuth()
@@ -30,6 +31,7 @@ export function AppLayout() {
       <main className="app-layout__content">
         <Outlet />
       </main>
+      <AppVersionBadge />
     </div>
   )
 }

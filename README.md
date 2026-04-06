@@ -44,12 +44,7 @@ npm run lint
 
 ## Deploy
 
-Production should be served from the webroot for `vfrplan.se` on the remote host.
-
-The deploy script now treats:
-
-- `DEPLOY_PATH` as the explicit webroot for the target domain
-- `DEPLOY_PATH=.` as a legacy value and remaps it to `webroots/www`
+Production should be served from the dedicated webroot for `vfrplan.se` on its own remote host.
 
 Create `.deploy.env` from `.deploy.env.example`, then publish with:
 
@@ -65,7 +60,7 @@ DEPLOY_PORT=22
 DEPLOY_USER=...
 DEPLOY_PASS=...
 DEPLOY_PATH=path/to/vfrplan-live-webroot
-DEPLOY_EXPECTED_PATH_FRAGMENT=vfrplan
+DEPLOY_EXPECTED_PATH_FRAGMENT=/webroots/your-site-id
 ```
 
 `Flightplan` must never reuse `AMC` deploy credentials or deploy path. Use a separate target for `vfrplan.se`.
@@ -73,6 +68,7 @@ DEPLOY_EXPECTED_PATH_FRAGMENT=vfrplan
 For `vfrplan.se`, point `DEPLOY_PATH` at that domain's actual webroot, not at a `flightplan` subdirectory.
 
 Do not point `DEPLOY_PATH` at the SSH home directory when publishing this app. That uploads files outside the live webroot and the public site will remain unchanged.
+`DEPLOY_EXPECTED_PATH_FRAGMENT` should match a stable substring of the resolved live path, for example `/webroots/b2860a8c`.
 
 ## Auth and Supabase
 
