@@ -19,6 +19,7 @@ import {
   getSwedishAirports,
   getSwedishAirspaces,
   getSwedishNavaids,
+  type SwedishAirport,
   type SwedishAirspace,
   type SwedishAirspaceGeometry,
   type SwedishNavaid,
@@ -26,6 +27,13 @@ import {
 import { calculateFlightPlan, formatTimeFromMinutes } from './calculations'
 import { formatCoordinateDms } from './coordinates'
 import { getRoutePointLabel, legsToWaypoints, pointWithNearestName, waypointsToLegs } from './gazetteer'
+import {
+  classifyMetarFlightRules,
+  fetchMetarsForAirports,
+  type AirportMetar,
+  type MetarFlightCategory,
+  type NearbyAirport,
+} from './weather'
 import type { FlightPlanInput, FlightPlanDerived } from './types'
 
 type BasemapKey = 'topo' | 'osm'
@@ -53,6 +61,25 @@ const waypointIcon = divIcon({
   iconSize: [18, 18],
   iconAnchor: [9, 9],
 })
+
+function createAirportIcon(category: MetarFlightCategory) {
+  const label = category === 'VMC' ? 'V' : category === 'MVMC' ? 'M' : category === 'IMC' ? 'I' : ''
+  const variant =
+    category === 'VMC'
+      ? 'is-vmc'
+      : category === 'MVMC'
+        ? 'is-mvmc'
+        : category === 'IMC'
+          ? 'is-imc'
+          : 'is-unknown'
+
+  return divIcon({
+    className: 'fp-airport-marker',
+    html: `<span class="${variant}">${label}</span>`,
+    iconSize: [20, 20],
+    iconAnchor: [10, 10],
+  })
+}
 
 function createMapLabelIcon(className: string, label: string) {
   return divIcon({
@@ -326,6 +353,29 @@ function MapViewportHandler({
   return null
 }
 
+function MapBoundsHandler({
+  onBoundsChange,
+}: {
+  onBoundsChange: (bounds: L.LatLngBounds) => void
+}) {
+  const map = useMap()
+
+  useEffect(() => {
+    onBoundsChange(map.getBounds())
+  }, [map, onBoundsChange])
+
+  useMapEvents({
+    moveend(event) {
+      onBoundsChange(event.target.getBounds())
+    },
+    zoomend(event) {
+      onBoundsChange(event.target.getBounds())
+    },
+  })
+
+  return null
+}
+
 function FocusLegHandler({
   plan,
   focusedLegIndex,
@@ -462,10 +512,13 @@ export function FlightplanMapEditor({
   const [showAirspaces, setShowAirspaces] = useState(true)
   const [mapZoom, setMapZoom] = useState(7)
   const [mapInstance, setMapInstance] = useState<L.Map | null>(null)
+  const [mapBounds, setMapBounds] = useState<L.LatLngBounds | null>(null)
   const [dragPreviewWaypoints, setDragPreviewWaypoints] = useState<ReturnType<typeof legsToWaypoints> | null>(null)
   const [activeSegmentInsertIndex, setActiveSegmentInsertIndex] = useState<number | null>(null)
   const [waypointMarkerLayerVersion, setWaypointMarkerLayerVersion] = useState(0)
+  const [airportMetarsByIcao, setAirportMetarsByIcao] = useState<Record<string, AirportMetar>>({})
   const suppressNextMapClick = useRef(false)
+  const pendingAirportMetarsRef = useRef(new Set<string>())
   const hasPendingStartPoint = useMemo(() => isPlaceholderLeg(plan.routeLegs), [plan.routeLegs])
   const waypoints = useMemo(() => {
     if (hasPendingStartPoint) {
@@ -524,6 +577,67 @@ export function FlightplanMapEditor({
         }),
     [],
   )
+  const visibleWeatherAirports = useMemo<NearbyAirport[]>(() => {
+    if (!mapBounds) {
+      return []
+    }
+
+    const paddedBounds = mapBounds.pad(0.2)
+
+    return swedishAirports
+      .filter((airport): airport is SwedishAirport & { icao: string; name: string } => Boolean(airport.icao && airport.name))
+      .filter((airport) => paddedBounds.contains([airport.lat, airport.lon]))
+      .map((airport) => ({
+        ...airport,
+        distanceNm: 0,
+      }))
+  }, [mapBounds, swedishAirports])
+  const visibleWeatherAirportKey = useMemo(
+    () => visibleWeatherAirports.map((airport) => airport.icao).sort((left, right) => left.localeCompare(right, 'sv')).join(','),
+    [visibleWeatherAirports],
+  )
+
+  useEffect(() => {
+    if (visibleWeatherAirports.length === 0) {
+      return
+    }
+
+    const airportsToFetch = visibleWeatherAirports.filter((airport) => {
+      return !airportMetarsByIcao[airport.icao] && !pendingAirportMetarsRef.current.has(airport.icao)
+    })
+
+    if (airportsToFetch.length === 0) {
+      return
+    }
+
+    const controller = new AbortController()
+    for (const airport of airportsToFetch) {
+      pendingAirportMetarsRef.current.add(airport.icao)
+    }
+
+    fetchMetarsForAirports(airportsToFetch, controller.signal)
+      .then((results) => {
+        setAirportMetarsByIcao((current) => {
+          const next = { ...current }
+          for (const result of results) {
+            next[result.airport.icao] = result
+          }
+          return next
+        })
+      })
+      .catch((error: unknown) => {
+        if (!(error instanceof Error) || error.name !== 'AbortError') {
+          console.error('Kunde inte hämta METAR för kartflygplatser.', error)
+        }
+      })
+      .finally(() => {
+        for (const airport of airportsToFetch) {
+          pendingAirportMetarsRef.current.delete(airport.icao)
+        }
+      })
+
+    return () => controller.abort()
+  }, [airportMetarsByIcao, visibleWeatherAirportKey, visibleWeatherAirports])
 
   const setWaypoints = (nextWaypoints: typeof waypoints) => {
     setDragPreviewWaypoints(null)
@@ -780,6 +894,7 @@ export function FlightplanMapEditor({
           />
           <MapClickHandler onAddPoint={addPointToEnd} shouldSuppressClick={shouldSuppressClick} />
           <MapZoomHandler onZoomChange={setMapZoom} />
+          <MapBoundsHandler onBoundsChange={setMapBounds} />
           {onViewportChange ? <MapViewportHandler onViewportChange={onViewportChange} /> : null}
           <RouteInsertDragHandler
             activeSegmentIndex={activeSegmentInsertIndex}
@@ -899,23 +1014,31 @@ export function FlightplanMapEditor({
               })
             : null}
 
-          {swedishAirports.map((airport) => (
-            <CircleMarker
+          {swedishAirports.map((airport) => {
+            const airportMetar = airport.icao ? airportMetarsByIcao[airport.icao] : null
+            const flightRules = classifyMetarFlightRules(airportMetar?.metarRawText ?? null)
+            const weatherLabel =
+              flightRules.category === 'VMC'
+                ? 'VMC'
+                : flightRules.category === 'MVMC'
+                  ? 'Marginal VMC'
+                  : flightRules.category === 'IMC'
+                    ? 'IMC'
+                    : 'Ingen METAR'
+
+            return (
+            <Marker
               key={airport.icao ?? `${airport.name}-${airport.lat}-${airport.lon}`}
-              center={[airport.lat, airport.lon]}
-              radius={4}
-              pathOptions={{
-                color: '#1f6bff',
-                weight: 1,
-                fillColor: '#e8f0ff',
-                fillOpacity: 0.9,
-              }}
+              position={[airport.lat, airport.lon]}
+              icon={createAirportIcon(flightRules.category)}
+              keyboard={false}
+              zIndexOffset={90}
             >
               {airport.icao && mapZoom >= airportLabelMinZoom ? (
                 <Tooltip
                   permanent
                   direction="top"
-                  offset={[0, -10]}
+                  offset={[0, -12]}
                   opacity={1}
                   className="fp-airport-label"
                 >
@@ -926,11 +1049,15 @@ export function FlightplanMapEditor({
                 <div className="fp-airport-tooltip">
                   <strong>{airport.icao}</strong>
                   <span>{airport.name}</span>
+                  <span>Flygregler: {weatherLabel}</span>
+                  {flightRules.visibilityMeters != null ? <span>Sikt: {flightRules.visibilityMeters} m</span> : null}
+                  {flightRules.ceilingFeet != null ? <span>Ceiling: {flightRules.ceilingFeet} ft</span> : null}
+                  {airportMetar?.metarRawText ? <span>{airportMetar.metarRawText}</span> : null}
                   <span>{formatCoordinateDms(airport.lat, 'lat')} {formatCoordinateDms(airport.lon, 'lon')}</span>
                 </div>
               </Tooltip>
-            </CircleMarker>
-          ))}
+            </Marker>
+          )})}
 
           {previewRouteLegs.map((leg, index) => (
             <FeatureGroup key={`segment-${index}`}>

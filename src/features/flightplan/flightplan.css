@@ -894,6 +894,45 @@
   display: none;
 }
 
+.flightplan-page .fp-airport-marker {
+  background: transparent;
+  border: 0;
+}
+
+.flightplan-page .fp-airport-marker span {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(17, 33, 32, 0.28);
+  font-family: 'Space Grotesk', 'Inter', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 1;
+  box-shadow: 0 2px 6px rgba(21, 21, 21, 0.18);
+}
+
+.flightplan-page .fp-airport-marker .is-vmc {
+  background: #2f9b44;
+  color: #f4fff5;
+}
+
+.flightplan-page .fp-airport-marker .is-mvmc {
+  background: #d8a126;
+  color: #271a00;
+}
+
+.flightplan-page .fp-airport-marker .is-imc {
+  background: #c63a3a;
+  color: #fff5f5;
+}
+
+.flightplan-page .fp-airport-marker .is-unknown {
+  background: #e8f0ff;
+  color: #1f6bff;
+}
+
 .flightplan-page .fp-leaflet-map .leaflet-interactive:focus {
   outline: none;
 }

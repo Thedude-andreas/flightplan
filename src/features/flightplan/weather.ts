@@ -18,6 +18,20 @@ export type AirportWeather = {
   tafIssuedAt: string | null
 }
 
+export type AirportMetar = {
+  airport: NearbyAirport
+  metarRawText: string | null
+  metarObservedAt: string | null
+}
+
+export type MetarFlightCategory = 'VMC' | 'MVMC' | 'IMC' | 'UNKNOWN'
+
+export type MetarFlightRules = {
+  category: MetarFlightCategory
+  visibilityMeters: number | null
+  ceilingFeet: number | null
+}
+
 export type LfvWindLevel = {
   label: string
   altitudeFt: number
@@ -158,6 +172,132 @@ async function fetchJson<T>(url: string, signal: AbortSignal) {
   return response.json() as Promise<T>
 }
 
+function parseStatuteMilesToMeters(rawValue: string) {
+  const trimmed = rawValue.trim()
+  if (!trimmed) {
+    return null
+  }
+
+  let miles = 0
+  for (const part of trimmed.split(/\s+/)) {
+    if (/^\d+$/.test(part)) {
+      miles += Number(part)
+      continue
+    }
+
+    const fractionMatch = part.match(/^(\d+)\/(\d+)$/)
+    if (fractionMatch) {
+      miles += Number(fractionMatch[1]) / Number(fractionMatch[2])
+      continue
+    }
+
+    return null
+  }
+
+  return Math.round(miles * 1609.344)
+}
+
+function parseMetarVisibilityMeters(rawText: string) {
+  if (/\bCAVOK\b/.test(rawText)) {
+    return 10000
+  }
+
+  const visibilityMatch = rawText.match(/(?:^|\s)(\d{4})(?=\s)/)
+  if (visibilityMatch) {
+    return visibilityMatch[1] === '9999' ? 10000 : Number(visibilityMatch[1])
+  }
+
+  const statuteMilesMatch = rawText.match(/(?:^|\s)(M?\d+(?: \d+\/\d+)?|\d+\/\d+)?SM(?=\s|$)/)
+  if (!statuteMilesMatch) {
+    return null
+  }
+
+  const normalized = (statuteMilesMatch[1] ?? '').replace(/^M/, '')
+  return parseStatuteMilesToMeters(normalized)
+}
+
+function parseMetarCeilingFeet(rawText: string) {
+  if (/\b(CAVOK|NSC|NCD|SKC|CLR)\b/.test(rawText)) {
+    return null
+  }
+
+  const layers = Array.from(rawText.matchAll(/\b(BKN|OVC|VV)(\d{3})\b/g))
+  if (layers.length === 0) {
+    return null
+  }
+
+  return layers.reduce<number>((lowest, match) => {
+    const nextLayerFeet = Number(match[2]) * 100
+    return Math.min(lowest, nextLayerFeet)
+  }, Number.POSITIVE_INFINITY)
+}
+
+export function classifyMetarFlightRules(rawText: string | null): MetarFlightRules {
+  if (!rawText) {
+    return {
+      category: 'UNKNOWN',
+      visibilityMeters: null,
+      ceilingFeet: null,
+    }
+  }
+
+  const visibilityMeters = parseMetarVisibilityMeters(rawText)
+  const ceilingFeet = parseMetarCeilingFeet(rawText)
+
+  if (visibilityMeters == null && ceilingFeet == null) {
+    return {
+      category: 'UNKNOWN',
+      visibilityMeters: null,
+      ceilingFeet: null,
+    }
+  }
+
+  const effectiveVisibility = visibilityMeters ?? Number.POSITIVE_INFINITY
+  const effectiveCeiling = ceilingFeet ?? Number.POSITIVE_INFINITY
+
+  if (effectiveVisibility < 5000 || effectiveCeiling < 1500) {
+    return { category: 'IMC', visibilityMeters, ceilingFeet }
+  }
+
+  if (effectiveVisibility < 8000 || effectiveCeiling < 3000) {
+    return { category: 'MVMC', visibilityMeters, ceilingFeet }
+  }
+
+  return { category: 'VMC', visibilityMeters, ceilingFeet }
+}
+
+async function fetchMetarForAirport(airport: NearbyAirport, signal: AbortSignal): Promise<AirportMetar> {
+  try {
+    const metarResponse = await fetchJson<MetarApiResponse>(`${METAR_TAF_API_BASE_URL}/metar?icao=${airport.icao}`, signal)
+    return {
+      airport,
+      metarRawText: metarResponse.data?.[0]?.raw_text ?? null,
+      metarObservedAt: metarResponse.data?.[0]?.obs_time ?? null,
+    }
+  } catch (error) {
+    if (error instanceof Error && error.message === 'HTTP 404') {
+      return {
+        airport,
+        metarRawText: null,
+        metarObservedAt: null,
+      }
+    }
+
+    throw error
+  }
+}
+
+export async function fetchMetarsForAirports(
+  airports: NearbyAirport[],
+  signal: AbortSignal,
+): Promise<AirportMetar[]> {
+  const settled = await Promise.allSettled(
+    airports.map((airport) => fetchMetarForAirport(airport, signal)),
+  )
+
+  return settled.flatMap((result) => (result.status === 'fulfilled' ? [result.value] : []))
+}
+
 export async function fetchWeatherForAirports(
   airports: NearbyAirport[],
   signal: AbortSignal,
@@ -165,7 +305,7 @@ export async function fetchWeatherForAirports(
   return Promise.all(
     airports.map(async (airport) => {
       const [metarResponse, tafResponse] = await Promise.all([
-        fetchJson<MetarApiResponse>(`${METAR_TAF_API_BASE_URL}/metar?icao=${airport.icao}`, signal),
+        fetchMetarForAirport(airport, signal),
         fetchJson<TafApiResponse>(`${METAR_TAF_API_BASE_URL}/taf?icao=${airport.icao}`, signal).catch((error) => {
           if (error instanceof Error && error.message === 'HTTP 404') {
             return null
@@ -176,8 +316,8 @@ export async function fetchWeatherForAirports(
 
       return {
         airport,
-        metarRawText: metarResponse.data?.[0]?.raw_text ?? null,
-        metarObservedAt: metarResponse.data?.[0]?.obs_time ?? null,
+        metarRawText: metarResponse.metarRawText,
+        metarObservedAt: metarResponse.metarObservedAt,
         tafRawText: tafResponse?.data?.raw_text ?? null,
         tafIssuedAt: tafResponse?.data?.issue_time ?? null,
       }
