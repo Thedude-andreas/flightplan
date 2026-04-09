@@ -117,7 +117,36 @@ run_smoke_checks() {
     "$public_url/robots.txt" >/dev/null
 }
 
+verify_deploy_git_state() {
+  if ! command -v git >/dev/null 2>&1; then
+    echo "Missing required command: git" >&2
+    exit 1
+  fi
+
+  if [[ -n "$(git status --porcelain)" ]]; then
+    echo "Refusing to deploy with uncommitted changes. Commit and push first." >&2
+    exit 1
+  fi
+
+  local upstream_ref=""
+  if ! upstream_ref="$(git rev-parse --abbrev-ref --symbolic-full-name '@{u}' 2>/dev/null)"; then
+    echo "Refusing to deploy without an upstream branch configured." >&2
+    exit 1
+  fi
+
+  local head_sha upstream_sha
+  head_sha="$(git rev-parse HEAD)"
+  upstream_sha="$(git rev-parse "$upstream_ref")"
+
+  if [[ "$head_sha" != "$upstream_sha" ]]; then
+    echo "Refusing to deploy because HEAD ($head_sha) does not match $upstream_ref ($upstream_sha)." >&2
+    echo "Push the current commit before deploying." >&2
+    exit 1
+  fi
+}
+
 verify_host_key
+verify_deploy_git_state
 
 resolve_remote_path() {
   run_lftp_script <<EOF
