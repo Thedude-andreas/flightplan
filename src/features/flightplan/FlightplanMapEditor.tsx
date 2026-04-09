@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import {
   CircleMarker,
   Circle,
@@ -12,6 +12,7 @@ import {
   Polyline,
   TileLayer,
   Tooltip,
+  ZoomControl,
   useMapEvents,
   useMap,
 } from 'react-leaflet'
@@ -782,6 +783,7 @@ export function FlightplanMapEditor({
   notamMapFeatures = [],
   notamMapNotice = null,
   notamMapStatus = 'idle',
+  hudSlot,
   onRouteLegsChange,
   focusedLegIndex = null,
   initialViewport = null,
@@ -793,6 +795,7 @@ export function FlightplanMapEditor({
   notamMapFeatures?: NotamMapOverlayFeature[]
   notamMapNotice?: string | null
   notamMapStatus?: 'idle' | 'loading' | 'error' | 'ready'
+  hudSlot?: ReactNode
   onRouteLegsChange: (legs: FlightPlanInput['routeLegs']) => void
   focusedLegIndex?: number | null
   initialViewport?: FlightplanMapViewport | null
@@ -1268,91 +1271,91 @@ export function FlightplanMapEditor({
 
   return (
     <section className="fp-map-editor">
-      <div className="fp-map-toolbar">
-        <div className="fp-map-controls">
-          <label className="fp-basemap-control">
-            Kartlager
-            <select value={basemap} onChange={(event) => setBasemap(event.target.value as BasemapKey)}>
-              {Object.entries(basemaps).map(([key, config]) => (
-                <option key={key} value={key}>
-                  {config.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          {notamMapNotice != null || notamMapStatus !== 'idle' ? (
-            <span className="fp-notam-map-toolbar-status" aria-live="polite">
-              {notamMapStatus === 'loading' ? 'Hämtar NOTAM & AIP SUP...' : null}
-              {notamMapStatus === 'error' ? 'NOTAM kunde inte laddas' : null}
-            </span>
-          ) : null}
-          <div className="fp-map-layer-menu" ref={mapLayerMenuRef}>
-            <button
-              type="button"
-              className="fp-map-layer-menu__button"
-              aria-haspopup="menu"
-              aria-expanded={isMapLayerMenuOpen}
-              onClick={() => setIsMapLayerMenuOpen((open) => !open)}
-            >
-              Kartdata
-              <span>{enabledLayerCount}/7</span>
-            </button>
-            {isMapLayerMenuOpen ? (
-              <div className="fp-map-layer-menu__popover" role="menu" aria-label="Kartdata">
-                <div className="fp-map-layer-menu__header">
-                  <strong>Visa i kartan</strong>
-                  <small>Sparas för den här webbläsaren.</small>
+      <div className="fp-map-canvas">
+        <div className="fp-map-hud fp-map-hud--top-right">
+          <div className="fp-map-controls">
+            <label className="fp-basemap-control">
+              Kartlager
+              <select value={basemap} onChange={(event) => setBasemap(event.target.value as BasemapKey)}>
+                {Object.entries(basemaps).map(([key, config]) => (
+                  <option key={key} value={key}>
+                    {config.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="fp-map-layer-menu" ref={mapLayerMenuRef}>
+              <button
+                type="button"
+                className="fp-map-layer-menu__button"
+                aria-haspopup="menu"
+                aria-expanded={isMapLayerMenuOpen}
+                onClick={() => setIsMapLayerMenuOpen((open) => !open)}
+              >
+                Kartdata
+                <span>{enabledLayerCount}/7</span>
+              </button>
+              {isMapLayerMenuOpen ? (
+                <div className="fp-map-layer-menu__popover" role="menu" aria-label="Kartdata">
+                  <div className="fp-map-layer-menu__header">
+                    <strong>Visa i kartan</strong>
+                    <small>Sparas för den här webbläsaren.</small>
+                  </div>
+                  <MapLayerSwitch
+                    checked={showAirspaces}
+                    label="Luftrum"
+                    meta="CTR, TMA, R/D, TRA"
+                    onToggle={() => toggleMapLayerPreference('airspaces')}
+                  />
+                  <MapLayerSwitch
+                    checked={showWeatherOverlays}
+                    label="Väderområden"
+                    meta={`SIGMET/ARS/AIRMET (${routeWeatherOverlays.length})`}
+                    onToggle={() => toggleMapLayerPreference('weatherOverlays')}
+                  />
+                  <MapLayerSwitch
+                    checked={showNotamOverlays}
+                    disabled={notamMapStatus === 'loading'}
+                    label="NOTAM / AIP SUP"
+                    meta={notamMapStatus === 'ready' ? `${notamMapFeatures.length} kartobjekt` : 'En-route och NAV-varningar'}
+                    onToggle={() => toggleMapLayerPreference('notamOverlays')}
+                  />
+                  <MapLayerSwitch
+                    checked={showNavaids}
+                    label="Navhjälpmedel"
+                    meta="VOR, DME, NDB, waypoints"
+                    onToggle={() => toggleMapLayerPreference('navaids')}
+                  />
+                  <MapLayerSwitch
+                    checked={showAirports}
+                    label="Flygplatser"
+                    meta="Markörer och ICAO-etiketter"
+                    onToggle={() => toggleMapLayerPreference('airports')}
+                  />
+                  <MapLayerSwitch
+                    checked={showMetar}
+                    label="METAR"
+                    meta="Observation och flygregelkategori"
+                    onToggle={() => toggleMapLayerPreference('metar')}
+                  />
+                  <MapLayerSwitch
+                    checked={showTaf}
+                    label="TAF"
+                    meta="Prognos och flygregelkategori"
+                    onToggle={() => toggleMapLayerPreference('taf')}
+                  />
                 </div>
-                <MapLayerSwitch
-                  checked={showAirspaces}
-                  label="Luftrum"
-                  meta="CTR, TMA, R/D, TRA"
-                  onToggle={() => toggleMapLayerPreference('airspaces')}
-                />
-                <MapLayerSwitch
-                  checked={showWeatherOverlays}
-                  label="Väderområden"
-                  meta={`SIGMET/ARS/AIRMET (${routeWeatherOverlays.length})`}
-                  onToggle={() => toggleMapLayerPreference('weatherOverlays')}
-                />
-                <MapLayerSwitch
-                  checked={showNotamOverlays}
-                  disabled={notamMapStatus === 'loading'}
-                  label="NOTAM / AIP SUP"
-                  meta={notamMapStatus === 'ready' ? `${notamMapFeatures.length} kartobjekt` : 'En-route och NAV-varningar'}
-                  onToggle={() => toggleMapLayerPreference('notamOverlays')}
-                />
-                <MapLayerSwitch
-                  checked={showNavaids}
-                  label="Navhjälpmedel"
-                  meta="VOR, DME, NDB, waypoints"
-                  onToggle={() => toggleMapLayerPreference('navaids')}
-                />
-                <MapLayerSwitch
-                  checked={showAirports}
-                  label="Flygplatser"
-                  meta="Markörer och ICAO-etiketter"
-                  onToggle={() => toggleMapLayerPreference('airports')}
-                />
-                <MapLayerSwitch
-                  checked={showMetar}
-                  label="METAR"
-                  meta="Observation och flygregelkategori"
-                  onToggle={() => toggleMapLayerPreference('metar')}
-                />
-                <MapLayerSwitch
-                  checked={showTaf}
-                  label="TAF"
-                  meta="Prognos och flygregelkategori"
-                  onToggle={() => toggleMapLayerPreference('taf')}
-                />
-              </div>
+              ) : null}
+            </div>
+            {notamMapNotice != null || notamMapStatus !== 'idle' ? (
+              <span className="fp-notam-map-toolbar-status" aria-live="polite">
+                {notamMapStatus === 'loading' ? 'Hämtar NOTAM & AIP SUP...' : null}
+                {notamMapStatus === 'error' ? 'NOTAM kunde inte laddas' : null}
+              </span>
             ) : null}
           </div>
         </div>
-      </div>
-
-      <div className="fp-map-canvas">
+        {hudSlot ? <div className="fp-map-hud fp-map-hud--top-left fp-map-hud--editor">{hudSlot}</div> : null}
         {notamMapNotice ? (
           <div className="fp-notam-map-banner" role="status">
             {notamMapNotice}
@@ -1383,7 +1386,8 @@ export function FlightplanMapEditor({
             Startpunkt vald. Klicka igen i kartan för nästa waypoint.
           </div>
         )}
-        <MapContainer center={center} zoom={7} scrollWheelZoom className="fp-leaflet-map">
+        <MapContainer center={center} zoom={7} scrollWheelZoom zoomControl={false} className="fp-leaflet-map">
+          <ZoomControl position="topright" />
           <Pane name={notamMapPane} style={{ zIndex: 525 }} />
           <Pane name="fp-navaid-pane" style={{ zIndex: 530 }} />
           <Pane name="fp-airport-pane" style={{ zIndex: 560 }} />

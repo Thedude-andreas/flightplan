@@ -258,6 +258,7 @@ type FlightplanAppProps = {
   initialMapViewport?: FlightplanMapViewport | null
   documentTitleSlot?: ReactNode
   documentToolbarSlot?: ReactNode
+  mapHudSlot?: ReactNode
   onPlanChange?: (plan: FlightPlanInput) => void
   onActiveTabChange?: (tab: WorkspaceTab) => void
   onMapViewportChange?: (viewport: FlightplanMapViewport) => void
@@ -270,6 +271,7 @@ export function FlightplanApp({
   initialMapViewport = null,
   documentTitleSlot,
   documentToolbarSlot,
+  mapHudSlot,
   onPlanChange,
   onActiveTabChange,
   onMapViewportChange,
@@ -659,7 +661,7 @@ export function FlightplanApp({
       : 'Öppna route-NOTAM'
 
   return (
-    <div className="flightplan-page">
+    <div className={`flightplan-page ${activeTab === 'map' ? 'is-map-view' : ''}`}>
       <header className="fp-page-header fp-no-print">
         <div>
           <p className="fp-eyebrow">VFRplan.se · allmänflyg · Sverige</p>
@@ -671,7 +673,7 @@ export function FlightplanApp({
       </header>
 
       <main className="fp-workspace" onClick={() => setRowContextMenu(null)}>
-        {documentToolbarSlot ? <div className="fp-page-toolbar fp-no-print">{documentToolbarSlot}</div> : null}
+        {documentToolbarSlot && activeTab !== 'map' ? <div className="fp-page-toolbar fp-no-print">{documentToolbarSlot}</div> : null}
 
         {activeTab === 'flightplan' && (
           <div className="fp-tab-panel">
@@ -720,6 +722,7 @@ export function FlightplanApp({
                 notamMapFeatures={notamMapFeatures}
                 notamMapNotice={notamMapNotice}
                 notamMapStatus={notamState.status}
+                hudSlot={mapHudSlot}
                 onRouteLegsChange={replaceRouteLegs}
                 focusedLegIndex={focusedLegIndex}
                 initialViewport={initialMapViewport}
