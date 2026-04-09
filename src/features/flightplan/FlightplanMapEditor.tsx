@@ -32,15 +32,44 @@ import { formatCoordinateDms } from './coordinates'
 import { getRoutePointLabel, legsToWaypoints, pointWithNearestName, waypointsToLegs } from './gazetteer'
 import {
   classifyMetarFlightRules,
-  fetchMetarsForAirports,
-  type AirportMetar,
+  classifyTafFlightRules,
+  fetchMapWeatherForAirports,
+  mergeFlightRules,
+  needsAirportWeatherRefetchForMap,
+  type AirportMapWeather,
   type MetarFlightCategory,
+  type MetarFlightRules,
   type NearbyAirport,
 } from './weather'
+import { formatNotamText, type NotamMapOverlayFeature } from './notamRoute'
 import { getAllWeatherOverlays, type RouteWeatherOverlay } from './weatherSigmet'
 import type { FlightPlanInput, FlightPlanDerived } from './types'
 
 type BasemapKey = 'topo' | 'osm'
+
+type MapLayerPreferences = {
+  airspaces: boolean
+  weatherOverlays: boolean
+  notamOverlays: boolean
+  navaids: boolean
+  airports: boolean
+  metar: boolean
+  taf: boolean
+}
+
+type MapLayerPreferenceKey = keyof MapLayerPreferences
+
+const mapLayerPreferencesStorageKey = 'flightplan.mapLayerPreferences.v1'
+
+const defaultMapLayerPreferences: MapLayerPreferences = {
+  airspaces: true,
+  weatherOverlays: true,
+  notamOverlays: true,
+  navaids: true,
+  airports: true,
+  metar: true,
+  taf: true,
+}
 
 const basemaps: Record<
   BasemapKey,
@@ -85,6 +114,41 @@ function createAirportIcon(category: MetarFlightCategory) {
   })
 }
 
+function getAirportDisplayFlightRules(
+  weather: AirportMapWeather | null,
+  options: { showMetar: boolean; showTaf: boolean },
+): MetarFlightRules {
+  if (!options.showMetar && !options.showTaf) {
+    return {
+      category: 'UNKNOWN',
+      visibilityMeters: null,
+      ceilingFeet: null,
+    }
+  }
+
+  const metarRules = options.showMetar ? classifyMetarFlightRules(weather?.metarRawText ?? null) : null
+  const tafRules = options.showTaf ? classifyTafFlightRules(weather?.tafRawText ?? null) : null
+
+  return mergeFlightRules(metarRules, tafRules)
+}
+
+function getAirportTooltipWeatherLines(
+  weather: AirportMapWeather | null,
+  options: { showMetar: boolean; showTaf: boolean },
+) {
+  const lines: string[] = []
+
+  if (options.showMetar && weather?.metarRawText) {
+    lines.push(`METAR ${weather.metarRawText}`)
+  }
+
+  if (options.showTaf && weather?.tafRawText) {
+    lines.push(`TAF ${weather.tafRawText}`)
+  }
+
+  return lines
+}
+
 function createMapLabelIcon(className: string, label: string) {
   return divIcon({
     className,
@@ -107,6 +171,128 @@ const sigmetOverlayPalette = {
   lineColor: '#b44300',
   lineFill: '#ffd0a6',
 } as const
+
+const notamMapPane = 'fp-notam-pane'
+
+function readStoredMapLayerPreferences(): MapLayerPreferences {
+  if (typeof window === 'undefined') {
+    return defaultMapLayerPreferences
+  }
+
+  const raw = window.localStorage.getItem(mapLayerPreferencesStorageKey)
+  if (!raw) {
+    return defaultMapLayerPreferences
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as Partial<Record<MapLayerPreferenceKey, unknown>>
+    return {
+      airspaces: typeof parsed.airspaces === 'boolean' ? parsed.airspaces : defaultMapLayerPreferences.airspaces,
+      weatherOverlays: typeof parsed.weatherOverlays === 'boolean' ? parsed.weatherOverlays : defaultMapLayerPreferences.weatherOverlays,
+      notamOverlays: typeof parsed.notamOverlays === 'boolean' ? parsed.notamOverlays : defaultMapLayerPreferences.notamOverlays,
+      navaids: typeof parsed.navaids === 'boolean' ? parsed.navaids : defaultMapLayerPreferences.navaids,
+      airports: typeof parsed.airports === 'boolean' ? parsed.airports : defaultMapLayerPreferences.airports,
+      metar: typeof parsed.metar === 'boolean' ? parsed.metar : defaultMapLayerPreferences.metar,
+      taf: typeof parsed.taf === 'boolean' ? parsed.taf : defaultMapLayerPreferences.taf,
+    }
+  } catch {
+    return defaultMapLayerPreferences
+  }
+}
+
+function MapLayerSwitch({
+  checked,
+  disabled = false,
+  label,
+  meta,
+  onToggle,
+}: {
+  checked: boolean
+  disabled?: boolean
+  label: string
+  meta?: string
+  onToggle: () => void
+}) {
+  return (
+    <button
+      type="button"
+      className="fp-map-layer-switch"
+      role="switch"
+      aria-checked={checked}
+      disabled={disabled}
+      onClick={onToggle}
+    >
+      <span className="fp-map-layer-switch__text">
+        <span>{label}</span>
+        {meta ? <small>{meta}</small> : null}
+      </span>
+      <span className="fp-map-layer-switch__track" aria-hidden="true">
+        <span className="fp-map-layer-switch__thumb" />
+      </span>
+    </button>
+  )
+}
+
+function notamMapPathOptions(source: NotamMapOverlayFeature['source'], kind: 'area' | 'line') {
+  if (source === 'notam-enroute') {
+    return kind === 'area'
+      ? {
+          color: '#b45309',
+          fillColor: '#fcd34d',
+          fillOpacity: 0.22,
+          weight: 2,
+          dashArray: '5 4' as const,
+        }
+      : { color: '#b45309', weight: 3, opacity: 0.92, dashArray: '6 5' as const }
+  }
+
+  if (source === 'notam-warning') {
+    return kind === 'area'
+      ? { color: '#b91c1c', fillColor: '#fca5a5', fillOpacity: 0.22, weight: 2.5 }
+      : { color: '#b91c1c', weight: 3.5, opacity: 0.95, dashArray: '2 4' as const }
+  }
+
+  return kind === 'area'
+    ? {
+        color: '#4338ca',
+        fillColor: '#a5b4fc',
+        fillOpacity: 0.2,
+        weight: 2,
+        dashArray: '8 4' as const,
+      }
+    : { color: '#4338ca', weight: 3, opacity: 0.9, dashArray: '10 5' as const }
+}
+
+function createNotamMapSymbolIcon(source: NotamMapOverlayFeature['source']) {
+  const variant = source === 'notam-enroute' ? 'enroute' : source === 'notam-warning' ? 'warning' : 'sup'
+  return divIcon({
+    className: `fp-notam-map-symbol fp-notam-map-symbol--${variant}`,
+    html: '<span></span>',
+    iconSize: [12, 12],
+    iconAnchor: [6, 6],
+  })
+}
+
+function NotamMapInfoCard({ feature }: { feature: NotamMapOverlayFeature }) {
+  const body = formatNotamText(feature.rawText)
+  const preview = body.length > 2400 ? `${body.slice(0, 2400)}…` : body
+
+  return (
+    <div className="fp-airport-tooltip fp-notam-map-tooltip">
+      <strong>{feature.label}</strong>
+      <span className="fp-notam-map-tooltip__title">{feature.title}</span>
+      {feature.supplementId ? (
+        <span className="fp-notam-map-tooltip__meta">AIP SUP {feature.supplementId}</span>
+      ) : null}
+      {feature.source === 'aip-sup' && feature.supplementUrl ? (
+        <a className="fp-notam-map-panel__link" href={feature.supplementUrl} target="_blank" rel="noreferrer">
+          Öppna eSUP / källa
+        </a>
+      ) : null}
+      <pre className="fp-notam-map-tooltip__body">{preview}</pre>
+    </div>
+  )
+}
 
 export type FlightplanMapViewport = {
   center: [number, number]
@@ -249,6 +435,85 @@ function formatAirspaceTooltipContent(
     const levels = `<span>${airspace.lower ?? '—'} till ${airspace.upper ?? '—'}</span>`
     return `<div class="fp-airspace-tooltip__row"><strong>${title}</strong>${indicator}${levels}</div>`
   }).join('')}</div>`
+}
+
+/** Stänger tooltips på alla underlager (GeoJSON, grupper, markörer). Hoppar över permanenta (t.ex. ICAO-etiketter). */
+function closeLeafletTooltipsRecursive(layer: L.Layer) {
+  if (layer instanceof L.LayerGroup || layer instanceof L.FeatureGroup) {
+    layer.eachLayer(closeLeafletTooltipsRecursive)
+  } else {
+    const tooltip = layer.getTooltip?.()
+    if (tooltip?.options.permanent) {
+      return
+    }
+
+    layer.closeTooltip()
+  }
+}
+
+function forceCloseAllMapTooltips(map: L.Map) {
+  map.eachLayer(closeLeafletTooltipsRecursive)
+}
+
+function MapLeafletTooltipCleanup() {
+  const map = useMap()
+
+  useEffect(() => {
+    const container = map.getContainer()
+
+    const onLeave = () => {
+      forceCloseAllMapTooltips(map)
+    }
+
+    const onDocumentPointerEnd = (event: PointerEvent) => {
+      const target = event.target
+      if (target instanceof Node && container.contains(target)) {
+        return
+      }
+
+      forceCloseAllMapTooltips(map)
+    }
+
+    const onWindowBlur = () => {
+      forceCloseAllMapTooltips(map)
+    }
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        forceCloseAllMapTooltips(map)
+      }
+    }
+
+    const onMapMoveOrZoomStart = () => {
+      forceCloseAllMapTooltips(map)
+    }
+
+    container.addEventListener('mouseleave', onLeave)
+    container.addEventListener('pointerleave', onLeave, true)
+    document.addEventListener('pointerup', onDocumentPointerEnd, true)
+    document.addEventListener('pointercancel', onDocumentPointerEnd, true)
+    window.addEventListener('blur', onWindowBlur)
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    map.on('movestart', onMapMoveOrZoomStart)
+    map.on('zoomstart', onMapMoveOrZoomStart)
+
+    return () => {
+      container.removeEventListener('mouseleave', onLeave)
+      container.removeEventListener('pointerleave', onLeave, true)
+      document.removeEventListener('pointerup', onDocumentPointerEnd, true)
+      document.removeEventListener('pointercancel', onDocumentPointerEnd, true)
+      window.removeEventListener('blur', onWindowBlur)
+      document.removeEventListener('visibilitychange', onVisibilityChange)
+      map.off('movestart', onMapMoveOrZoomStart)
+      map.off('zoomstart', onMapMoveOrZoomStart)
+    }
+  }, [map])
+
+  return null
+}
+
+function closeLeafletTooltipOnMouseOut(event: { target: L.Layer }) {
+  event.target.closeTooltip()
 }
 
 function midpoint(a: FlightPlanInput['routeLegs'][number]['from'], b: FlightPlanInput['routeLegs'][number]['to']) {
@@ -504,6 +769,9 @@ export function FlightplanMapEditor({
   plan,
   derived,
   sigmetText = null,
+  notamMapFeatures = [],
+  notamMapNotice = null,
+  notamMapStatus = 'idle',
   onRouteLegsChange,
   focusedLegIndex = null,
   initialViewport = null,
@@ -512,6 +780,9 @@ export function FlightplanMapEditor({
   plan: FlightPlanInput
   derived: FlightPlanDerived
   sigmetText?: string | null
+  notamMapFeatures?: NotamMapOverlayFeature[]
+  notamMapNotice?: string | null
+  notamMapStatus?: 'idle' | 'loading' | 'error' | 'ready'
   onRouteLegsChange: (legs: FlightPlanInput['routeLegs']) => void
   focusedLegIndex?: number | null
   initialViewport?: FlightplanMapViewport | null
@@ -521,16 +792,32 @@ export function FlightplanMapEditor({
   const swedishAirports = getSwedishAirports()
   const swedishNavaids = getSwedishNavaids()
   const [basemap, setBasemap] = useState<BasemapKey>('topo')
-  const [showAirspaces, setShowAirspaces] = useState(true)
+  const [mapLayerPreferences, setMapLayerPreferences] = useState(readStoredMapLayerPreferences)
+  const [isMapLayerMenuOpen, setIsMapLayerMenuOpen] = useState(false)
   const [mapZoom, setMapZoom] = useState(7)
   const [mapInstance, setMapInstance] = useState<L.Map | null>(null)
   const [mapBounds, setMapBounds] = useState<L.LatLngBounds | null>(null)
   const [dragPreviewWaypoints, setDragPreviewWaypoints] = useState<ReturnType<typeof legsToWaypoints> | null>(null)
   const [activeSegmentInsertIndex, setActiveSegmentInsertIndex] = useState<number | null>(null)
+  const [hoveredNotamFeature, setHoveredNotamFeature] = useState<NotamMapOverlayFeature | null>(null)
   const [waypointMarkerLayerVersion, setWaypointMarkerLayerVersion] = useState(0)
-  const [airportMetarsByIcao, setAirportMetarsByIcao] = useState<Record<string, AirportMetar>>({})
+  const [airportWeatherByIcao, setAirportWeatherByIcao] = useState<Record<string, AirportMapWeather>>({})
+  const [metarStaleCheckTick, setMetarStaleCheckTick] = useState(0)
+  const airportWeatherByIcaoRef = useRef(airportWeatherByIcao)
   const suppressNextMapClick = useRef(false)
-  const pendingAirportMetarsRef = useRef(new Set<string>())
+  const mapLayerMenuRef = useRef<HTMLDivElement | null>(null)
+  const notamPanelHideTimeoutRef = useRef<number | null>(null)
+  const pendingAirportWeatherRef = useRef(new Set<string>())
+  const showAirspaces = mapLayerPreferences.airspaces
+  const showWeatherOverlays = mapLayerPreferences.weatherOverlays
+  const showNotamOverlays = mapLayerPreferences.notamOverlays
+  const showNavaids = mapLayerPreferences.navaids
+  const showAirports = mapLayerPreferences.airports
+  const showMetar = mapLayerPreferences.metar
+  const showTaf = mapLayerPreferences.taf
+  const showAirportWeather = showMetar || showTaf
+  const showAirportMarkers = showAirports || showAirportWeather
+  const enabledLayerCount = Object.values(mapLayerPreferences).filter(Boolean).length
   const hasPendingStartPoint = useMemo(() => isPlaceholderLeg(plan.routeLegs), [plan.routeLegs])
   const waypoints = useMemo(() => {
     if (hasPendingStartPoint) {
@@ -578,7 +865,7 @@ export function FlightplanMapEditor({
           geometry: airspace.geometry,
         })),
     }),
-    [],
+    [swedishAirspaces],
   )
   const visibleAirspaces = useMemo(
     () =>
@@ -587,13 +874,17 @@ export function FlightplanMapEditor({
           const lowerFeet = parseAirspaceAltitudeFeet(airspace.lower)
           return lowerFeet == null || lowerFeet < maxVisibleAirspaceLowerFt
         }),
-    [],
+    [swedishAirspaces],
   )
   const routeWeatherOverlays = useMemo<RouteWeatherOverlay[]>(
     () => getAllWeatherOverlays(sigmetText),
     [sigmetText],
   )
   const visibleWeatherAirports = useMemo<NearbyAirport[]>(() => {
+    if (!showAirportWeather) {
+      return []
+    }
+
     if (!mapBounds) {
       return []
     }
@@ -607,19 +898,89 @@ export function FlightplanMapEditor({
         ...airport,
         distanceNm: 0,
       }))
-  }, [mapBounds, swedishAirports])
+  }, [mapBounds, showAirportWeather, swedishAirports])
   const visibleWeatherAirportKey = useMemo(
     () => visibleWeatherAirports.map((airport) => airport.icao).sort((left, right) => left.localeCompare(right, 'sv')).join(','),
     [visibleWeatherAirports],
   )
 
+  const visibleWeatherAirportsRef = useRef(visibleWeatherAirports)
+
   useEffect(() => {
-    if (visibleWeatherAirports.length === 0) {
+    window.localStorage.setItem(mapLayerPreferencesStorageKey, JSON.stringify(mapLayerPreferences))
+  }, [mapLayerPreferences])
+
+  useEffect(() => {
+    airportWeatherByIcaoRef.current = airportWeatherByIcao
+  }, [airportWeatherByIcao])
+
+  useEffect(() => {
+    visibleWeatherAirportsRef.current = visibleWeatherAirports
+  }, [visibleWeatherAirports])
+
+  useEffect(() => {
+    return () => {
+      if (notamPanelHideTimeoutRef.current != null) {
+        window.clearTimeout(notamPanelHideTimeoutRef.current)
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!isMapLayerMenuOpen) {
       return
     }
 
-    const airportsToFetch = visibleWeatherAirports.filter((airport) => {
-      return !airportMetarsByIcao[airport.icao] && !pendingAirportMetarsRef.current.has(airport.icao)
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target
+      if (target instanceof Node && mapLayerMenuRef.current?.contains(target)) {
+        return
+      }
+
+      setIsMapLayerMenuOpen(false)
+    }
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsMapLayerMenuOpen(false)
+      }
+    }
+
+    document.addEventListener('pointerdown', onPointerDown, true)
+    document.addEventListener('keydown', onKeyDown)
+
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown, true)
+      document.removeEventListener('keydown', onKeyDown)
+    }
+  }, [isMapLayerMenuOpen])
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setMetarStaleCheckTick((tick) => tick + 1)
+    }, 60_000)
+
+    return () => window.clearInterval(intervalId)
+  }, [])
+
+  useEffect(() => {
+    if (!showAirportWeather) {
+      return
+    }
+
+    const visible = visibleWeatherAirportsRef.current
+    if (visible.length === 0) {
+      return
+    }
+
+    const byIcao = airportWeatherByIcaoRef.current
+
+    const airportsToFetch = visible.filter((airport) => {
+      if (pendingAirportWeatherRef.current.has(airport.icao)) {
+        return false
+      }
+
+      return needsAirportWeatherRefetchForMap(byIcao[airport.icao])
     })
 
     if (airportsToFetch.length === 0) {
@@ -628,38 +989,69 @@ export function FlightplanMapEditor({
 
     const controller = new AbortController()
     for (const airport of airportsToFetch) {
-      pendingAirportMetarsRef.current.add(airport.icao)
+      pendingAirportWeatherRef.current.add(airport.icao)
     }
 
-    fetchMetarsForAirports(airportsToFetch, controller.signal)
+    fetchMapWeatherForAirports(airportsToFetch, controller.signal)
       .then((results) => {
-        setAirportMetarsByIcao((current) => {
+        setAirportWeatherByIcao((current) => {
           const next = { ...current }
+          const storedAt = Date.now()
           for (const result of results) {
-            next[result.airport.icao] = result
+            next[result.airport.icao] = {
+              ...result,
+              cachedAtMs: storedAt,
+            }
           }
           return next
         })
       })
       .catch((error: unknown) => {
         if (!(error instanceof Error) || error.name !== 'AbortError') {
-          console.error('Kunde inte hämta METAR för kartflygplatser.', error)
+          console.error('Kunde inte hämta kartväder för flygplatser.', error)
         }
       })
       .finally(() => {
         for (const airport of airportsToFetch) {
-          pendingAirportMetarsRef.current.delete(airport.icao)
+          pendingAirportWeatherRef.current.delete(airport.icao)
         }
       })
 
     return () => controller.abort()
-  }, [airportMetarsByIcao, visibleWeatherAirportKey, visibleWeatherAirports])
+  }, [showAirportWeather, visibleWeatherAirportKey, metarStaleCheckTick])
 
   const setWaypoints = (nextWaypoints: typeof waypoints) => {
     setDragPreviewWaypoints(null)
     setActiveSegmentInsertIndex(null)
     const nextLegs = waypointsToLegs(nextWaypoints, plan.routeLegs, derived.aircraft.cruiseTasKt)
     onRouteLegsChange(nextLegs)
+  }
+
+  const toggleMapLayerPreference = (key: MapLayerPreferenceKey) => {
+    setMapLayerPreferences((current) => ({
+      ...current,
+      [key]: !current[key],
+    }))
+  }
+
+  const showNotamInfoPanel = (feature: NotamMapOverlayFeature) => {
+    if (notamPanelHideTimeoutRef.current != null) {
+      window.clearTimeout(notamPanelHideTimeoutRef.current)
+      notamPanelHideTimeoutRef.current = null
+    }
+
+    setHoveredNotamFeature(feature)
+  }
+
+  const scheduleHideNotamInfoPanel = (featureId: string) => {
+    if (notamPanelHideTimeoutRef.current != null) {
+      window.clearTimeout(notamPanelHideTimeoutRef.current)
+    }
+
+    notamPanelHideTimeoutRef.current = window.setTimeout(() => {
+      setHoveredNotamFeature((current) => (current?.id === featureId ? null : current))
+      notamPanelHideTimeoutRef.current = null
+    }, 180)
   }
 
   const shouldSuppressClick = () => {
@@ -878,18 +1270,99 @@ export function FlightplanMapEditor({
               ))}
             </select>
           </label>
-          <label className="fp-overlay-toggle">
-            <input
-              type="checkbox"
-              checked={showAirspaces}
-              onChange={(event) => setShowAirspaces(event.target.checked)}
-            />
-            Visa luftrum
-          </label>
+          {notamMapNotice != null || notamMapStatus !== 'idle' ? (
+            <span className="fp-notam-map-toolbar-status" aria-live="polite">
+              {notamMapStatus === 'loading' ? 'Hämtar NOTAM & AIP SUP...' : null}
+              {notamMapStatus === 'error' ? 'NOTAM kunde inte laddas' : null}
+            </span>
+          ) : null}
+          <div className="fp-map-layer-menu" ref={mapLayerMenuRef}>
+            <button
+              type="button"
+              className="fp-map-layer-menu__button"
+              aria-haspopup="menu"
+              aria-expanded={isMapLayerMenuOpen}
+              onClick={() => setIsMapLayerMenuOpen((open) => !open)}
+            >
+              Kartdata
+              <span>{enabledLayerCount}/7</span>
+            </button>
+            {isMapLayerMenuOpen ? (
+              <div className="fp-map-layer-menu__popover" role="menu" aria-label="Kartdata">
+                <div className="fp-map-layer-menu__header">
+                  <strong>Visa i kartan</strong>
+                  <small>Sparas för den här webbläsaren.</small>
+                </div>
+                <MapLayerSwitch
+                  checked={showAirspaces}
+                  label="Luftrum"
+                  meta="CTR, TMA, R/D, TRA"
+                  onToggle={() => toggleMapLayerPreference('airspaces')}
+                />
+                <MapLayerSwitch
+                  checked={showWeatherOverlays}
+                  label="Väderområden"
+                  meta={`SIGMET/ARS/AIRMET (${routeWeatherOverlays.length})`}
+                  onToggle={() => toggleMapLayerPreference('weatherOverlays')}
+                />
+                <MapLayerSwitch
+                  checked={showNotamOverlays}
+                  disabled={notamMapStatus === 'loading'}
+                  label="NOTAM / AIP SUP"
+                  meta={notamMapStatus === 'ready' ? `${notamMapFeatures.length} kartobjekt` : 'En-route och NAV-varningar'}
+                  onToggle={() => toggleMapLayerPreference('notamOverlays')}
+                />
+                <MapLayerSwitch
+                  checked={showNavaids}
+                  label="Navhjälpmedel"
+                  meta="VOR, DME, NDB, waypoints"
+                  onToggle={() => toggleMapLayerPreference('navaids')}
+                />
+                <MapLayerSwitch
+                  checked={showAirports}
+                  label="Flygplatser"
+                  meta="Markörer och ICAO-etiketter"
+                  onToggle={() => toggleMapLayerPreference('airports')}
+                />
+                <MapLayerSwitch
+                  checked={showMetar}
+                  label="METAR"
+                  meta="Observation och flygregelkategori"
+                  onToggle={() => toggleMapLayerPreference('metar')}
+                />
+                <MapLayerSwitch
+                  checked={showTaf}
+                  label="TAF"
+                  meta="Prognos och flygregelkategori"
+                  onToggle={() => toggleMapLayerPreference('taf')}
+                />
+              </div>
+            ) : null}
+          </div>
         </div>
       </div>
 
       <div className="fp-map-canvas">
+        {notamMapNotice ? (
+          <div className="fp-notam-map-banner" role="status">
+            {notamMapNotice}
+          </div>
+        ) : null}
+        {hoveredNotamFeature ? (
+          <aside
+            className="fp-notam-map-panel"
+            role="status"
+            onMouseEnter={() => {
+              if (notamPanelHideTimeoutRef.current != null) {
+                window.clearTimeout(notamPanelHideTimeoutRef.current)
+                notamPanelHideTimeoutRef.current = null
+              }
+            }}
+            onMouseLeave={() => scheduleHideNotamInfoPanel(hoveredNotamFeature.id)}
+          >
+            <NotamMapInfoCard feature={hoveredNotamFeature} />
+          </aside>
+        ) : null}
         {waypoints.length === 0 && (
           <div className="fp-map-empty-hint">
             Klicka i kartan för att välja startpunkten
@@ -901,6 +1374,7 @@ export function FlightplanMapEditor({
           </div>
         )}
         <MapContainer center={center} zoom={7} scrollWheelZoom className="fp-leaflet-map">
+          <Pane name={notamMapPane} style={{ zIndex: 525 }} />
           <Pane name="fp-navaid-pane" style={{ zIndex: 530 }} />
           <Pane name="fp-airport-pane" style={{ zIndex: 560 }} />
           <TileLayer attribution={basemaps[basemap].attribution} url={basemaps[basemap].url} />
@@ -913,6 +1387,7 @@ export function FlightplanMapEditor({
           <MapClickHandler onAddPoint={addPointToEnd} shouldSuppressClick={shouldSuppressClick} />
           <MapZoomHandler onZoomChange={setMapZoom} />
           <MapBoundsHandler onBoundsChange={setMapBounds} />
+          <MapLeafletTooltipCleanup />
           {onViewportChange ? <MapViewportHandler onViewportChange={onViewportChange} /> : null}
           <RouteInsertDragHandler
             activeSegmentIndex={activeSegmentInsertIndex}
@@ -967,6 +1442,9 @@ export function FlightplanMapEditor({
                     .sort((a, b) => compareAirspaceAltitude(b.upper, a.upper) || compareAirspaceAltitude(b.lower, a.lower))
 
                   if (matchingAirspaces.length === 0) {
+                    if (layer.isTooltipOpen()) {
+                      layer.closeTooltip()
+                    }
                     return
                   }
 
@@ -974,6 +1452,9 @@ export function FlightplanMapEditor({
                   if (!layer.isTooltipOpen()) {
                     layer.openTooltip(pointer.latlng)
                   }
+                })
+                layer.on('mouseout', () => {
+                  layer.closeTooltip()
                 })
                 layer.on('click', (event) => {
                   const clicked = event as LeafletMouseEvent
@@ -985,89 +1466,162 @@ export function FlightplanMapEditor({
             />
           ) : null}
 
-          {routeWeatherOverlays.map((overlay) => {
-            const tooltipContent = (
-              <Tooltip sticky opacity={0.95} className="fp-weather-overlay-tooltip">
-                <div className="fp-airport-tooltip fp-weather-overlay-tooltip__content">
-                  <strong>{overlay.firCodes[0] ?? 'SIGMET/ARS/AIRMET'}</strong>
-                  <span>{overlay.matchSummary}</span>
-                  <span>{overlay.title}</span>
-                </div>
-              </Tooltip>
-            )
+          {showWeatherOverlays
+            ? routeWeatherOverlays.map((overlay) => {
+                const tooltipContent = (
+                  <Tooltip sticky opacity={0.95} className="fp-weather-overlay-tooltip">
+                    <div className="fp-airport-tooltip fp-weather-overlay-tooltip__content">
+                      <strong>{overlay.firCodes[0] ?? 'SIGMET/ARS/AIRMET'}</strong>
+                      <span>{overlay.matchSummary}</span>
+                      <span>{overlay.title}</span>
+                    </div>
+                  </Tooltip>
+                )
 
-            if (overlay.geometry.type === 'polygon') {
-              return (
-                <Polygon
-                  key={overlay.id}
-                  positions={overlay.geometry.points.map((point) => [point.lat, point.lon] as [number, number])}
-                  pathOptions={{
-                    color: sigmetOverlayPalette.color,
-                    weight: 2,
-                    fillColor: sigmetOverlayPalette.fillColor,
-                    fillOpacity: 0.16,
-                    dashArray: '6 4',
-                  }}
-                >
-                  {tooltipContent}
-                </Polygon>
-              )
-            }
+                if (overlay.geometry.type === 'polygon') {
+                  return (
+                    <Polygon
+                      key={overlay.id}
+                      positions={overlay.geometry.points.map((point) => [point.lat, point.lon] as [number, number])}
+                      pathOptions={{
+                        color: sigmetOverlayPalette.color,
+                        weight: 2,
+                        fillColor: sigmetOverlayPalette.fillColor,
+                        fillOpacity: 0.16,
+                        dashArray: '6 4',
+                      }}
+                      eventHandlers={{ mouseout: closeLeafletTooltipOnMouseOut }}
+                    >
+                      {tooltipContent}
+                    </Polygon>
+                  )
+                }
 
-            if (overlay.geometry.type === 'polyline') {
-              return (
-                <Polyline
-                  key={overlay.id}
-                  positions={overlay.geometry.points.map((point) => [point.lat, point.lon] as [number, number])}
-                  pathOptions={{
-                    color: sigmetOverlayPalette.lineColor,
-                    weight: 3,
-                    opacity: 0.95,
-                    dashArray: '8 6',
-                  }}
-                >
-                  {tooltipContent}
-                </Polyline>
-              )
-            }
+                if (overlay.geometry.type === 'polyline') {
+                  return (
+                    <Polyline
+                      key={overlay.id}
+                      positions={overlay.geometry.points.map((point) => [point.lat, point.lon] as [number, number])}
+                      pathOptions={{
+                        color: sigmetOverlayPalette.lineColor,
+                        weight: 3,
+                        opacity: 0.95,
+                        dashArray: '8 6',
+                      }}
+                      eventHandlers={{ mouseout: closeLeafletTooltipOnMouseOut }}
+                    >
+                      {tooltipContent}
+                    </Polyline>
+                  )
+                }
 
-            if (overlay.geometry.type === 'circle') {
-              return (
-                <Circle
-                  key={overlay.id}
-                  center={[overlay.geometry.centre.lat, overlay.geometry.centre.lon]}
-                  radius={overlay.geometry.radiusNm * 1852}
-                  pathOptions={{
-                    color: sigmetOverlayPalette.color,
-                    weight: 2,
-                    fillColor: sigmetOverlayPalette.fillColor,
-                    fillOpacity: 0.12,
-                    dashArray: '6 4',
-                  }}
-                >
-                  {tooltipContent}
-                </Circle>
-              )
-            }
+                if (overlay.geometry.type === 'circle') {
+                  return (
+                    <Circle
+                      key={overlay.id}
+                      center={[overlay.geometry.centre.lat, overlay.geometry.centre.lon]}
+                      radius={overlay.geometry.radiusNm * 1852}
+                      pathOptions={{
+                        color: sigmetOverlayPalette.color,
+                        weight: 2,
+                        fillColor: sigmetOverlayPalette.fillColor,
+                        fillOpacity: 0.12,
+                        dashArray: '6 4',
+                      }}
+                      eventHandlers={{ mouseout: closeLeafletTooltipOnMouseOut }}
+                    >
+                      {tooltipContent}
+                    </Circle>
+                  )
+                }
 
-            return (
-              <CircleMarker
-                key={overlay.id}
-                center={[overlay.geometry.point.lat, overlay.geometry.point.lon]}
-                radius={6}
-                pathOptions={{
-                  color: sigmetOverlayPalette.color,
-                  weight: 2,
-                  fillColor: sigmetOverlayPalette.fillColor,
-                  fillOpacity: 0.9,
-                }}
-              >
-                {tooltipContent}
-              </CircleMarker>
-            )
-          })}
+                return (
+                  <CircleMarker
+                    key={overlay.id}
+                    center={[overlay.geometry.point.lat, overlay.geometry.point.lon]}
+                    radius={6}
+                    pathOptions={{
+                      color: sigmetOverlayPalette.color,
+                      weight: 2,
+                      fillColor: sigmetOverlayPalette.fillColor,
+                      fillOpacity: 0.9,
+                    }}
+                    eventHandlers={{ mouseout: closeLeafletTooltipOnMouseOut }}
+                  >
+                    {tooltipContent}
+                  </CircleMarker>
+                )
+              })
+            : null}
 
-          {mapZoom >= navaidMinZoom
+          {showNotamOverlays
+            ? notamMapFeatures.map((feature) => {
+                if (feature.kind === 'circle' && feature.radiusNm != null) {
+                  const [lat, lon] = feature.positions[0] ?? [0, 0]
+                  return (
+                    <Circle
+                      key={feature.id}
+                      pane={notamMapPane}
+                      center={[lat, lon]}
+                      radius={feature.radiusNm * 1852}
+                      pathOptions={notamMapPathOptions(feature.source, 'area')}
+                      eventHandlers={{
+                        mouseover: () => showNotamInfoPanel(feature),
+                        mouseout: () => scheduleHideNotamInfoPanel(feature.id),
+                      }}
+                    />
+                  )
+                }
+
+                if (feature.kind === 'polygon') {
+                  return (
+                    <Polygon
+                      key={feature.id}
+                      pane={notamMapPane}
+                      positions={feature.positions}
+                      pathOptions={notamMapPathOptions(feature.source, 'area')}
+                      eventHandlers={{
+                        mouseover: () => showNotamInfoPanel(feature),
+                        mouseout: () => scheduleHideNotamInfoPanel(feature.id),
+                      }}
+                    />
+                  )
+                }
+
+                if (feature.kind === 'polyline') {
+                  return (
+                    <Polyline
+                      key={feature.id}
+                      pane={notamMapPane}
+                      positions={feature.positions}
+                      pathOptions={notamMapPathOptions(feature.source, 'line')}
+                      eventHandlers={{
+                        mouseover: () => showNotamInfoPanel(feature),
+                        mouseout: () => scheduleHideNotamInfoPanel(feature.id),
+                      }}
+                    />
+                  )
+                }
+
+                const [ptLat, ptLon] = feature.positions[0] ?? [0, 0]
+                return (
+                  <Marker
+                    key={feature.id}
+                    pane={notamMapPane}
+                    position={[ptLat, ptLon]}
+                    icon={createNotamMapSymbolIcon(feature.source)}
+                    keyboard={false}
+                    zIndexOffset={80}
+                    eventHandlers={{
+                      mouseover: () => showNotamInfoPanel(feature),
+                      mouseout: () => scheduleHideNotamInfoPanel(feature.id),
+                    }}
+                  />
+                )
+              })
+            : null}
+
+          {showNavaids && mapZoom >= navaidMinZoom
             ? swedishNavaids.map((navaid) => {
                 const palette = getNavaidPalette(navaid.kind)
                 const label = navaid.ident ?? navaid.name ?? navaid.kind
@@ -1099,6 +1653,7 @@ export function FlightplanMapEditor({
                           event.originalEvent.stopPropagation()
                           addNavaidPointToEnd(navaid)
                         },
+                        mouseout: closeLeafletTooltipOnMouseOut,
                       }}
                     >
                       <Tooltip direction="top" offset={[0, -6]} opacity={0.95} className="fp-navaid-tooltip">
@@ -1116,9 +1671,10 @@ export function FlightplanMapEditor({
               })
             : null}
 
-          {swedishAirports.map((airport) => {
-            const airportMetar = airport.icao ? airportMetarsByIcao[airport.icao] : null
-            const flightRules = classifyMetarFlightRules(airportMetar?.metarRawText ?? null)
+          {showAirportMarkers ? swedishAirports.map((airport) => {
+            const airportWeather = airport.icao ? airportWeatherByIcao[airport.icao] : null
+            const flightRules = getAirportDisplayFlightRules(airportWeather, { showMetar, showTaf })
+            const weatherLines = getAirportTooltipWeatherLines(airportWeather, { showMetar, showTaf })
 
             return (
             <Marker
@@ -1134,9 +1690,10 @@ export function FlightplanMapEditor({
                   event.originalEvent.stopPropagation()
                   addPointToEnd(airport.lat, airport.lon)
                 },
+                mouseout: closeLeafletTooltipOnMouseOut,
               }}
             >
-              {airport.icao && mapZoom >= airportLabelMinZoom ? (
+              {airport.icao && mapZoom >= airportLabelMinZoom && showAirports ? (
                 <Tooltip
                   permanent
                   direction="top"
@@ -1151,12 +1708,14 @@ export function FlightplanMapEditor({
                 <div className="fp-airport-tooltip">
                   <strong>{airport.icao}</strong>
                   <span>{airport.name}</span>
-                  {airportMetar?.metarRawText ? <span>{airportMetar.metarRawText}</span> : null}
+                  {weatherLines.map((line) => (
+                    <span key={line}>{line}</span>
+                  ))}
                   <span>{formatCoordinateDms(airport.lat, 'lat')} {formatCoordinateDms(airport.lon, 'lon')}</span>
                 </div>
               </Tooltip>
             </Marker>
-          )})}
+          )}) : null}
 
           {previewRouteLegs.map((leg, index) => (
             <FeatureGroup key={`segment-${index}`}>
@@ -1172,6 +1731,7 @@ export function FlightplanMapEditor({
                     event.originalEvent.stopPropagation()
                     startSegmentInsertDrag(index, event.latlng.lat, event.latlng.lng)
                   },
+                  mouseout: closeLeafletTooltipOnMouseOut,
                 }}
               >
                 <Tooltip sticky opacity={1} className="fp-segment-tooltip">
@@ -1221,6 +1781,7 @@ export function FlightplanMapEditor({
                   const latLng = marker.getLatLng()
                   updateWaypoint(index, latLng.lat, latLng.lng)
                 },
+                mouseout: closeLeafletTooltipOnMouseOut,
               }}
             >
               <Tooltip direction="top" offset={[0, -10]} opacity={1} className="fp-waypoint-tooltip">

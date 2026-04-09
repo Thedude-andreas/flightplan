@@ -22,6 +22,63 @@ export type AirportMetar = {
   airport: NearbyAirport
   metarRawText: string | null
   metarObservedAt: string | null
+  /** Sätts i klientcache när observationstid saknas (t.ex. 404); används för TTL. */
+  cachedAtMs?: number
+}
+
+export type AirportMapWeather = {
+  airport: NearbyAirport
+  metarRawText: string | null
+  metarObservedAt: string | null
+  tafRawText: string | null
+  tafIssuedAt: string | null
+  /** Sätts i klientcache när rapporttid saknas; används för TTL. */
+  cachedAtMs?: number
+}
+
+/** Minsta ålder innan kartväder hämtas om (baserat på rapporttid eller cachetid). */
+export const WEATHER_MAP_CACHE_MAX_AGE_MS = 20 * 60 * 1000
+
+function parseReportTimestampToMs(timestamp: string | null): number | null {
+  if (!timestamp) {
+    return null
+  }
+
+  const trimmed = timestamp.trim()
+  if (/^\d+$/.test(trimmed)) {
+    const n = Number(trimmed)
+    if (n >= 1e12) {
+      return n
+    }
+
+    if (n >= 1e9) {
+      return n * 1000
+    }
+  }
+
+  const parsed = Date.parse(trimmed)
+  return Number.isNaN(parsed) ? null : parsed
+}
+
+/** Sant om kartväder saknas, är för gammalt, eller saknar tidsstämpel som överskrider TTL. */
+export function needsAirportWeatherRefetchForMap(cached: AirportMapWeather | undefined): boolean {
+  if (!cached) {
+    return true
+  }
+
+  const reportMs = Math.max(
+    parseReportTimestampToMs(cached.metarObservedAt) ?? 0,
+    parseReportTimestampToMs(cached.tafIssuedAt) ?? 0,
+  )
+  if (reportMs > 0) {
+    return Date.now() - reportMs > WEATHER_MAP_CACHE_MAX_AGE_MS
+  }
+
+  if (cached.cachedAtMs != null) {
+    return Date.now() - cached.cachedAtMs > WEATHER_MAP_CACHE_MAX_AGE_MS
+  }
+
+  return true
 }
 
 export type MetarFlightCategory = 'VMC' | 'MVMC' | 'IMC' | 'UNKNOWN'
@@ -232,6 +289,17 @@ function parseMetarCeilingFeet(rawText: string) {
   }, Number.POSITIVE_INFINITY)
 }
 
+function worseFlightCategory(left: MetarFlightCategory, right: MetarFlightCategory): MetarFlightCategory {
+  const rank = {
+    UNKNOWN: 0,
+    VMC: 1,
+    MVMC: 2,
+    IMC: 3,
+  } as const
+
+  return rank[left] >= rank[right] ? left : right
+}
+
 export function classifyMetarFlightRules(rawText: string | null): MetarFlightRules {
   if (!rawText) {
     return {
@@ -266,6 +334,121 @@ export function classifyMetarFlightRules(rawText: string | null): MetarFlightRul
   return { category: 'VMC', visibilityMeters, ceilingFeet }
 }
 
+function splitTafIntoForecastSegments(rawText: string) {
+  const cleaned = rawText
+    .replace(/\s+/g, ' ')
+    .replace(/^TAF(?:\s+(?:AMD|COR))?\s+[A-Z]{4}\s+\d{4}\/\d{4}\s*/i, '')
+    .trim()
+
+  if (!cleaned) {
+    return []
+  }
+
+  const changeMarker = /\b(BECMG|TEMPO|INTER|PROB\d{2}(?:\s+TEMPO)?|FM\d{6})\b/gi
+  const markers = [...cleaned.matchAll(changeMarker)]
+  if (markers.length === 0) {
+    return [cleaned]
+  }
+
+  const segments: string[] = []
+  let start = 0
+  for (const marker of markers) {
+    const index = marker.index ?? 0
+    const before = cleaned.slice(start, index).trim()
+    if (before) {
+      segments.push(before)
+    }
+    start = index
+  }
+
+  const tail = cleaned.slice(start).trim()
+  if (tail) {
+    segments.push(tail)
+  }
+
+  return segments
+}
+
+export function classifyTafFlightRules(rawText: string | null): MetarFlightRules {
+  if (!rawText) {
+    return {
+      category: 'UNKNOWN',
+      visibilityMeters: null,
+      ceilingFeet: null,
+    }
+  }
+
+  const segments = splitTafIntoForecastSegments(rawText)
+  const classified = segments.map((segment) => classifyMetarFlightRules(segment))
+  const known = classified.filter((entry) => entry.category !== 'UNKNOWN')
+
+  if (known.length === 0) {
+    return {
+      category: 'UNKNOWN',
+      visibilityMeters: null,
+      ceilingFeet: null,
+    }
+  }
+
+  const distinctCategories = new Set(known.map((entry) => entry.category))
+  if (distinctCategories.size > 1) {
+    return {
+      category: 'MVMC',
+      visibilityMeters: null,
+      ceilingFeet: null,
+    }
+  }
+
+  return known.reduce(
+    (worst, entry) => ({
+      category: worseFlightCategory(worst.category, entry.category),
+      visibilityMeters:
+        worst.visibilityMeters == null
+          ? entry.visibilityMeters
+          : entry.visibilityMeters == null
+            ? worst.visibilityMeters
+            : Math.min(worst.visibilityMeters, entry.visibilityMeters),
+      ceilingFeet:
+        worst.ceilingFeet == null
+          ? entry.ceilingFeet
+          : entry.ceilingFeet == null
+            ? worst.ceilingFeet
+            : Math.min(worst.ceilingFeet, entry.ceilingFeet),
+    }),
+    {
+      category: 'UNKNOWN' as MetarFlightCategory,
+      visibilityMeters: null,
+      ceilingFeet: null,
+    },
+  )
+}
+
+export function mergeFlightRules(...entries: Array<MetarFlightRules | null | undefined>): MetarFlightRules {
+  const known = entries.filter((entry): entry is MetarFlightRules => Boolean(entry))
+  return known.reduce(
+    (merged, entry) => ({
+      category: worseFlightCategory(merged.category, entry.category),
+      visibilityMeters:
+        merged.visibilityMeters == null
+          ? entry.visibilityMeters
+          : entry.visibilityMeters == null
+            ? merged.visibilityMeters
+            : Math.min(merged.visibilityMeters, entry.visibilityMeters),
+      ceilingFeet:
+        merged.ceilingFeet == null
+          ? entry.ceilingFeet
+          : entry.ceilingFeet == null
+            ? merged.ceilingFeet
+            : Math.min(merged.ceilingFeet, entry.ceilingFeet),
+    }),
+    {
+      category: 'UNKNOWN' as MetarFlightCategory,
+      visibilityMeters: null,
+      ceilingFeet: null,
+    },
+  )
+}
+
 async function fetchMetarForAirport(airport: NearbyAirport, signal: AbortSignal): Promise<AirportMetar> {
   try {
     const metarResponse = await fetchJson<MetarApiResponse>(`${METAR_TAF_API_BASE_URL}/metar?icao=${airport.icao}`, signal)
@@ -293,6 +476,35 @@ export async function fetchMetarsForAirports(
 ): Promise<AirportMetar[]> {
   const settled = await Promise.allSettled(
     airports.map((airport) => fetchMetarForAirport(airport, signal)),
+  )
+
+  return settled.flatMap((result) => (result.status === 'fulfilled' ? [result.value] : []))
+}
+
+export async function fetchMapWeatherForAirports(
+  airports: NearbyAirport[],
+  signal: AbortSignal,
+): Promise<AirportMapWeather[]> {
+  const settled = await Promise.allSettled(
+    airports.map(async (airport) => {
+      const [metarResponse, tafResponse] = await Promise.all([
+        fetchMetarForAirport(airport, signal),
+        fetchJson<TafApiResponse>(`${METAR_TAF_API_BASE_URL}/taf?icao=${airport.icao}`, signal).catch((error) => {
+          if (error instanceof Error && error.message === 'HTTP 404') {
+            return null
+          }
+          throw error
+        }),
+      ])
+
+      return {
+        airport,
+        metarRawText: metarResponse.metarRawText,
+        metarObservedAt: metarResponse.metarObservedAt,
+        tafRawText: tafResponse?.data?.raw_text ?? null,
+        tafIssuedAt: tafResponse?.data?.issue_time ?? null,
+      } satisfies AirportMapWeather
+    }),
   )
 
   return settled.flatMap((result) => (result.status === 'fulfilled' ? [result.value] : []))

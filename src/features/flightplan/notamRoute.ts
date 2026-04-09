@@ -40,12 +40,31 @@ function normalizeDisplayText(value: string) {
     .trim()
 }
 
+function sanitizeNotamSourceText(value: string) {
+  const withoutHtml = value
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/if\s*\(isIE\(\)\s*\|\|\s*isChrome\(\)\)\s*\{[\s\S]*?\}/gi, ' ')
+    .replace(/setActiveStyleSheet\([^)]*\);?/gi, ' ')
+    .replace(/setRequestedStyleSheet\([^)]*\);?/gi, ' ')
+    .replace(/hide_amdts_ss/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+  if (/AIP SUPPLEMENT SWEDEN/i.test(withoutHtml)) {
+    return withoutHtml.replace(/^.*?(AIP SUPPLEMENT SWEDEN\b)/i, '$1').trim()
+  }
+
+  return withoutHtml
+}
+
 export function formatNotamText(value: string | null) {
   if (!value) {
     return ''
   }
 
-  return value
+  return sanitizeNotamSourceText(value)
     .replace(/\u00a0/g, ' ')
     .replace(/\s+/g, ' ')
     .replace(/\s+\+\s+/g, '\n\n+ ')
@@ -177,12 +196,42 @@ function parseCoordinateComponent(value: string, degreeDigits: number) {
 }
 
 function extractCoordinates(rawText: string) {
-  const matches = rawText.matchAll(/(\d{6}(?:\.\d+)?[NS])\s*(\d{7}(?:\.\d+)?[EW])/gi)
+  const normalized = rawText.replace(/\u00a0/g, ' ')
 
-  return Array.from(matches, ([, latValue, lonValue]) => ({
-    lat: parseCoordinateComponent(latValue.toUpperCase(), 2),
-    lon: parseCoordinateComponent(lonValue.toUpperCase(), 3),
-  }))
+  const pairs: RoutePoint[] = []
+  const pushPair = (latValue: string, lonValue: string) => {
+    pairs.push({
+      lat: parseCoordinateComponent(latValue.toUpperCase(), 2),
+      lon: parseCoordinateComponent(lonValue.toUpperCase(), 3),
+    })
+  }
+
+  const withSpace = [...normalized.matchAll(/(\d{6}(?:\.\d+)?[NS])\s+(\d{7}(?:\.\d+)?[EW])/gi)]
+  for (const match of withSpace) {
+    if (match[1] && match[2]) {
+      pushPair(match[1], match[2])
+    }
+  }
+
+  if (pairs.length === 0) {
+    const glued = [...normalized.matchAll(/(\d{6}(?:\.\d+)?[NS])(\d{7}(?:\.\d+)?[EW])/gi)]
+    for (const match of glued) {
+      if (match[1] && match[2]) {
+        pushPair(match[1], match[2])
+      }
+    }
+  }
+
+  if (pairs.length === 0) {
+    const short = [...normalized.matchAll(/(\d{4}(?:\.\d+)?[NS])\s+(\d{5}(?:\.\d+)?[EW])/gi)]
+    for (const match of short) {
+      if (match[1] && match[2]) {
+        pushPair(match[1], match[2])
+      }
+    }
+  }
+
+  return pairs
 }
 
 function splitSectionEntries(sectionText: string | null) {
@@ -190,14 +239,30 @@ function splitSectionEntries(sectionText: string | null) {
     return []
   }
 
-  return sectionText
+  const normalized = sectionText.replace(/\u00a0/g, ' ')
+  const bySpacedPlus = normalized
     .split(/\s+\+\s+/g)
     .map((entry) => entry.replace(/^\+\s*/, '').trim())
     .filter(Boolean)
+
+  if (bySpacedPlus.length > 1) {
+    return bySpacedPlus
+  }
+
+  const byLinePlus = normalized
+    .split(/\n\s*\+\s*/g)
+    .map((entry) => entry.replace(/^\+\s*/, '').trim())
+    .filter(Boolean)
+
+  if (byLinePlus.length > 1) {
+    return byLinePlus
+  }
+
+  return bySpacedPlus.length > 0 ? bySpacedPlus : byLinePlus
 }
 
 function deriveTitle(rawText: string) {
-  const normalized = rawText.replace(/\s+/g, ' ').trim()
+  const normalized = sanitizeNotamSourceText(rawText).replace(/\s+/g, ' ').trim()
   const timestampIndex = normalized.search(/\d{2}\s+[A-Z]{3}\s+\d{4}/)
   const source = timestampIndex > 15 ? normalized.slice(0, timestampIndex).trim() : normalized
   return source.length > 140 ? `${source.slice(0, 137)}...` : source
@@ -550,4 +615,287 @@ export function getRelevantSupplements(
       const rightDistance = right.distanceNm ?? Number.POSITIVE_INFINITY
       return leftDistance - rightDistance || left.id.localeCompare(right.id, 'sv')
     })
+}
+
+/** Kartvisualisering: en-route, NAV-varningar och AIP SUP med koordinater i text. */
+export type NotamMapGeometryKind = 'point' | 'polyline' | 'polygon' | 'circle'
+
+export type NotamMapOverlayFeature = {
+  id: string
+  source: 'notam-enroute' | 'notam-warning' | 'aip-sup'
+  label: string
+  title: string
+  rawText: string
+  kind: NotamMapGeometryKind
+  positions: [number, number][]
+  radiusNm?: number
+  supplementId?: string
+  supplementUrl?: string | null
+}
+
+function extractCircleRadiusNm(rawText: string): number | null {
+  const normalized = rawText.replace(/\s+/g, ' ')
+  const match = normalized.match(
+    /(?:WI\s+A\s+)?CIRCLE\s+WITH\s+RADIUS\s+(\d+(?:\.\d+)?)\s*NM/i,
+  )
+  if (!match) {
+    return null
+  }
+
+  const value = Number(match[1])
+  return Number.isFinite(value) && value > 0 ? value : null
+}
+
+function polygonRingFromCoordinates(points: RoutePoint[], rawText: string): RoutePoint[] | null {
+  if (!isClosedPolygon(points, rawText)) {
+    return null
+  }
+
+  if (points.length < 3) {
+    return null
+  }
+
+  const first = points[0]
+  const last = points[points.length - 1]
+  if (distanceNm(first.lat, first.lon, last.lat, last.lon) <= 0.2) {
+    return points.slice(0, -1)
+  }
+
+  return points
+}
+
+function shouldRenderAsPolyline(rawText: string, points: RoutePoint[]) {
+  if (points.length < 2) {
+    return false
+  }
+
+  const normalized = rawText.replace(/\s+/g, ' ').toUpperCase()
+
+  if (/AREA\s+BOUNDED\s+BY|POLYGON|CIRCLE\s+WITH\s+RADIUS/.test(normalized)) {
+    return false
+  }
+
+  if (
+    /(?:ALONG|TRACK|ROUTE|AIRWAY|AWY|CENTER LINE|CENTRE LINE|BETWEEN|FROM:| TO:| FROM | TO | JOINING|LINE\b)/.test(
+      normalized,
+    )
+  ) {
+    return true
+  }
+
+  return false
+}
+
+function pushPointFeatures(
+  features: NotamMapOverlayFeature[],
+  coords: RoutePoint[],
+  rawText: string,
+  source: NotamMapOverlayFeature['source'],
+  idPrefix: string,
+  supplementMeta?: { id: string; url: string | null },
+) {
+  for (const [index, point] of coords.entries()) {
+    features.push({
+      id: `${idPrefix}-pt-${index}`,
+      source,
+      label: notamMapSourceLabel(source),
+      title: deriveTitle(rawText),
+      rawText,
+      kind: 'point',
+      positions: [[point.lat, point.lon]],
+      supplementId: supplementMeta?.id,
+      supplementUrl: supplementMeta?.url,
+    })
+  }
+}
+
+function splitSupplementGeometrySections(rawText: string) {
+  const normalized = rawText.replace(/\u00a0/g, ' ').trim()
+  const sectionStarts = new Map<number, string>()
+  const codedHeadingPattern = /\b([A-Z]{2,4}\d{3,4}[A-Z]?\s+[A-ZÅÄÖ0-9][A-ZÅÄÖ0-9 /-]*?(?:UAS|TRA|TSA|CTR|TMA|RMZ|TMZ))\b/g
+  const plainHeadingPattern = /(?:^|\n)\s*([A-ZÅÄÖ][A-ZÅÄÖ0-9 /-]{2,})(?=\s*\n\s*\d+\.\s*OBST)/g
+  const obstacleHeadingPattern = /\b([A-ZÅÄÖ][A-ZÅÄÖ0-9 /-]{2,})\s+(?=\d+\.\s*OBST\b)/g
+
+  for (const match of normalized.matchAll(codedHeadingPattern)) {
+    const start = match.index ?? 0
+    const preview = normalized.slice(start, Math.min(normalized.length, start + 260))
+    if (/(?:VERTICAL\s+LIMITS|GRÄNS\s+I\s+HÖJDLED|PSN|INOM\s+EN\s+RADIE)/i.test(preview)) {
+      sectionStarts.set(start, match[1])
+    }
+  }
+
+  for (const match of normalized.matchAll(plainHeadingPattern)) {
+    const start = match.index ?? 0
+    const heading = match[1]?.trim() ?? ''
+    if (heading.length < 3 || heading.length > 80) {
+      continue
+    }
+
+    const preview = normalized.slice(start, Math.min(normalized.length, start + 260))
+    if (/(?:PSN|INOM\s+EN\s+RADIE)/i.test(preview)) {
+      sectionStarts.set(start, heading)
+    }
+  }
+
+  for (const match of normalized.matchAll(obstacleHeadingPattern)) {
+    const start = match.index ?? 0
+    const heading = match[1]?.trim() ?? ''
+    if (heading.length < 3 || heading.length > 80) {
+      continue
+    }
+
+    const preview = normalized.slice(start, Math.min(normalized.length, start + 260))
+    if (/\d+\.\s*OBST\b/i.test(preview) && /(?:PSN|INOM\s+EN\s+RADIE)/i.test(preview)) {
+      sectionStarts.set(start, heading)
+    }
+  }
+
+  const matches = [...sectionStarts.entries()]
+    .sort((left, right) => left[0] - right[0])
+    .map(([index, heading]) => ({ index, heading }))
+
+  if (matches.length === 0) {
+    return [normalized]
+  }
+
+  const sections: string[] = []
+  for (let index = 0; index < matches.length; index += 1) {
+    const match = matches[index]
+    const start = match.index
+    const end = index + 1 < matches.length ? matches[index + 1].index : normalized.length
+    const section = normalized.slice(start, end).trim()
+    if (extractCoordinates(section).length > 0) {
+      sections.push(section)
+    }
+  }
+
+  return sections.length > 0 ? sections : [normalized]
+}
+
+function notamMapSourceLabel(source: NotamMapOverlayFeature['source']) {
+  if (source === 'notam-enroute') {
+    return 'En-route NOTAM'
+  }
+
+  if (source === 'notam-warning') {
+    return 'NAV-varning'
+  }
+
+  return 'AIP SUP'
+}
+
+function pushGeometryFromCoordinateText(
+  features: NotamMapOverlayFeature[],
+  rawText: string,
+  source: NotamMapOverlayFeature['source'],
+  idPrefix: string,
+  supplementMeta?: { id: string; url: string | null },
+) {
+  const coords = extractCoordinates(rawText)
+  if (coords.length === 0) {
+    return
+  }
+
+  const circleRadiusNm = extractCircleRadiusNm(rawText)
+  if (coords.length === 1 && circleRadiusNm != null) {
+    const [point] = coords
+    features.push({
+      id: `${idPrefix}-circle`,
+      source,
+      label: notamMapSourceLabel(source),
+      title: deriveTitle(rawText),
+      rawText,
+      kind: 'circle',
+      positions: [[point.lat, point.lon]],
+      radiusNm: circleRadiusNm,
+      supplementId: supplementMeta?.id,
+      supplementUrl: supplementMeta?.url,
+    })
+    return
+  }
+
+  const ring = polygonRingFromCoordinates(coords, rawText)
+  if (ring && ring.length >= 3) {
+    features.push({
+      id: `${idPrefix}-poly`,
+      source,
+      label: notamMapSourceLabel(source),
+      title: deriveTitle(rawText),
+      rawText,
+      kind: 'polygon',
+      positions: ring.map((point) => [point.lat, point.lon] as [number, number]),
+      supplementId: supplementMeta?.id,
+      supplementUrl: supplementMeta?.url,
+    })
+    return
+  }
+
+  if (coords.length === 1) {
+    const [point] = coords
+    features.push({
+      id: `${idPrefix}-pt`,
+      source,
+      label: notamMapSourceLabel(source),
+      title: deriveTitle(rawText),
+      rawText,
+      kind: 'point',
+      positions: [[point.lat, point.lon]],
+      supplementId: supplementMeta?.id,
+      supplementUrl: supplementMeta?.url,
+    })
+    return
+  }
+
+  if (!shouldRenderAsPolyline(rawText, coords)) {
+    pushPointFeatures(features, coords, rawText, source, idPrefix, supplementMeta)
+    return
+  }
+
+  features.push({
+    id: `${idPrefix}-line`,
+    source,
+    label: notamMapSourceLabel(source),
+    title: deriveTitle(rawText),
+    rawText,
+    kind: 'polyline',
+    positions: coords.map((point) => [point.lat, point.lon] as [number, number]),
+    supplementId: supplementMeta?.id,
+    supplementUrl: supplementMeta?.url,
+  })
+}
+
+/**
+ * Extraherar alla koordinatbaserade geometrier från LFV-briefing (en-route, NAV-varningar, giltiga AIP SUP).
+ */
+export function buildNotamMapOverlayFeatures(
+  enRouteText: string | null,
+  warningsText: string | null,
+  supplements: NotamSupplement[],
+  flightDate: string,
+): NotamMapOverlayFeature[] {
+  const features: NotamMapOverlayFeature[] = []
+
+  for (const [index, entry] of splitSectionEntries(enRouteText).entries()) {
+    pushGeometryFromCoordinateText(features, entry, 'notam-enroute', `enr-${index}`)
+  }
+
+  for (const [index, entry] of splitSectionEntries(warningsText).entries()) {
+    pushGeometryFromCoordinateText(features, entry, 'notam-warning', `nav-${index}`)
+  }
+
+  for (const supplement of supplements) {
+    if (!isSupplementValidOnDate(supplement, flightDate)) {
+      continue
+    }
+
+    const rawText = supplement.rawText ?? supplement.title
+    for (const [index, section] of splitSupplementGeometrySections(rawText).entries()) {
+      pushGeometryFromCoordinateText(features, section, 'aip-sup', `sup-${supplement.id}-${index}`, {
+        id: supplement.id,
+        url: supplement.url,
+      })
+    }
+  }
+
+  return features
 }

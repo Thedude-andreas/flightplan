@@ -11,7 +11,9 @@ import {
   mergeRadioNavEntries,
 } from './features/flightplan/radioNav'
 import { fetchNotamsForAirports, type AirportNotam, type NotamSupplement } from './features/flightplan/notam'
+import { isSupabaseConfigured } from './lib/supabase/client'
 import {
+  buildNotamMapOverlayFeatures,
   formatNotamText,
   getRelevantSupplements,
   getRouteNotamMatches,
@@ -412,6 +414,41 @@ export function FlightplanApp({
     [nearbyRouteAirports, notamState.supplements, plan.header.date, plan.routeLegs, routeEnRouteMatches, routeWarningMatches],
   )
 
+  const notamMapFeatures = useMemo(
+    () =>
+      notamState.status === 'ready'
+        ? buildNotamMapOverlayFeatures(
+            notamState.enRouteText,
+            notamState.warningsText,
+            notamState.supplements,
+            plan.header.date,
+          )
+        : [],
+    [
+      notamState.status,
+      notamState.enRouteText,
+      notamState.warningsText,
+      notamState.supplements,
+      plan.header.date,
+    ],
+  )
+
+  const notamMapNotice = useMemo(() => {
+    if (!isSupabaseConfigured()) {
+      return 'NOTAM och AIP SUP i kartan kräver Supabase. Sätt VITE_SUPABASE_URL och VITE_SUPABASE_ANON_KEY (edge-funktionen notam-briefing).'
+    }
+
+    if (notamState.status === 'error') {
+      return notamState.error ?? 'Kunde inte hämta NOTAM-briefing.'
+    }
+
+    if (notamState.status === 'ready' && notamMapFeatures.length === 0) {
+      return 'Briefing är hämtat men inga koordinater kunde tolkas (LFV använder ofta DDMMSS N / DDDMMSS E). Öppna NOTAM-panelen och kontrollera råtext.'
+    }
+
+    return null
+  }, [notamMapFeatures.length, notamState.error, notamState.status])
+
   useEffect(() => {
     onPlanChange?.(plan)
   }, [onPlanChange, plan])
@@ -493,7 +530,7 @@ export function FlightplanApp({
   }, [activePanel, activeTab, nearbyRouteAirports, plan.routeLegs.length, weatherRefreshToken])
 
   useEffect(() => {
-    if (activePanel !== 'notam') {
+    if (activePanel !== 'notam' && activeTab !== 'map') {
       return
     }
 
@@ -553,7 +590,7 @@ export function FlightplanApp({
     return () => {
       cancelled = true
     }
-  }, [activePanel, nearbyRouteAirports, notamRefreshToken])
+  }, [activePanel, activeTab, nearbyRouteAirports, notamRefreshToken])
 
   const updatePlan = (updater: (current: FlightPlanInput) => FlightPlanInput) => {
     setPlan((current) => normalizePlanRadioNav(updater(current)))
@@ -789,6 +826,9 @@ export function FlightplanApp({
                 plan={plan}
                 derived={derived}
                 sigmetText={weatherState.sigmetText}
+                notamMapFeatures={notamMapFeatures}
+                notamMapNotice={notamMapNotice}
+                notamMapStatus={notamState.status}
                 onRouteLegsChange={replaceRouteLegs}
                 focusedLegIndex={focusedLegIndex}
                 initialViewport={initialMapViewport}

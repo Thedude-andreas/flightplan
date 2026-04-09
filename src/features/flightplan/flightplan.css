@@ -782,23 +782,6 @@
   line-height: 1.1;
 }
 
-.flightplan-page .fp-overlay-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  border: 1px solid #b8b09d;
-  background: #fff;
-  color: #151515;
-  border-radius: 12px;
-  padding: 0.38rem 0.52rem;
-  font-family: 'Space Grotesk', 'Inter', sans-serif;
-  font-size: 0.82rem;
-}
-
-.flightplan-page .fp-overlay-toggle input {
-  margin: 0;
-}
-
 .flightplan-page .fp-map-canvas {
   position: relative;
   border: 1px solid #d3cbb8;
@@ -830,6 +813,276 @@
 .flightplan-page .fp-leaflet-map {
   height: min(78vh, 980px);
   width: 100%;
+}
+
+/* Leaflet sticky-tooltips kan annars fånga pekare och blockera mouseout; standard är none men vi tvingar för säkerhets skull. */
+.flightplan-page .fp-leaflet-map .leaflet-tooltip-pane .leaflet-tooltip {
+  pointer-events: none !important;
+}
+
+.flightplan-page .fp-notam-map-banner {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 600;
+  max-width: min(560px, calc(100% - 36px));
+  padding: 0.55rem 0.85rem;
+  border-radius: 10px;
+  border: 1px solid rgba(180, 83, 9, 0.35);
+  background: rgba(255, 251, 235, 0.96);
+  color: #78350f;
+  font-family: 'Space Grotesk', 'Inter', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.35;
+  box-shadow: 0 8px 20px rgba(22, 56, 80, 0.12);
+  pointer-events: none;
+}
+
+.flightplan-page .fp-notam-map-panel {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 610;
+  width: min(360px, calc(100% - 24px));
+  max-height: min(340px, calc(100% - 24px));
+  overflow: auto;
+  padding: 0.85rem 0.95rem;
+  border: 1px solid rgba(22, 56, 80, 0.18);
+  border-radius: 8px;
+  background: rgba(255, 253, 248, 0.97);
+  box-shadow: 0 14px 34px rgba(22, 56, 80, 0.16);
+}
+
+.flightplan-page .fp-notam-map-panel__link {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #1d4ed8;
+}
+
+.flightplan-page .fp-map-toolbar .fp-notam-map-toolbar-status {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: rgba(22, 56, 80, 0.78);
+  padding: 0 0.25rem;
+}
+
+.flightplan-page .fp-map-layer-menu {
+  position: relative;
+}
+
+.flightplan-page .fp-map-layer-menu__button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 2.15rem;
+  border: 1px solid #b8b09d;
+  background: #fff;
+  color: #151515;
+  border-radius: 8px;
+  padding: 0.38rem 0.58rem;
+  font-family: 'Space Grotesk', 'Inter', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.flightplan-page .fp-map-layer-menu__button::after {
+  content: '';
+  width: 0.4rem;
+  height: 0.4rem;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: translateY(-0.12rem) rotate(45deg);
+  opacity: 0.72;
+}
+
+.flightplan-page .fp-map-layer-menu__button[aria-expanded="true"]::after {
+  transform: translateY(0.12rem) rotate(225deg);
+}
+
+.flightplan-page .fp-map-layer-menu__button span {
+  display: inline-grid;
+  place-items: center;
+  min-width: 2.05rem;
+  padding: 0.12rem 0.3rem;
+  border-radius: 999px;
+  background: #e8f0ff;
+  color: #1147b8;
+  font-size: 0.72rem;
+  line-height: 1;
+}
+
+.flightplan-page .fp-map-layer-menu__popover {
+  position: absolute;
+  top: calc(100% + 0.45rem);
+  right: 0;
+  z-index: 700;
+  width: min(340px, calc(100vw - 2rem));
+  display: grid;
+  gap: 0.18rem;
+  padding: 0.75rem;
+  border: 1px solid rgba(22, 56, 80, 0.18);
+  border-radius: 8px;
+  background: rgba(255, 253, 248, 0.98);
+  color: #151515;
+  box-shadow: 0 18px 42px rgba(22, 56, 80, 0.2);
+  backdrop-filter: blur(8px);
+}
+
+.flightplan-page .fp-map-layer-menu__header {
+  display: grid;
+  gap: 0.12rem;
+  padding: 0.1rem 0.15rem 0.5rem;
+  font-family: 'Space Grotesk', 'Inter', sans-serif;
+}
+
+.flightplan-page .fp-map-layer-menu__header strong {
+  font-size: 0.9rem;
+}
+
+.flightplan-page .fp-map-layer-menu__header small {
+  color: rgba(21, 21, 21, 0.62);
+  font-size: 0.76rem;
+}
+
+.flightplan-page .fp-map-layer-switch {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.85rem;
+  align-items: center;
+  width: 100%;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #151515;
+  padding: 0.58rem 0.2rem 0.58rem 0.35rem;
+  font-family: 'Space Grotesk', 'Inter', sans-serif;
+  text-align: left;
+  cursor: pointer;
+}
+
+.flightplan-page .fp-map-layer-switch:hover:not(:disabled) {
+  background: rgba(232, 240, 255, 0.75);
+}
+
+.flightplan-page .fp-map-layer-switch:disabled {
+  color: rgba(21, 21, 21, 0.45);
+  cursor: not-allowed;
+}
+
+.flightplan-page .fp-map-layer-switch__text {
+  display: grid;
+  gap: 0.12rem;
+  min-width: 0;
+}
+
+.flightplan-page .fp-map-layer-switch__text span {
+  font-size: 0.86rem;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.flightplan-page .fp-map-layer-switch__text small {
+  color: rgba(21, 21, 21, 0.6);
+  font-size: 0.74rem;
+  line-height: 1.2;
+}
+
+.flightplan-page .fp-map-layer-switch__track {
+  position: relative;
+  display: block;
+  width: 42px;
+  height: 24px;
+  border-radius: 999px;
+  background: #b8b09d;
+  transition: background 140ms ease;
+}
+
+.flightplan-page .fp-map-layer-switch[aria-checked="true"] .fp-map-layer-switch__track {
+  background: #1f6bff;
+}
+
+.flightplan-page .fp-map-layer-switch__thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 2px 6px rgba(21, 21, 21, 0.28);
+  transition: transform 140ms ease;
+}
+
+.flightplan-page .fp-map-layer-switch[aria-checked="true"] .fp-map-layer-switch__thumb {
+  transform: translateX(18px);
+}
+
+.flightplan-page .fp-notam-map-symbol {
+  background: transparent;
+  border: 0;
+}
+
+.flightplan-page .fp-notam-map-symbol span {
+  display: grid;
+  place-items: center;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  box-shadow: 0 1px 4px rgba(21, 21, 21, 0.22);
+  border: 2px solid rgba(255, 255, 255, 0.96);
+}
+
+.flightplan-page .fp-notam-map-symbol--enroute span {
+  background: rgba(252, 211, 77, 0.96);
+  color: #78350f;
+  border-color: rgba(180, 83, 9, 0.45);
+}
+
+.flightplan-page .fp-notam-map-symbol--warning span {
+  background: rgba(254, 202, 202, 0.96);
+  color: #7f1d1d;
+  border-color: rgba(185, 28, 28, 0.45);
+}
+
+.flightplan-page .fp-notam-map-symbol--sup span {
+  background: rgba(165, 180, 252, 0.96);
+  color: #312e81;
+  border-color: rgba(67, 56, 202, 0.45);
+}
+
+.flightplan-page .fp-notam-map-tooltip__title {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: rgba(21, 21, 21, 0.88);
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.flightplan-page .fp-notam-map-tooltip__meta {
+  font-size: 0.78rem;
+  color: rgba(21, 21, 21, 0.55);
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.flightplan-page .fp-notam-map-tooltip {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.flightplan-page .fp-notam-map-tooltip__body {
+  margin: 0.15rem 0 0;
+  max-height: 220px;
+  overflow: auto;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .flightplan-page .fp-segment-tooltip div,
@@ -1049,6 +1302,18 @@
   .flightplan-page .fp-map-toolbar { flex-direction: column; align-items: stretch; }
   .flightplan-page .fp-map-controls { flex-direction: column; align-items: stretch; }
   .flightplan-page .fp-basemap-control { max-width: none; }
+  .flightplan-page .fp-map-layer-menu__button { width: 100%; justify-content: space-between; }
+  .flightplan-page .fp-map-layer-menu__popover {
+    left: 0;
+    right: auto;
+    width: min(100%, calc(100vw - 2rem));
+  }
+  .flightplan-page .fp-notam-map-panel {
+    top: auto;
+    right: 12px;
+    bottom: 12px;
+    max-height: min(240px, calc(100% - 24px));
+  }
   .flightplan-page .fp-map-canvas { min-height: 52vh; }
   .flightplan-page .fp-leaflet-map { height: 56vh; }
   .flightplan-page .fp-settings-layout { grid-template-columns: 1fr; }
