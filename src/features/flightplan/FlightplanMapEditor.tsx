@@ -95,7 +95,7 @@ const waypointIcon = divIcon({
   iconAnchor: [9, 9],
 })
 
-function createAirportIcon(category: MetarFlightCategory) {
+function createAirportIcon(category: MetarFlightCategory, size: 'default' | 'small' = 'default') {
   const label = category === 'VMC' ? 'V' : category === 'MVMC' ? 'M' : category === 'IMC' ? 'I' : ''
   const variant =
     category === 'VMC'
@@ -107,10 +107,10 @@ function createAirportIcon(category: MetarFlightCategory) {
           : 'is-unknown'
 
   return divIcon({
-    className: 'fp-airport-marker',
+    className: `fp-airport-marker ${size === 'small' ? 'fp-airport-marker--small' : ''}`,
     html: `<span class="${variant}">${label}</span>`,
-    iconSize: [20, 20],
-    iconAnchor: [10, 10],
+    iconSize: size === 'small' ? [14, 14] : [20, 20],
+    iconAnchor: size === 'small' ? [7, 7] : [10, 10],
   })
 }
 
@@ -147,6 +147,16 @@ function getAirportTooltipWeatherLines(
   }
 
   return lines
+}
+
+function hasAirportWeatherData(
+  weather: AirportMapWeather | null,
+  options: { showMetar: boolean; showTaf: boolean },
+) {
+  return Boolean(
+    (options.showMetar && weather?.metarRawText) ||
+    (options.showTaf && weather?.tafRawText),
+  )
 }
 
 function createMapLabelIcon(className: string, label: string) {
@@ -1675,15 +1685,17 @@ export function FlightplanMapEditor({
             const airportWeather = airport.icao ? airportWeatherByIcao[airport.icao] : null
             const flightRules = getAirportDisplayFlightRules(airportWeather, { showMetar, showTaf })
             const weatherLines = getAirportTooltipWeatherLines(airportWeather, { showMetar, showTaf })
+            const hasWeatherData = hasAirportWeatherData(airportWeather, { showMetar, showTaf })
+            const iconSize = showAirportWeather && !hasWeatherData ? 'small' : 'default'
 
             return (
             <Marker
               key={airport.icao ?? `${airport.name}-${airport.lat}-${airport.lon}`}
               position={[airport.lat, airport.lon]}
-              icon={createAirportIcon(flightRules.category)}
+              icon={createAirportIcon(flightRules.category, iconSize)}
               pane="fp-airport-pane"
               keyboard={false}
-              zIndexOffset={90}
+              zIndexOffset={hasWeatherData ? 140 : 70}
               eventHandlers={{
                 click: (event) => {
                   event.originalEvent.preventDefault()

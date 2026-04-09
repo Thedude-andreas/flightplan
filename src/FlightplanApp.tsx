@@ -26,7 +26,7 @@ import { getRouteWeatherMatches } from './features/flightplan/weatherSigmet'
 import type { AircraftProfile, FlightPlanInput, RadioNavEntry } from './features/flightplan/types'
 
 type EditorPanel = 'fuel' | 'weightBalance' | 'performance' | 'aircraft' | 'weather' | 'notam'
-type WorkspaceTab = 'flightplan' | 'map' | 'print' | 'settings'
+type WorkspaceTab = 'flightplan' | 'map' | 'print'
 type RouteRow = Record<string, string | number>
 type RowContextMenuState = { x: number; y: number; rowIndex: number } | null
 type WeatherState =
@@ -226,48 +226,6 @@ function createRouteRows(
   return rows.concat(Array.from({ length: targetLength - rows.length }, (_, index) => emptyRouteRow(rows.length + index)))
 }
 
-function createAircraftDraft(source?: AircraftProfile, seed = 1): AircraftProfile {
-  if (source) {
-    return {
-      ...source,
-      registration: `SE-N${seed.toString().padStart(2, '0')}`,
-      typeName: `${source.typeName} kopia`,
-      callsign: `${source.callsign} Copy`,
-      armsMm: { ...source.armsMm },
-      limits: { ...source.limits },
-      performance: { ...source.performance },
-    }
-  }
-
-  return {
-    registration: `SE-N${seed.toString().padStart(2, '0')}`,
-    typeName: 'Ny typ',
-    callsign: 'Ny callsign',
-    cruiseTasKt: 100,
-    fuelBurnLph: 32,
-    fuelDensityKgPerLiter: 0.72,
-    emptyWeightKg: 700,
-    emptyMomentKgMm: 240000,
-    armsMm: {
-      frontLeft: 940,
-      frontRight: 940,
-      rearLeft: 1830,
-      rearRight: 1830,
-      baggage: 2480,
-      fuel: 1210,
-    },
-    limits: {
-      maxTowKg: 1100,
-      minArmMm: 910,
-      maxArmMm: 1220,
-    },
-    performance: {
-      takeoff50FtM: 500,
-      landing50FtM: 420,
-    },
-  }
-}
-
 function cloneAircraftProfile(source: AircraftProfile): AircraftProfile {
   return {
     ...source,
@@ -346,10 +304,9 @@ export function FlightplanApp({
   )
   const [activePanel, setActivePanel] = useState<EditorPanel | null>(null)
   const [activeTab, setActiveTab] = useState<WorkspaceTab>(initialActiveTab)
-  const [aircraftOptions, setAircraftOptions] = useState<AircraftProfile[]>(() =>
+  const [aircraftOptions] = useState<AircraftProfile[]>(() =>
     (initialAircraftOptions ?? aircraftProfiles).map(cloneAircraftProfile),
   )
-  const [settingsIndex, setSettingsIndex] = useState(0)
   const [rowContextMenu, setRowContextMenu] = useState<RowContextMenuState>(null)
   const [focusedLegIndex, setFocusedLegIndex] = useState<number | null>(null)
   const [weatherRefreshToken, setWeatherRefreshToken] = useState(0)
@@ -458,23 +415,13 @@ export function FlightplanApp({
   }, [activeTab, onActiveTabChange])
 
   useEffect(() => {
+    setActiveTab(initialActiveTab)
+  }, [initialActiveTab])
+
+  useEffect(() => {
     const shouldLoadWeather = activePanel === 'weather' || activeTab === 'map'
 
     if (!shouldLoadWeather) {
-      return
-    }
-
-    if (plan.routeLegs.length === 0) {
-      setWeatherState({
-        status: 'ready',
-        results: [],
-        sigmetText: null,
-        sigmetSourceUrl: null,
-        sigmetPublishedAt: null,
-        lhpAreas: [],
-        error: null,
-        lastUpdatedAt: new Date().toISOString(),
-      })
       return
     }
 
@@ -493,7 +440,7 @@ export function FlightplanApp({
     Promise.all([
       activePanel === 'weather' && nearbyRouteAirports.length > 0
         ? fetchWeatherForAirports(nearbyRouteAirports, controller.signal)
-        : Promise.resolve(weatherState.results),
+        : Promise.resolve([]),
       fetchLfvWeatherBriefing(),
     ])
       .then(([results, briefing]) => {
@@ -702,36 +649,6 @@ export function FlightplanApp({
     }))
   }
 
-  const addAircraftConfiguration = () => {
-    setAircraftOptions((current) => {
-      const next = [...current, createAircraftDraft(current.at(settingsIndex), current.length + 1)]
-      setSettingsIndex(next.length - 1)
-      return next
-    })
-    setActiveTab('settings')
-  }
-
-  const updateAircraftConfiguration = (
-    index: number,
-    updater: (aircraft: AircraftProfile) => AircraftProfile,
-  ) => {
-    setAircraftOptions((current) => {
-      const previous = current[index]
-      const nextAircraft = updater(previous)
-      const next = current.map((aircraft, aircraftIndex) => (aircraftIndex === index ? nextAircraft : aircraft))
-
-      if (plan.aircraftRegistration === previous.registration && nextAircraft.registration !== previous.registration) {
-        updatePlan((currentPlan) => ({
-          ...currentPlan,
-          aircraftRegistration: nextAircraft.registration,
-        }))
-      }
-
-      return next
-    })
-  }
-
-  const selectedAircraftConfig = aircraftOptions[settingsIndex] ?? aircraftOptions[0]
   const weatherStatusLabel =
     nearbyRouteAirports.length > 0
       ? `LFV routeväder + ${nearbyRouteAirports.length} flygplatser`
@@ -751,33 +668,7 @@ export function FlightplanApp({
             Fristående färdplansverktyg med svensk LFV/AIP-datapipeline, karteditor och utskriftsanpassad driftfärdplan.
           </p>
         </div>
-        <div className="fp-page-actions">
-          {activeTab === 'print' ? (
-            <button type="button" onClick={() => window.print()}>
-              Skriv ut formulär
-            </button>
-          ) : (
-            <button type="button" onClick={() => setActiveTab('print')}>
-              Gå till skriv ut
-            </button>
-          )}
-        </div>
       </header>
-
-      <div className="fp-tabs fp-no-print" role="tablist" aria-label="Arbetsyta">
-        <button type="button" className={activeTab === 'flightplan' ? 'is-active' : ''} onClick={() => setActiveTab('flightplan')}>
-          Driftfärdplan
-        </button>
-        <button type="button" className={activeTab === 'map' ? 'is-active' : ''} onClick={() => setActiveTab('map')}>
-          Karta
-        </button>
-        <button type="button" className={activeTab === 'print' ? 'is-active' : ''} onClick={() => setActiveTab('print')}>
-          Skriv ut
-        </button>
-        <button type="button" className={activeTab === 'settings' ? 'is-active' : ''} onClick={() => setActiveTab('settings')}>
-          Inställningar
-        </button>
-      </div>
 
       <main className="fp-workspace" onClick={() => setRowContextMenu(null)}>
         {documentToolbarSlot ? <div className="fp-page-toolbar fp-no-print">{documentToolbarSlot}</div> : null}
@@ -884,190 +775,6 @@ export function FlightplanApp({
           </div>
         )}
 
-        {activeTab === 'settings' && selectedAircraftConfig && (
-          <section className="fp-panel-card fp-settings-card fp-no-print">
-            <div className="fp-panel-header">
-              <div>
-                <p className="fp-panel-eyebrow">Inställningar</p>
-                <h2>Flygplanskonfigurationer</h2>
-              </div>
-              <button type="button" onClick={addAircraftConfiguration}>
-                Lägg till flygplan
-              </button>
-            </div>
-
-            <div className="fp-settings-layout">
-              <div className="fp-config-list">
-                {aircraftOptions.map((aircraft, index) => (
-                  <button
-                    key={`${aircraft.registration}-${index}`}
-                    type="button"
-                    className={index === settingsIndex ? 'is-active' : ''}
-                    onClick={() => setSettingsIndex(index)}
-                  >
-                    <strong>{aircraft.registration}</strong>
-                    <span>{aircraft.typeName}</span>
-                  </button>
-                ))}
-              </div>
-
-              <div className="fp-settings-editor">
-                <div className="fp-input-grid fp-two-col">
-                  <EditorInput
-                    label="Registrering"
-                    value={selectedAircraftConfig.registration}
-                    onChange={(value) => updateAircraftConfiguration(settingsIndex, (aircraft) => ({ ...aircraft, registration: value.toUpperCase() }))}
-                  />
-                  <EditorInput
-                    label="Typ"
-                    value={selectedAircraftConfig.typeName}
-                    onChange={(value) => updateAircraftConfiguration(settingsIndex, (aircraft) => ({ ...aircraft, typeName: value }))}
-                  />
-                  <EditorInput
-                    label="Callsign"
-                    value={selectedAircraftConfig.callsign}
-                    onChange={(value) => updateAircraftConfiguration(settingsIndex, (aircraft) => ({ ...aircraft, callsign: value }))}
-                  />
-                  <EditorNumber
-                    label="Cruise TAS kt"
-                    value={selectedAircraftConfig.cruiseTasKt}
-                    onChange={(value) => updateAircraftConfiguration(settingsIndex, (aircraft) => ({ ...aircraft, cruiseTasKt: value }))}
-                  />
-                  <EditorNumber
-                    label="Förbrukning lit/tim"
-                    value={selectedAircraftConfig.fuelBurnLph}
-                    onChange={(value) => updateAircraftConfiguration(settingsIndex, (aircraft) => ({ ...aircraft, fuelBurnLph: value }))}
-                  />
-                  <EditorNumber
-                    label="Bränsledensitet kg/l"
-                    value={selectedAircraftConfig.fuelDensityKgPerLiter}
-                    onChange={(value) => updateAircraftConfiguration(settingsIndex, (aircraft) => ({ ...aircraft, fuelDensityKgPerLiter: value }))}
-                  />
-                  <EditorNumber
-                    label="Tomvikt kg"
-                    value={selectedAircraftConfig.emptyWeightKg}
-                    onChange={(value) => updateAircraftConfiguration(settingsIndex, (aircraft) => ({ ...aircraft, emptyWeightKg: value }))}
-                  />
-                  <EditorNumber
-                    label="Tommoment"
-                    value={selectedAircraftConfig.emptyMomentKgMm}
-                    onChange={(value) => updateAircraftConfiguration(settingsIndex, (aircraft) => ({ ...aircraft, emptyMomentKgMm: value }))}
-                  />
-                  <EditorNumber
-                    label="Max TOW kg"
-                    value={selectedAircraftConfig.limits.maxTowKg}
-                    onChange={(value) =>
-                      updateAircraftConfiguration(settingsIndex, (aircraft) => ({
-                        ...aircraft,
-                        limits: { ...aircraft.limits, maxTowKg: value },
-                      }))
-                    }
-                  />
-                  <EditorNumber
-                    label="Arm min mm"
-                    value={selectedAircraftConfig.limits.minArmMm}
-                    onChange={(value) =>
-                      updateAircraftConfiguration(settingsIndex, (aircraft) => ({
-                        ...aircraft,
-                        limits: { ...aircraft.limits, minArmMm: value },
-                      }))
-                    }
-                  />
-                  <EditorNumber
-                    label="Arm max mm"
-                    value={selectedAircraftConfig.limits.maxArmMm}
-                    onChange={(value) =>
-                      updateAircraftConfiguration(settingsIndex, (aircraft) => ({
-                        ...aircraft,
-                        limits: { ...aircraft.limits, maxArmMm: value },
-                      }))
-                    }
-                  />
-                  <EditorNumber
-                    label="T/O 50 ft m"
-                    value={selectedAircraftConfig.performance.takeoff50FtM}
-                    onChange={(value) =>
-                      updateAircraftConfiguration(settingsIndex, (aircraft) => ({
-                        ...aircraft,
-                        performance: { ...aircraft.performance, takeoff50FtM: value },
-                      }))
-                    }
-                  />
-                  <EditorNumber
-                    label="LDG 50 ft m"
-                    value={selectedAircraftConfig.performance.landing50FtM}
-                    onChange={(value) =>
-                      updateAircraftConfiguration(settingsIndex, (aircraft) => ({
-                        ...aircraft,
-                        performance: { ...aircraft.performance, landing50FtM: value },
-                      }))
-                    }
-                  />
-                  <EditorNumber
-                    label="Arm fram vänster"
-                    value={selectedAircraftConfig.armsMm.frontLeft}
-                    onChange={(value) =>
-                      updateAircraftConfiguration(settingsIndex, (aircraft) => ({
-                        ...aircraft,
-                        armsMm: { ...aircraft.armsMm, frontLeft: value },
-                      }))
-                    }
-                  />
-                  <EditorNumber
-                    label="Arm fram höger"
-                    value={selectedAircraftConfig.armsMm.frontRight}
-                    onChange={(value) =>
-                      updateAircraftConfiguration(settingsIndex, (aircraft) => ({
-                        ...aircraft,
-                        armsMm: { ...aircraft.armsMm, frontRight: value },
-                      }))
-                    }
-                  />
-                  <EditorNumber
-                    label="Arm bak vänster"
-                    value={selectedAircraftConfig.armsMm.rearLeft}
-                    onChange={(value) =>
-                      updateAircraftConfiguration(settingsIndex, (aircraft) => ({
-                        ...aircraft,
-                        armsMm: { ...aircraft.armsMm, rearLeft: value },
-                      }))
-                    }
-                  />
-                  <EditorNumber
-                    label="Arm bak höger"
-                    value={selectedAircraftConfig.armsMm.rearRight}
-                    onChange={(value) =>
-                      updateAircraftConfiguration(settingsIndex, (aircraft) => ({
-                        ...aircraft,
-                        armsMm: { ...aircraft.armsMm, rearRight: value },
-                      }))
-                    }
-                  />
-                  <EditorNumber
-                    label="Arm bagage"
-                    value={selectedAircraftConfig.armsMm.baggage}
-                    onChange={(value) =>
-                      updateAircraftConfiguration(settingsIndex, (aircraft) => ({
-                        ...aircraft,
-                        armsMm: { ...aircraft.armsMm, baggage: value },
-                      }))
-                    }
-                  />
-                  <EditorNumber
-                    label="Arm bränsle"
-                    value={selectedAircraftConfig.armsMm.fuel}
-                    onChange={(value) =>
-                      updateAircraftConfiguration(settingsIndex, (aircraft) => ({
-                        ...aircraft,
-                        armsMm: { ...aircraft.armsMm, fuel: value },
-                      }))
-                    }
-                  />
-                </div>
-              </div>
-            </div>
-          </section>
-        )}
       </main>
 
       {rowContextMenu && (
@@ -1600,23 +1307,6 @@ export function FlightplanApp({
         </div>
       )}
     </div>
-  )
-}
-
-function EditorInput({
-  label,
-  value,
-  onChange,
-}: {
-  label: string
-  value: string
-  onChange: (value: string) => void
-}) {
-  return (
-    <label>
-      {label}
-      <input value={value} onChange={(event) => onChange(event.target.value)} />
-    </label>
   )
 }
 

@@ -22,7 +22,7 @@ type PersistedSnapshot = {
   plan: FlightPlanInput
 }
 
-type EditorWorkspaceTab = 'flightplan' | 'map' | 'print' | 'settings'
+type EditorWorkspaceTab = 'flightplan' | 'map' | 'print'
 
 function createDefaultPlanName() {
   const date = new Intl.DateTimeFormat('sv-SE', { dateStyle: 'medium' }).format(new Date())
@@ -418,8 +418,31 @@ export function FlightPlanEditorPage() {
           <>
             <div className="fp-editor-toolbar__actions">
               <Link to="/app/flightplans" className="button-link">
-                Till listan
+                Stäng
               </Link>
+              {editorActiveTab === 'flightplan' ? (
+                <>
+                  <button type="button" onClick={() => setEditorActiveTab('map')}>
+                    Karta
+                  </button>
+                  <button type="button" onClick={() => setEditorActiveTab('print')}>
+                    Skriv ut
+                  </button>
+                </>
+              ) : editorActiveTab === 'print' ? (
+                <>
+                  <button type="button" onClick={() => setEditorActiveTab('flightplan')}>
+                    Driftfärdplan
+                  </button>
+                  <button type="button" onClick={() => window.print()}>
+                    Skriv ut formulär
+                  </button>
+                </>
+              ) : (
+                <button type="button" onClick={() => setEditorActiveTab('flightplan')}>
+                  Driftfärdplan
+                </button>
+              )}
               {recordId && (
                 <button type="button" onClick={openSaveCopyDialog} disabled={saveState === 'saving'}>
                   Spara kopia
