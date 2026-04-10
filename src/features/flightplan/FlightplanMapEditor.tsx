@@ -176,6 +176,8 @@ const navaidMinZoom = 7
 const navaidLabelMinZoom = 9
 const directionArrowWaypointClearancePx = 22
 const maxVisibleAirspaceLowerFt = 9500
+const notamAreaToPointThresholdPx = 12
+const notamAreaCollapseMaxZoom = 11
 const sigmetOverlayPalette = {
   color: '#a61e4d',
   fillColor: '#f05d88',
@@ -282,6 +284,52 @@ function createNotamMapSymbolIcon(source: NotamMapOverlayFeature['source']) {
     iconSize: [12, 12],
     iconAnchor: [6, 6],
   })
+}
+
+function getFeatureMarkerPosition(feature: NotamMapOverlayFeature): [number, number] {
+  if (feature.kind === 'circle') {
+    return feature.positions[0] ?? [0, 0]
+  }
+
+  if (feature.kind === 'polygon' && feature.positions.length > 0) {
+    const bounds = L.latLngBounds(feature.positions)
+    const center = bounds.getCenter()
+    return [center.lat, center.lng]
+  }
+
+  return feature.positions[0] ?? [0, 0]
+}
+
+function shouldCollapseNotamAreaToPoint(
+  feature: NotamMapOverlayFeature,
+  map: L.Map | null,
+  zoom: number,
+) {
+  if (!map || zoom > notamAreaCollapseMaxZoom) {
+    return false
+  }
+
+  if (feature.kind === 'circle' && feature.radiusNm != null) {
+    const [lat, lon] = feature.positions[0] ?? [0, 0]
+    const center = L.latLng(lat, lon)
+    const bounds = center.toBounds(feature.radiusNm * 1852 * 2)
+    const centerPoint = map.latLngToLayerPoint(center)
+    const eastPoint = map.latLngToLayerPoint(bounds.getEast() === bounds.getWest()
+      ? center
+      : L.latLng(center.lat, bounds.getEast()))
+    return centerPoint.distanceTo(eastPoint) <= notamAreaToPointThresholdPx
+  }
+
+  if (feature.kind === 'polygon' && feature.positions.length > 0) {
+    const bounds = L.latLngBounds(feature.positions)
+    const northEast = map.latLngToLayerPoint(bounds.getNorthEast())
+    const southWest = map.latLngToLayerPoint(bounds.getSouthWest())
+    const widthPx = Math.abs(northEast.x - southWest.x)
+    const heightPx = Math.abs(northEast.y - southWest.y)
+    return Math.max(widthPx, heightPx) <= notamAreaToPointThresholdPx
+  }
+
+  return false
 }
 
 function NotamMapInfoCard({ feature }: { feature: NotamMapOverlayFeature }) {
@@ -1578,8 +1626,27 @@ export function FlightplanMapEditor({
 
           {showNotamOverlays
             ? notamMapFeatures.map((feature) => {
+                const renderAsPoint = shouldCollapseNotamAreaToPoint(feature, mapInstance, mapZoom)
+
                 if (feature.kind === 'circle' && feature.radiusNm != null) {
                   const [lat, lon] = feature.positions[0] ?? [0, 0]
+                  if (renderAsPoint) {
+                    return (
+                      <Marker
+                        key={feature.id}
+                        pane={notamMapPane}
+                        position={[lat, lon]}
+                        icon={createNotamMapSymbolIcon(feature.source)}
+                        keyboard={false}
+                        zIndexOffset={80}
+                        eventHandlers={{
+                          mouseover: () => showNotamInfoPanel(feature),
+                          mouseout: () => scheduleHideNotamInfoPanel(feature.id),
+                        }}
+                      />
+                    )
+                  }
+
                   return (
                     <Circle
                       key={feature.id}
@@ -1596,6 +1663,24 @@ export function FlightplanMapEditor({
                 }
 
                 if (feature.kind === 'polygon') {
+                  if (renderAsPoint) {
+                    const [lat, lon] = getFeatureMarkerPosition(feature)
+                    return (
+                      <Marker
+                        key={feature.id}
+                        pane={notamMapPane}
+                        position={[lat, lon]}
+                        icon={createNotamMapSymbolIcon(feature.source)}
+                        keyboard={false}
+                        zIndexOffset={80}
+                        eventHandlers={{
+                          mouseover: () => showNotamInfoPanel(feature),
+                          mouseout: () => scheduleHideNotamInfoPanel(feature.id),
+                        }}
+                      />
+                    )
+                  }
+
                   return (
                     <Polygon
                       key={feature.id}

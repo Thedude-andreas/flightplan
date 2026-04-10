@@ -234,6 +234,23 @@ function extractCoordinates(rawText: string) {
   return pairs
 }
 
+function dedupeCoordinates(points: RoutePoint[]) {
+  const deduped: RoutePoint[] = []
+
+  for (const point of points) {
+    const exists = deduped.some((candidate) => (
+      Math.abs(candidate.lat - point.lat) < 1e-7 &&
+      Math.abs(candidate.lon - point.lon) < 1e-7
+    ))
+
+    if (!exists) {
+      deduped.push(point)
+    }
+  }
+
+  return deduped
+}
+
 function splitSectionEntries(sectionText: string | null) {
   if (!sectionText) {
     return []
@@ -635,15 +652,25 @@ export type NotamMapOverlayFeature = {
 
 function extractCircleRadiusNm(rawText: string): number | null {
   const normalized = rawText.replace(/\s+/g, ' ')
-  const match = normalized.match(
+  const patterns = [
     /(?:WI\s+A\s+)?CIRCLE\s+WITH\s+RADIUS\s+(\d+(?:\.\d+)?)\s*NM/i,
-  )
-  if (!match) {
-    return null
+    /(?:EN\s+)?CIRKEL\s+MED\s+RADIE\s+(\d+(?:\.\d+)?)\s*NM/i,
+    /INOM\s+EN\s+RADIE\s+AV\s+(\d+(?:\.\d+)?)\s*NM/i,
+  ]
+
+  for (const pattern of patterns) {
+    const match = normalized.match(pattern)
+    if (!match) {
+      continue
+    }
+
+    const value = Number(match[1])
+    if (Number.isFinite(value) && value > 0) {
+      return value
+    }
   }
 
-  const value = Number(match[1])
-  return Number.isFinite(value) && value > 0 ? value : null
+  return null
 }
 
 function polygonRingFromCoordinates(points: RoutePoint[], rawText: string): RoutePoint[] | null {
@@ -791,7 +818,7 @@ function pushGeometryFromCoordinateText(
   idPrefix: string,
   supplementMeta?: { id: string; url: string | null },
 ) {
-  const coords = extractCoordinates(rawText)
+  const coords = dedupeCoordinates(extractCoordinates(rawText))
   if (coords.length === 0) {
     return
   }
