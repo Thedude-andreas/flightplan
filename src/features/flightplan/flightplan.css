@@ -881,6 +881,13 @@
   color: #163850;
 }
 
+.flightplan-page .fp-map-hud--editor .fp-editor-toolbar__actions .button-link--danger,
+.flightplan-page .fp-map-hud--editor .fp-editor-toolbar__actions button.button-link--danger {
+  background: rgba(169, 106, 106, 0.88);
+  border-color: rgba(143, 87, 87, 0.92);
+  color: #fff8f7;
+}
+
 .flightplan-page .fp-map-hud--editor .fp-editor-toolbar__status .resource-pill {
   background: rgba(255, 253, 248, 0.4);
   border: 1px solid rgba(22, 56, 80, 0.12);
@@ -1484,6 +1491,128 @@
   .flightplan-page .fp-settings-layout { grid-template-columns: 1fr; }
   .flightplan-page .fp-weather-summary,
   .flightplan-page .fp-weather-report-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 720px) {
+  .flightplan-page.is-map-view .fp-map-hud {
+    gap: 0.4rem;
+  }
+
+  .flightplan-page.is-map-view .fp-map-hud--top-right {
+    top: 10px;
+    right: 10px;
+    max-width: calc(100% - 20px);
+  }
+
+  .flightplan-page.is-map-view .fp-map-controls {
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: flex-end;
+    gap: 0.3rem;
+  }
+
+  .flightplan-page.is-map-view .fp-basemap-control {
+    max-width: 118px;
+    font-size: 0.72rem;
+  }
+
+  .flightplan-page.is-map-view .fp-basemap-control select {
+    min-height: 1.95rem;
+    padding: 0.28rem 0.42rem;
+    font-size: 0.76rem;
+  }
+
+  .flightplan-page.is-map-view .fp-map-layer-menu__button {
+    min-height: 1.95rem;
+    padding: 0.3rem 0.5rem;
+    font-size: 0.76rem;
+  }
+
+  .flightplan-page.is-map-view .fp-map-layer-menu__button span {
+    min-width: 1.8rem;
+    font-size: 0.64rem;
+  }
+
+  .flightplan-page.is-map-view .fp-notam-map-toolbar-status {
+    padding: 0.34rem 0.56rem;
+    font-size: 0.72rem;
+  }
+
+  .flightplan-page.is-map-view .fp-map-hud--top-left.fp-map-hud--editor {
+    top: auto;
+    right: 10px;
+    bottom: calc(10px + env(safe-area-inset-bottom));
+    left: 10px;
+    width: auto;
+    max-width: none;
+    justify-items: stretch;
+  }
+
+  .flightplan-page.is-map-view .fp-map-hud--editor .fp-editor-toolbar__actions,
+  .flightplan-page.is-map-view .fp-map-hud--editor .fp-editor-toolbar__status {
+    flex-wrap: nowrap;
+    gap: 0.35rem;
+    overflow-x: auto;
+    justify-content: flex-start;
+    scrollbar-width: none;
+  }
+
+  .flightplan-page.is-map-view .fp-map-hud--editor .fp-editor-toolbar__actions::-webkit-scrollbar,
+  .flightplan-page.is-map-view .fp-map-hud--editor .fp-editor-toolbar__status::-webkit-scrollbar {
+    display: none;
+  }
+
+  .flightplan-page.is-map-view .fp-map-hud--editor .fp-editor-toolbar__actions > *,
+  .flightplan-page.is-map-view .fp-map-hud--editor .fp-editor-toolbar__status > * {
+    width: auto;
+    flex: 0 0 auto;
+    justify-content: center;
+  }
+
+  .flightplan-page.is-map-view .fp-map-hud--editor .fp-editor-toolbar__actions a,
+  .flightplan-page.is-map-view .fp-map-hud--editor .fp-editor-toolbar__actions button {
+    min-height: 1.95rem;
+    padding: 0.36rem 0.58rem;
+    border-radius: 9px;
+    font-size: 0.78rem;
+    white-space: nowrap;
+  }
+
+  .flightplan-page.is-map-view .fp-map-hud--editor .fp-editor-toolbar__status .resource-pill {
+    padding: 0.34rem 0.6rem;
+    font-size: 0.72rem;
+    white-space: nowrap;
+  }
+
+  .flightplan-page.is-map-view .fp-notam-map-banner {
+    top: 92px;
+    max-width: min(360px, calc(100% - 20px));
+    padding: 0.46rem 0.72rem;
+    font-size: 0.74rem;
+    line-height: 1.3;
+  }
+
+  .flightplan-page.is-map-view .fp-notam-map-panel {
+    right: 10px;
+    bottom: calc(78px + env(safe-area-inset-bottom));
+    width: min(320px, calc(100% - 20px));
+    max-height: min(220px, calc(100% - 140px));
+  }
+
+  .flightplan-page.is-map-view .fp-map-empty-hint {
+    bottom: calc(68px + env(safe-area-inset-bottom));
+    left: 50%;
+    transform: translateX(-50%);
+    max-width: min(300px, calc(100% - 20px));
+    padding: 0.68rem 0.86rem;
+    font-size: 0.8rem;
+    text-align: center;
+  }
+
+  .flightplan-page.is-map-view .fp-leaflet-map .leaflet-top.leaflet-right {
+    margin-top: 128px;
+    margin-right: 10px;
+  }
 }
 
 @media print {
