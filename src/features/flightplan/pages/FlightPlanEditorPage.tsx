@@ -394,64 +394,134 @@ export function FlightPlanEditorPage() {
     )
   }
 
-  const renderToolbarContent = (mode: 'default' | 'map') => (
-    <>
-      <div className="fp-editor-toolbar__actions">
-        <Link to="/app/flightplans" className="button-link">
-          Stäng
-        </Link>
-        {editorActiveTab === 'flightplan' ? (
-          <>
-            <button type="button" onClick={() => setEditorActiveTab('map')}>
-              Karta
+  const renderToolbarContent = (mode: 'default' | 'map') => {
+    const driftplanButton =
+      editorActiveTab === 'flightplan' ? (
+        <button type="button" onClick={() => setEditorActiveTab('map')}>
+          Karta
+        </button>
+      ) : (
+        <button type="button" onClick={() => setEditorActiveTab('flightplan')}>
+          Driftplan
+        </button>
+      )
+
+    const printButton =
+      editorActiveTab === 'print' ? (
+        <button type="button" onClick={() => window.print()}>
+          Skriv ut formulär
+        </button>
+      ) : (
+        <button type="button" onClick={() => setEditorActiveTab('print')}>
+          Skriv ut
+        </button>
+      )
+
+    if (mode === 'map') {
+      return (
+        <details className="fp-map-action-menu">
+          <summary className="fp-map-action-menu__summary" aria-label="Öppna navigationsmeny">
+            <span className="fp-map-action-menu__icon" aria-hidden="true">
+              <i />
+              <i />
+              <i />
+            </span>
+          </summary>
+          <div className="fp-map-action-menu__panel">
+            <Link to="/app/flightplans" className="fp-map-action-menu__item">
+              Stäng
+            </Link>
+            {editorActiveTab === 'flightplan' ? (
+              <button type="button" className="fp-map-action-menu__item" onClick={() => setEditorActiveTab('map')}>
+                Karta
+              </button>
+            ) : (
+              <button type="button" className="fp-map-action-menu__item" onClick={() => setEditorActiveTab('flightplan')}>
+                Driftplan
+              </button>
+            )}
+            {editorActiveTab === 'print' ? (
+              <button type="button" className="fp-map-action-menu__item" onClick={() => window.print()}>
+                Skriv ut formulär
+              </button>
+            ) : (
+              <button type="button" className="fp-map-action-menu__item" onClick={() => setEditorActiveTab('print')}>
+                Skriv ut
+              </button>
+            )}
+            {recordId && (
+              <button
+                type="button"
+                className="fp-map-action-menu__item"
+                onClick={openSaveCopyDialog}
+                disabled={saveState === 'saving'}
+              >
+                Spara kopia
+              </button>
+            )}
+            <button
+              type="button"
+              className="fp-map-action-menu__item"
+              onClick={handleSave}
+              disabled={saveState === 'saving' || !hasUnsavedChanges}
+            >
+              {saveState === 'saving' ? 'Sparar...' : 'Spara'}
             </button>
-            <button type="button" onClick={() => setEditorActiveTab('print')}>
-              Skriv ut
+            <button
+              type="button"
+              className="fp-map-action-menu__item fp-map-action-menu__item--danger"
+              onClick={openClearRouteDialog}
+              disabled={saveState === 'saving' || !currentPlan || currentPlan.routeLegs.length === 0}
+            >
+              Rensa färdväg
             </button>
-          </>
-        ) : editorActiveTab === 'print' ? (
-          <>
-            <button type="button" onClick={() => setEditorActiveTab('flightplan')}>
-              Driftfärdplan
+          </div>
+        </details>
+      )
+    }
+
+    return (
+      <>
+        <div className="fp-editor-toolbar__actions">
+          <Link to="/app/flightplans" className="button-link">
+            Stäng
+          </Link>
+          {driftplanButton}
+          {printButton}
+          {recordId && (
+            <button type="button" onClick={openSaveCopyDialog} disabled={saveState === 'saving'}>
+              Spara kopia
             </button>
-            <button type="button" onClick={() => window.print()}>
-              Skriv ut formulär
-            </button>
-          </>
-        ) : (
-          <>
-            <button type="button" onClick={() => setEditorActiveTab('flightplan')}>
-              Driftfärdplan
-            </button>
-            <button type="button" onClick={() => setEditorActiveTab('print')}>
-              Skriv ut
-            </button>
-          </>
-        )}
-        {recordId && (
-          <button type="button" onClick={openSaveCopyDialog} disabled={saveState === 'saving'}>
-            Spara kopia
+          )}
+          <button type="button" onClick={handleSave} disabled={saveState === 'saving' || !hasUnsavedChanges}>
+            {saveState === 'saving' ? 'Sparar...' : 'Spara'}
           </button>
-        )}
-        <button type="button" onClick={handleSave} disabled={saveState === 'saving' || !hasUnsavedChanges}>
-          {saveState === 'saving' ? 'Sparar...' : 'Spara'}
-        </button>
-        <button
-          type="button"
-          className="button-link button-link--danger"
-          onClick={openClearRouteDialog}
-          disabled={saveState === 'saving' || !currentPlan || currentPlan.routeLegs.length === 0}
-        >
-          Rensa färdväg
-        </button>
-      </div>
-      <div className={`fp-editor-toolbar__status${mode === 'map' ? ' is-map-hud' : ''}`}>
-        <span className={`resource-pill resource-pill--${displaySaveState}`}>{getSaveLabel(displaySaveState)}</span>
-        <span className={`resource-pill ${isOnline ? '' : 'resource-pill--warning'}`}>
-          {isOnline ? 'Online' : 'Offline'}
-        </span>
-      </div>
-    </>
+          <button
+            type="button"
+            className="button-link button-link--danger"
+            onClick={openClearRouteDialog}
+            disabled={saveState === 'saving' || !currentPlan || currentPlan.routeLegs.length === 0}
+          >
+            Rensa färdväg
+          </button>
+        </div>
+        <div className="fp-editor-toolbar__status">
+          <span className={`resource-pill resource-pill--${displaySaveState}`}>{getSaveLabel(displaySaveState)}</span>
+          <span className={`resource-pill ${isOnline ? '' : 'resource-pill--warning'}`}>
+            {isOnline ? 'Online' : 'Offline'}
+          </span>
+        </div>
+      </>
+    )
+  }
+
+  const renderMapStatusContent = () => (
+    <div className="fp-editor-toolbar__status fp-editor-toolbar__status--map-bottom">
+      <span className={`resource-pill resource-pill--${displaySaveState}`}>{getSaveLabel(displaySaveState)}</span>
+      <span className={`resource-pill ${isOnline ? '' : 'resource-pill--warning'}`}>
+        {isOnline ? 'Online' : 'Offline'}
+      </span>
+    </div>
   )
 
   return (
@@ -476,6 +546,7 @@ export function FlightPlanEditorPage() {
         }
         documentToolbarSlot={renderToolbarContent('default')}
         mapHudSlot={renderToolbarContent('map')}
+        mapHudStatusSlot={renderMapStatusContent()}
         onPlanChange={(nextPlan) => {
           if (!didHydrateRef.current) {
             return

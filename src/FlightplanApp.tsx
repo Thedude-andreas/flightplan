@@ -259,6 +259,7 @@ type FlightplanAppProps = {
   documentTitleSlot?: ReactNode
   documentToolbarSlot?: ReactNode
   mapHudSlot?: ReactNode
+  mapHudStatusSlot?: ReactNode
   onPlanChange?: (plan: FlightPlanInput) => void
   onActiveTabChange?: (tab: WorkspaceTab) => void
   onMapViewportChange?: (viewport: FlightplanMapViewport) => void
@@ -272,6 +273,7 @@ export function FlightplanApp({
   documentTitleSlot,
   documentToolbarSlot,
   mapHudSlot,
+  mapHudStatusSlot,
   onPlanChange,
   onActiveTabChange,
   onMapViewportChange,
@@ -723,6 +725,7 @@ export function FlightplanApp({
                 notamMapNotice={notamMapNotice}
                 notamMapStatus={notamState.status}
                 hudSlot={mapHudSlot}
+                hudStatusSlot={mapHudStatusSlot}
                 onRouteLegsChange={replaceRouteLegs}
                 focusedLegIndex={focusedLegIndex}
                 initialViewport={initialMapViewport}

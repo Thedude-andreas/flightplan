@@ -784,6 +784,7 @@ export function FlightplanMapEditor({
   notamMapNotice = null,
   notamMapStatus = 'idle',
   hudSlot,
+  hudStatusSlot,
   onRouteLegsChange,
   focusedLegIndex = null,
   initialViewport = null,
@@ -796,6 +797,7 @@ export function FlightplanMapEditor({
   notamMapNotice?: string | null
   notamMapStatus?: 'idle' | 'loading' | 'error' | 'ready'
   hudSlot?: ReactNode
+  hudStatusSlot?: ReactNode
   onRouteLegsChange: (legs: FlightPlanInput['routeLegs']) => void
   focusedLegIndex?: number | null
   initialViewport?: FlightplanMapViewport | null
@@ -1274,32 +1276,43 @@ export function FlightplanMapEditor({
       <div className="fp-map-canvas">
         <div className="fp-map-hud fp-map-hud--top-right">
           <div className="fp-map-controls">
-            <label className="fp-basemap-control">
-              Kartlager
-              <select value={basemap} onChange={(event) => setBasemap(event.target.value as BasemapKey)}>
-                {Object.entries(basemaps).map(([key, config]) => (
-                  <option key={key} value={key}>
-                    {config.label}
-                  </option>
-                ))}
-              </select>
-            </label>
             <div className="fp-map-layer-menu" ref={mapLayerMenuRef}>
               <button
                 type="button"
-                className="fp-map-layer-menu__button"
+                className="fp-map-layer-menu__button fp-map-layer-menu__button--hamburger"
                 aria-haspopup="menu"
                 aria-expanded={isMapLayerMenuOpen}
                 onClick={() => setIsMapLayerMenuOpen((open) => !open)}
+                aria-label="Öppna visningsmeny"
               >
-                Kartdata
+                Visning
                 <span>{enabledLayerCount}/7</span>
               </button>
               {isMapLayerMenuOpen ? (
                 <div className="fp-map-layer-menu__popover" role="menu" aria-label="Kartdata">
                   <div className="fp-map-layer-menu__header">
+                    <strong>Visning</strong>
+                  </div>
+                  <div className="fp-map-layer-menu__section">
+                    <label className="fp-basemap-control fp-basemap-control--menu">
+                      Kartlager
+                      <select value={basemap} onChange={(event) => setBasemap(event.target.value as BasemapKey)}>
+                        {Object.entries(basemaps).map(([key, config]) => (
+                          <option key={key} value={key}>
+                            {config.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    {notamMapNotice != null || notamMapStatus !== 'idle' ? (
+                      <span className="fp-notam-map-toolbar-status fp-notam-map-toolbar-status--menu" aria-live="polite">
+                        {notamMapStatus === 'loading' ? 'Hämtar NOTAM & AIP SUP...' : null}
+                        {notamMapStatus === 'error' ? 'NOTAM kunde inte laddas' : null}
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="fp-map-layer-menu__header fp-map-layer-menu__header--section">
                     <strong>Visa i kartan</strong>
-                    <small>Sparas för den här webbläsaren.</small>
                   </div>
                   <MapLayerSwitch
                     checked={showAirspaces}
@@ -1347,15 +1360,10 @@ export function FlightplanMapEditor({
                 </div>
               ) : null}
             </div>
-            {notamMapNotice != null || notamMapStatus !== 'idle' ? (
-              <span className="fp-notam-map-toolbar-status" aria-live="polite">
-                {notamMapStatus === 'loading' ? 'Hämtar NOTAM & AIP SUP...' : null}
-                {notamMapStatus === 'error' ? 'NOTAM kunde inte laddas' : null}
-              </span>
-            ) : null}
           </div>
         </div>
         {hudSlot ? <div className="fp-map-hud fp-map-hud--top-left fp-map-hud--editor">{hudSlot}</div> : null}
+        {hudStatusSlot ? <div className="fp-map-hud fp-map-hud--bottom-center fp-map-hud--status">{hudStatusSlot}</div> : null}
         {notamMapNotice ? (
           <div className="fp-notam-map-banner" role="status">
             {notamMapNotice}
