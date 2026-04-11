@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent, ReactNode } from 'react'
 import './features/flightplan/flightplan.css'
 import { aircraftProfiles, createInitialFlightPlan } from './features/flightplan/data'
@@ -49,6 +49,13 @@ type RouteRow = {
   notes: string
 }
 type RowContextMenuState = { x: number; y: number; rowIndex: number } | null
+type AltitudeDragState = {
+  sourceIndex: number
+  altitude: string
+  hasDragged: boolean
+  startX: number
+  startY: number
+}
 type AloftWindState =
   | {
       status: 'idle'
@@ -404,6 +411,10 @@ export function FlightplanApp({
   const [rowContextMenu, setRowContextMenu] = useState<RowContextMenuState>(null)
   const [focusedLegIndex, setFocusedLegIndex] = useState<number | null>(null)
   const [activeAltitudeLegIndex, setActiveAltitudeLegIndex] = useState<number | null>(null)
+  const [openAltitudeMenuIndex, setOpenAltitudeMenuIndex] = useState<number | null>(null)
+  const [altitudeDragState, setAltitudeDragState] = useState<AltitudeDragState | null>(null)
+  const [suppressNextAltitudeMenuClick, setSuppressNextAltitudeMenuClick] = useState(false)
+  const altitudeMenuRootRef = useRef<HTMLDivElement | null>(null)
   const [weatherRefreshToken, setWeatherRefreshToken] = useState(0)
   const [aloftWindState, setAloftWindState] = useState<AloftWindState>({
     status: 'idle',
@@ -812,24 +823,121 @@ export function FlightplanApp({
     }))
   }
 
-  const copyAltitudeFromLeg = (mode: 'all' | 'forward') => {
-    if (activeAltitudeLegIndex == null) {
-      return
-    }
+  const applyAltitudeToRange = (sourceIndex: number, targetIndex: number, altitude: string) => {
+    const start = Math.min(sourceIndex, targetIndex)
+    const end = Math.max(sourceIndex, targetIndex)
+    updatePlan((current) => ({
+      ...current,
+      routeLegs: current.routeLegs.map((leg, index) =>
+        index >= start && index <= end ? { ...leg, altitude } : leg,
+      ),
+    }))
+  }
 
-    const altitude = plan.routeLegs[activeAltitudeLegIndex]?.altitude
+  const beginAltitudeDrag = (rowIndex: number, clientX: number, clientY: number) => {
+    const altitude = plan.routeLegs[rowIndex]?.altitude
     if (!altitude) {
       return
     }
 
-    updatePlan((current) => ({
-      ...current,
-      routeLegs: current.routeLegs.map((leg, index) => {
-        const shouldApply = mode === 'all' ? true : index >= activeAltitudeLegIndex
-        return shouldApply ? { ...leg, altitude } : leg
-      }),
-    }))
+    setActiveAltitudeLegIndex(rowIndex)
+    setAltitudeDragState({
+      sourceIndex: rowIndex,
+      altitude,
+      hasDragged: false,
+      startX: clientX,
+      startY: clientY,
+    })
+    setOpenAltitudeMenuIndex(null)
   }
+
+  const extendAltitudeDrag = (rowIndex: number, buttons: number, clientX: number, clientY: number) => {
+    if (!altitudeDragState || buttons !== 1) {
+      return
+    }
+
+    const movedEnough =
+      Math.abs(clientX - altitudeDragState.startX) > 6 ||
+      Math.abs(clientY - altitudeDragState.startY) > 6 ||
+      rowIndex !== altitudeDragState.sourceIndex
+
+    if (!movedEnough) {
+      return
+    }
+
+    if (rowIndex === altitudeDragState.sourceIndex && altitudeDragState.hasDragged) {
+      return
+    }
+
+    applyAltitudeToRange(altitudeDragState.sourceIndex, rowIndex, altitudeDragState.altitude)
+    setActiveAltitudeLegIndex(rowIndex)
+    setAltitudeDragState((current) =>
+      current
+        ? {
+            ...current,
+            hasDragged: current.hasDragged || rowIndex !== current.sourceIndex,
+          }
+        : current,
+    )
+  }
+
+  const endAltitudeDrag = () => {
+    setAltitudeDragState((current) => {
+      if (!current) {
+        return null
+      }
+
+      if (current.hasDragged) {
+        setSuppressNextAltitudeMenuClick(true)
+      }
+
+      return null
+    })
+  }
+
+  const handleAltitudeMenuOpenChange = (rowIndex: number | null) => {
+    if (suppressNextAltitudeMenuClick) {
+      setSuppressNextAltitudeMenuClick(false)
+      return
+    }
+
+    setOpenAltitudeMenuIndex(rowIndex)
+  }
+
+  useEffect(() => {
+    if (!altitudeDragState) {
+      return
+    }
+
+    const handlePointerUp = () => {
+      endAltitudeDrag()
+    }
+
+    window.addEventListener('pointerup', handlePointerUp)
+    return () => window.removeEventListener('pointerup', handlePointerUp)
+  }, [altitudeDragState])
+
+  useEffect(() => {
+    if (openAltitudeMenuIndex == null) {
+      return
+    }
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target
+      if (!(target instanceof Node)) {
+        return
+      }
+
+      if (altitudeMenuRootRef.current?.contains(target)) {
+        return
+      }
+
+      setOpenAltitudeMenuIndex(null)
+    }
+
+    window.addEventListener('pointerdown', handlePointerDown)
+    return () => window.removeEventListener('pointerdown', handlePointerDown)
+  }, [openAltitudeMenuIndex])
 
   const replaceRouteLegs = (routeLegs: FlightPlanInput['routeLegs']) => {
     updatePlan((current) => ({
@@ -952,7 +1060,12 @@ export function FlightplanApp({
                 onAltitudeChange={updateAltitudeForRouteLeg}
                 activeAltitudeLegIndex={activeAltitudeLegIndex}
                 onAltitudeSelect={setActiveAltitudeLegIndex}
-                onCopyAltitude={copyAltitudeFromLeg}
+                openAltitudeMenuIndex={openAltitudeMenuIndex}
+                onAltitudeMenuOpenChange={handleAltitudeMenuOpenChange}
+                onAltitudeDragStart={beginAltitudeDrag}
+                onAltitudeDragEnter={extendAltitudeDrag}
+                onAltitudeDragEnd={endAltitudeDrag}
+                altitudeMenuRootRef={altitudeMenuRootRef}
                 onOpenRowMenu={(x, y, rowIndex) => {
                   const clamped = clampContextMenuPosition(x, y)
                   setRowContextMenu({ x: clamped.x, y: clamped.y, rowIndex })
@@ -1014,7 +1127,12 @@ export function FlightplanApp({
                 onAltitudeChange={updateAltitudeForRouteLeg}
                 activeAltitudeLegIndex={activeAltitudeLegIndex}
                 onAltitudeSelect={setActiveAltitudeLegIndex}
-                onCopyAltitude={copyAltitudeFromLeg}
+                openAltitudeMenuIndex={openAltitudeMenuIndex}
+                onAltitudeMenuOpenChange={handleAltitudeMenuOpenChange}
+                onAltitudeDragStart={beginAltitudeDrag}
+                onAltitudeDragEnter={extendAltitudeDrag}
+                onAltitudeDragEnd={endAltitudeDrag}
+                altitudeMenuRootRef={altitudeMenuRootRef}
               />
             </section>
 
@@ -1615,33 +1733,58 @@ function WindCellInput({
 }
 
 function AltitudeCellSelect({
+  rowIndex,
+  rootRef,
   value,
   trueTrack,
   variation,
   isActive,
+  isOpen,
   onFocus,
+  onOpenChange,
   onChange,
+  onDragStart,
+  onDragEnter,
+  onDragEnd,
 }: {
+  rowIndex: number
+  rootRef: { current: HTMLDivElement | null }
   value: string
   trueTrack: number
   variation: number
   isActive: boolean
+  isOpen: boolean
   onFocus: () => void
+  onOpenChange: (isOpen: boolean) => void
   onChange: (value: string) => void
+  onDragStart: (rowIndex: number, clientX: number, clientY: number) => void
+  onDragEnter: (rowIndex: number, buttons: number, clientX: number, clientY: number) => void
+  onDragEnd: () => void
 }) {
-  const [isOpen, setIsOpen] = useState(false)
   const preferredTrack = normalizeDegrees(trueTrack - variation)
   const hasCustomValue = value !== '' && !selectableAltitudesFt.some((altitudeFt) => formatAltitudeOption(altitudeFt) === value)
   const showMenu = isOpen && isActive
 
   return (
-    <div className={isActive ? 'fp-inline-altitude-dropdown is-active' : 'fp-inline-altitude-dropdown'}>
+    <div
+      ref={(node) => {
+        if (showMenu) {
+          rootRef.current = node
+        } else if (rootRef.current === node) {
+          rootRef.current = null
+        }
+      }}
+      className={isActive ? 'fp-inline-altitude-dropdown is-active' : 'fp-inline-altitude-dropdown'}
+    >
       <button
         type="button"
         className="fp-inline-altitude-select"
+        onPointerDown={(event) => onDragStart(rowIndex, event.clientX, event.clientY)}
+        onPointerEnter={(event) => onDragEnter(rowIndex, event.buttons, event.clientX, event.clientY)}
+        onPointerUp={onDragEnd}
         onClick={() => {
           onFocus()
-          setIsOpen((current) => !current)
+          onOpenChange(!showMenu)
         }}
         aria-haspopup="listbox"
         aria-expanded={showMenu}
@@ -1657,7 +1800,7 @@ function AltitudeCellSelect({
               onClick={() => {
                 onFocus()
                 onChange(value)
-                setIsOpen(false)
+                onOpenChange(false)
               }}
             >
               <span>{value}</span>
@@ -1674,11 +1817,13 @@ function AltitudeCellSelect({
                 onClick={() => {
                   onFocus()
                   onChange(label)
-                  setIsOpen(false)
+                  onOpenChange(false)
                 }}
               >
-                <span>{label}</span>
-                {!preferred ? <small>Ej enligt halvcirkel</small> : null}
+                <span>
+                  {label}
+                  {!preferred ? ' · Ej enligt halvcirkel' : ''}
+                </span>
               </button>
             )
           })}
@@ -1764,7 +1909,12 @@ function FlightPlanDocument({
   onAltitudeChange,
   activeAltitudeLegIndex,
   onAltitudeSelect,
-  onCopyAltitude,
+  openAltitudeMenuIndex,
+  onAltitudeMenuOpenChange,
+  onAltitudeDragStart,
+  onAltitudeDragEnter,
+  onAltitudeDragEnd,
+  altitudeMenuRootRef,
   onOpenRowMenu,
 }: {
   plan: FlightPlanInput
@@ -1787,7 +1937,12 @@ function FlightPlanDocument({
   onAltitudeChange: (rowIndex: number, altitude: string) => void
   activeAltitudeLegIndex: number | null
   onAltitudeSelect: (rowIndex: number) => void
-  onCopyAltitude: (mode: 'all' | 'forward') => void
+  openAltitudeMenuIndex: number | null
+  onAltitudeMenuOpenChange: (rowIndex: number | null) => void
+  onAltitudeDragStart: (rowIndex: number, clientX: number, clientY: number) => void
+  onAltitudeDragEnter: (rowIndex: number, buttons: number, clientX: number, clientY: number) => void
+  onAltitudeDragEnd: () => void
+  altitudeMenuRootRef: { current: HTMLDivElement | null }
   onOpenRowMenu?: (x: number, y: number, rowIndex: number) => void
 }) {
   const [pressTimer, setPressTimer] = useState<number | null>(null)
@@ -1871,16 +2026,6 @@ function FlightPlanDocument({
             {aloftWindStatus.lastUpdatedAt ? ` · senast hämtad ${formatLocalTimestamp(aloftWindStatus.lastUpdatedAt)}` : ''}
           </span>
           <div className="fp-route-weather-meta-actions">
-            {activeAltitudeLegIndex != null ? (
-              <>
-                <button type="button" className="fp-route-meta-button" onClick={() => onCopyAltitude('forward')}>
-                  Kopiera höjd framåt
-                </button>
-                <button type="button" className="fp-route-meta-button" onClick={() => onCopyAltitude('all')}>
-                  Kopiera höjd till alla
-                </button>
-              </>
-            ) : null}
             {aloftWindStatus.status === 'error' && aloftWindStatus.error ? (
               <strong>{aloftWindStatus.error}</strong>
             ) : (
@@ -1926,12 +2071,19 @@ function FlightPlanDocument({
                 <td>{row.tas}</td><td className="fp-highlight-cell">{row.tt}</td><td>{row.wca}</td><td>{row.th}</td><td>{row.variation}</td><td className="fp-highlight-cell">{row.mh}</td>
                 <td className="fp-route-cell-button">
                   <AltitudeCellSelect
+                    rowIndex={row.index}
+                    rootRef={altitudeMenuRootRef}
                     value={row.altitude}
                     trueTrack={typeof row.tt === 'number' ? row.tt : 0}
                     variation={typeof row.variation === 'number' ? row.variation : 0}
                     isActive={activeAltitudeLegIndex === row.index}
+                    isOpen={openAltitudeMenuIndex === row.index}
                     onFocus={() => onAltitudeSelect(row.index)}
+                    onOpenChange={(nextOpen) => onAltitudeMenuOpenChange(nextOpen ? row.index : null)}
                     onChange={(nextAltitude) => onAltitudeChange(row.index, nextAltitude)}
+                    onDragStart={onAltitudeDragStart}
+                    onDragEnter={onAltitudeDragEnter}
+                    onDragEnd={onAltitudeDragEnd}
                   />
                 </td>
                 <td

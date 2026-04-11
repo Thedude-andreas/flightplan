@@ -322,8 +322,8 @@
 .flightplan-page .fp-header-field .fp-header-datetime {
   padding: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 5.6rem;
-  gap: 0.45rem;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.2rem;
 }
 
 .flightplan-page .fp-header-field input {
@@ -498,8 +498,6 @@
   font: inherit;
   text-align: left;
   padding: 0.45rem 0.6rem;
-  display: grid;
-  gap: 0.08rem;
 }
 
 .flightplan-page .fp-inline-altitude-option.is-discouraged {
@@ -508,10 +506,6 @@
 
 .flightplan-page .fp-inline-altitude-option:hover {
   background: #f1ecdf;
-}
-
-.flightplan-page .fp-inline-altitude-option small {
-  font-size: 0.7rem;
 }
 
 .flightplan-page .fp-route-actions { display: flex; justify-content: flex-end; margin-top: 0.75rem; }
