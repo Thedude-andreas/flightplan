@@ -46,7 +46,7 @@ import { formatNotamText, type NotamMapOverlayFeature } from './notamRoute'
 import { getAllWeatherOverlays, type RouteWeatherOverlay } from './weatherSigmet'
 import type { FlightPlanInput, FlightPlanDerived } from './types'
 
-type BasemapKey = 'topo' | 'osm'
+type BasemapKey = 'topo' | 'osm' | 'hot'
 
 type MapLayerPreferences = {
   airspaces: boolean
@@ -77,15 +77,21 @@ const basemaps: Record<
   { label: string; url: string; attribution: string }
 > = {
   topo: {
-    label: 'Topo',
+    label: 'OSM Topografisk',
     url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
     attribution:
       '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>, <a href="https://opentopomap.org">OpenTopoMap</a>',
   },
   osm: {
-    label: 'OSM',
+    label: 'Open Street Map',
     url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+  },
+  hot: {
+    label: 'OSM Humanitär',
+    url: 'https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png',
+    attribution:
+      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>, style by Humanitarian OpenStreetMap Team hosted by <a href="https://www.openstreetmap.fr/">OpenStreetMap France</a>',
   },
 }
 
