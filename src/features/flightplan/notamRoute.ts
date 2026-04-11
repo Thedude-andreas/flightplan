@@ -818,14 +818,15 @@ function pushGeometryFromCoordinateText(
   idPrefix: string,
   supplementMeta?: { id: string; url: string | null },
 ) {
-  const coords = dedupeCoordinates(extractCoordinates(rawText))
+  const coords = extractCoordinates(rawText)
   if (coords.length === 0) {
     return
   }
 
   const circleRadiusNm = extractCircleRadiusNm(rawText)
-  if (coords.length === 1 && circleRadiusNm != null) {
-    const [point] = coords
+  const uniqueCoords = circleRadiusNm != null ? dedupeCoordinates(coords) : coords
+  if (uniqueCoords.length === 1 && circleRadiusNm != null) {
+    const [point] = uniqueCoords
     features.push({
       id: `${idPrefix}-circle`,
       source,
