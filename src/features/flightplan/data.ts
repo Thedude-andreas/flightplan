@@ -1,5 +1,23 @@
 import type { AircraftProfile, FlightPlanInput } from './types'
 
+function getLocalDateParts() {
+  const formatter = new Intl.DateTimeFormat('sv-SE', {
+    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  })
+  const parts = formatter.formatToParts(new Date())
+  const get = (type: Intl.DateTimeFormatPartTypes) => parts.find((part) => part.type === type)?.value ?? ''
+  return {
+    date: `${get('year')}-${get('month')}-${get('day')}`,
+    time: `${get('hour')}:${get('minute')}`,
+  }
+}
+
 export const aircraftProfiles: AircraftProfile[] = [
   {
     registration: 'SE-MDE',
@@ -60,7 +78,8 @@ export const aircraftProfiles: AircraftProfile[] = [
 const initialFlightPlanTemplate: FlightPlanInput = {
   aircraftRegistration: 'SE-MDE',
   header: {
-    date: new Date().toISOString().slice(0, 10),
+    date: getLocalDateParts().date,
+    plannedStartTime: getLocalDateParts().time,
     departureAerodrome: 'ESSB',
     destinationAerodrome: 'ESNQ',
     captain: 'A. Martensson',
@@ -80,6 +99,7 @@ const initialFlightPlanTemplate: FlightPlanInput = {
       to: { name: 'Uppsala', lat: 59.8586, lon: 17.6389 },
       windDirection: 220,
       windSpeedKt: 15,
+      manualWind: null,
       tasKt: 102,
       variation: 6,
       altitude: "2500'",
@@ -91,6 +111,7 @@ const initialFlightPlanTemplate: FlightPlanInput = {
       to: { name: 'Gävle', lat: 60.5933, lon: 17.4594 },
       windDirection: 230,
       windSpeedKt: 18,
+      manualWind: null,
       tasKt: 102,
       variation: 6,
       altitude: "3000'",
@@ -102,6 +123,7 @@ const initialFlightPlanTemplate: FlightPlanInput = {
       to: { name: 'Söderhamn', lat: 61.2608, lon: 17.1014 },
       windDirection: 240,
       windSpeedKt: 16,
+      manualWind: null,
       tasKt: 102,
       variation: 6,
       altitude: "3500'",
@@ -136,9 +158,14 @@ const initialFlightPlanTemplate: FlightPlanInput = {
 }
 
 export function createInitialFlightPlan(): FlightPlanInput {
+  const now = getLocalDateParts()
   return {
     ...initialFlightPlanTemplate,
-    header: { ...initialFlightPlanTemplate.header, date: new Date().toISOString().slice(0, 10) },
+    header: {
+      ...initialFlightPlanTemplate.header,
+      date: now.date,
+      plannedStartTime: now.time,
+    },
     routeLegs: initialFlightPlanTemplate.routeLegs.map((leg) => ({
       ...leg,
       from: { ...leg.from },

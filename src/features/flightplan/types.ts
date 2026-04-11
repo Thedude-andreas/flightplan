@@ -28,6 +28,7 @@ export type AircraftProfile = {
 
 export type HeaderInput = {
   date: string
+  plannedStartTime: string
   departureAerodrome: string
   destinationAerodrome: string
   captain: string
@@ -53,6 +54,10 @@ export type RouteLegInput = {
   to: RoutePointInput
   windDirection: number
   windSpeedKt: number
+  manualWind?: {
+    direction: number
+    speedKt: number
+  } | null
   tasKt: number
   variation: number
   altitude: string

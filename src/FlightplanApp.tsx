@@ -23,12 +23,57 @@ import {
 import { fetchLfvWeatherBriefing, fetchWeatherForAirports, getAirportsNearRoute, type AirportWeather, type LfvLhpArea } from './features/flightplan/weather'
 import { formatWeatherBriefingText, getRelevantLhpAreas } from './features/flightplan/weatherRoute'
 import { getRouteWeatherMatches } from './features/flightplan/weatherSigmet'
+import { fetchRouteLegAloftWinds, type RouteLegAloftWind } from './features/flightplan/openMeteoAloft'
 import type { AircraftProfile, FlightPlanInput, RadioNavEntry } from './features/flightplan/types'
 
 type EditorPanel = 'fuel' | 'weightBalance' | 'performance' | 'aircraft' | 'weather' | 'notam'
 type WorkspaceTab = 'flightplan' | 'map' | 'print'
-type RouteRow = Record<string, string | number>
+type RouteRow = {
+  index: number
+  wind: string
+  windManual: boolean
+  tas: number | string
+  tt: number | string
+  wca: number | string
+  th: number | string
+  variation: number | string
+  mh: number | string
+  altitude: string
+  segment: string
+  navRef: string
+  gs: number | string
+  distInt: number | string
+  distAcc: number | string
+  timeInt: string
+  timeAcc: string
+  notes: string
+}
 type RowContextMenuState = { x: number; y: number; rowIndex: number } | null
+type AloftWindState =
+  | {
+      status: 'idle'
+      winds: RouteLegAloftWind[]
+      error: null
+      lastUpdatedAt: null
+    }
+  | {
+      status: 'loading'
+      winds: RouteLegAloftWind[]
+      error: null
+      lastUpdatedAt: string | null
+    }
+  | {
+      status: 'ready'
+      winds: RouteLegAloftWind[]
+      error: null
+      lastUpdatedAt: string
+    }
+  | {
+      status: 'error'
+      winds: RouteLegAloftWind[]
+      error: string
+      lastUpdatedAt: string | null
+    }
 type WeatherState =
   | {
       status: 'idle'
@@ -147,6 +192,11 @@ function clampContextMenuPosition(x: number, y: number) {
   }
 }
 
+function normalizeDegrees(value: number) {
+  const result = value % 360
+  return result < 0 ? result + 360 : result
+}
+
 function formatUtcTimestamp(value: string | null) {
   if (!value) {
     return null
@@ -159,10 +209,29 @@ function formatUtcTimestamp(value: string | null) {
   }).format(new Date(value))
 }
 
+function formatLocalTimestamp(value: string | null) {
+  if (!value) {
+    return null
+  }
+
+  return new Intl.DateTimeFormat('sv-SE', {
+    dateStyle: 'short',
+    timeStyle: 'short',
+  }).format(new Date(value))
+}
+
+function normalizeHeader(plan: FlightPlanInput): FlightPlanInput['header'] {
+  return {
+    ...plan.header,
+    plannedStartTime: plan.header.plannedStartTime ?? plan.header.blockOut ?? '09:00',
+  }
+}
+
 function emptyRouteRow(index: number): RouteRow {
   return {
     index,
     wind: '',
+    windManual: false,
     tas: '',
     tt: '',
     wca: '',
@@ -202,6 +271,7 @@ function createRouteRows(
   const rows: RouteRow[] = derived.routeLegs.map((leg, index) => ({
     index,
     wind: leg.windText,
+    windManual: Boolean(plan.routeLegs[index].manualWind),
     tas: plan.routeLegs[index].tasKt,
     tt: leg.trueTrack,
     wca: leg.windCorrectionAngle,
@@ -238,9 +308,10 @@ function cloneAircraftProfile(source: AircraftProfile): AircraftProfile {
 function cloneFlightPlan(plan: FlightPlanInput): FlightPlanInput {
   return {
     ...plan,
-    header: { ...plan.header },
+    header: normalizeHeader(plan),
     routeLegs: plan.routeLegs.map((leg) => ({
       ...leg,
+      manualWind: leg.manualWind ? { ...leg.manualWind } : null,
       from: { ...leg.from },
       to: { ...leg.to },
     })),
@@ -249,6 +320,25 @@ function cloneFlightPlan(plan: FlightPlanInput): FlightPlanInput {
     fuel: { ...plan.fuel },
     weightBalance: { ...plan.weightBalance },
   }
+}
+
+function clearManualWindOverrides(routeLegs: FlightPlanInput['routeLegs']) {
+  return routeLegs.map((leg) => ({
+    ...leg,
+    manualWind: null,
+  }))
+}
+
+const selectableAltitudesFt = Array.from({ length: 19 }, (_, index) => 500 + index * 500)
+
+function formatAltitudeOption(altitudeFt: number) {
+  return `${altitudeFt}'`
+}
+
+function isPreferredAltitude(trackDegrees: number, altitudeFt: number) {
+  const normalizedTrack = normalizeDegrees(trackDegrees)
+  const oddSet = altitudeFt % 1000 === 500
+  return normalizedTrack < 180 ? oddSet : !oddSet
 }
 
 type FlightplanAppProps = {
@@ -313,7 +403,14 @@ export function FlightplanApp({
   )
   const [rowContextMenu, setRowContextMenu] = useState<RowContextMenuState>(null)
   const [focusedLegIndex, setFocusedLegIndex] = useState<number | null>(null)
+  const [activeAltitudeLegIndex, setActiveAltitudeLegIndex] = useState<number | null>(null)
   const [weatherRefreshToken, setWeatherRefreshToken] = useState(0)
+  const [aloftWindState, setAloftWindState] = useState<AloftWindState>({
+    status: 'idle',
+    winds: [],
+    error: null,
+    lastUpdatedAt: null,
+  })
   const [weatherState, setWeatherState] = useState<WeatherState>({
     status: 'idle',
     results: [],
@@ -338,9 +435,95 @@ export function FlightplanApp({
     bulletinPublishedAt: null,
   })
 
-  const derived = calculateFlightPlan(plan, aircraftOptions)
-  const routeRows = useMemo(() => createRouteRows(plan, derived), [plan, derived])
-  const printRouteRows = useMemo(() => createRouteRows(plan, derived, 13), [plan, derived])
+  const routeWindRequestKey = useMemo(
+    () =>
+      JSON.stringify({
+        date: plan.header.date,
+        plannedStartTime: plan.header.plannedStartTime,
+        routeLegs: plan.routeLegs.map((leg) => ({
+          from: leg.from,
+          to: leg.to,
+          altitude: leg.altitude,
+        })),
+      }),
+    [plan.header.date, plan.header.plannedStartTime, plan.routeLegs],
+  )
+
+  useEffect(() => {
+    if (!plan.header.date || plan.routeLegs.length === 0) {
+      setAloftWindState({
+        status: 'idle',
+        winds: [],
+        error: null,
+        lastUpdatedAt: null,
+      })
+      return
+    }
+
+    const controller = new AbortController()
+    setAloftWindState((current) => ({
+      status: 'loading',
+      winds: current.winds,
+      error: null,
+      lastUpdatedAt: current.lastUpdatedAt,
+    }))
+
+    fetchRouteLegAloftWinds(plan.routeLegs, plan.header.date, plan.header.plannedStartTime, controller.signal)
+      .then((winds) => {
+        setAloftWindState({
+          status: 'ready',
+          winds,
+          error: null,
+          lastUpdatedAt: new Date().toISOString(),
+        })
+      })
+      .catch((error: unknown) => {
+        if (controller.signal.aborted) {
+          return
+        }
+
+        setAloftWindState((current) => ({
+          status: 'error',
+          winds: current.winds,
+          error: error instanceof Error ? error.message : 'Kunde inte hämta höjdvind från Open-Meteo.',
+          lastUpdatedAt: current.lastUpdatedAt,
+        }))
+      })
+
+    return () => controller.abort()
+  }, [plan.header.date, plan.header.plannedStartTime, plan.routeLegs, routeWindRequestKey])
+
+  const effectivePlan = useMemo<FlightPlanInput>(() => {
+    if (aloftWindState.winds.length === 0) {
+      return plan
+    }
+
+    return {
+      ...plan,
+      routeLegs: plan.routeLegs.map((leg, index) => {
+        if (leg.manualWind) {
+          return {
+            ...leg,
+            windDirection: leg.manualWind.direction,
+            windSpeedKt: leg.manualWind.speedKt,
+          }
+        }
+
+        const fetchedWind = aloftWindState.winds[index]
+        return fetchedWind
+          ? {
+              ...leg,
+              windDirection: fetchedWind.direction,
+              windSpeedKt: fetchedWind.speedKt,
+            }
+          : leg
+      }),
+    }
+  }, [aloftWindState.winds, plan])
+
+  const derived = calculateFlightPlan(effectivePlan, aircraftOptions)
+  const routeRows = useMemo(() => createRouteRows(effectivePlan, derived), [effectivePlan, derived])
+  const printRouteRows = useMemo(() => createRouteRows(effectivePlan, derived, 13), [effectivePlan, derived])
   const suggestedRadioNav = useMemo(() => buildSuggestedRadioNav(plan), [plan])
   const effectiveRadioNav = useMemo(
     () => mergeRadioNavEntries(plan.radioNav, suggestedRadioNav),
@@ -590,10 +773,68 @@ export function FlightplanApp({
     }))
   }
 
+  const updateRouteLeg = (
+    index: number,
+    updater: (leg: FlightPlanInput['routeLegs'][number]) => FlightPlanInput['routeLegs'][number],
+  ) => {
+    updatePlan((current) => ({
+      ...current,
+      routeLegs: current.routeLegs.map((leg, legIndex) => (legIndex === index ? updater(leg) : leg)),
+    }))
+  }
+
+  const updateManualWind = (index: number, value: string) => {
+    const normalized = value.trim()
+    if (!normalized) {
+      updateRouteLeg(index, (leg) => ({ ...leg, manualWind: null }))
+      return true
+    }
+
+    const match = normalized.match(/^(\d{1,3})\s*\/\s*(\d{1,3})$/)
+    if (!match) {
+      return false
+    }
+
+    updateRouteLeg(index, (leg) => ({
+      ...leg,
+      manualWind: {
+        direction: normalizeDegrees(Number(match[1])),
+        speedKt: Number(match[2]),
+      },
+    }))
+    return true
+  }
+
+  const updateAltitudeForRouteLeg = (index: number, altitude: string) => {
+    updateRouteLeg(index, (leg) => ({
+      ...leg,
+      altitude,
+    }))
+  }
+
+  const copyAltitudeFromLeg = (mode: 'all' | 'forward') => {
+    if (activeAltitudeLegIndex == null) {
+      return
+    }
+
+    const altitude = plan.routeLegs[activeAltitudeLegIndex]?.altitude
+    if (!altitude) {
+      return
+    }
+
+    updatePlan((current) => ({
+      ...current,
+      routeLegs: current.routeLegs.map((leg, index) => {
+        const shouldApply = mode === 'all' ? true : index >= activeAltitudeLegIndex
+        return shouldApply ? { ...leg, altitude } : leg
+      }),
+    }))
+  }
+
   const replaceRouteLegs = (routeLegs: FlightPlanInput['routeLegs']) => {
     updatePlan((current) => ({
       ...current,
-      routeLegs,
+      routeLegs: clearManualWindOverrides(routeLegs),
     }))
   }
 
@@ -608,6 +849,7 @@ export function FlightplanApp({
           ...current.routeLegs,
           {
             ...template,
+            manualWind: null,
             from: { ...template.to },
             to: {
               name: `Punkt ${current.routeLegs.length + 1}`,
@@ -639,7 +881,7 @@ export function FlightplanApp({
     setRowContextMenu(null)
     updatePlan((current) => ({
       ...current,
-      routeLegs: waypointsToLegs(nextWaypoints, current.routeLegs, derived.aircraft.cruiseTasKt),
+      routeLegs: clearManualWindOverrides(waypointsToLegs(nextWaypoints, current.routeLegs, derived.aircraft.cruiseTasKt)),
     }))
   }
 
@@ -688,6 +930,7 @@ export function FlightplanApp({
                 titleSlot={documentTitleSlot}
                 onHeaderChange={updateHeader}
                 weatherStatusLabel={weatherStatusLabel}
+                aloftWindStatus={aloftWindState}
                 onOpenWeatherPanel={() => {
                   setActivePanel('weather')
                   setWeatherRefreshToken((current) => current + 1)
@@ -705,6 +948,11 @@ export function FlightplanApp({
                 onOpenAircraftPicker={() => setActivePanel('aircraft')}
                 onRadioNavChange={updateRadioNav}
                 onAddRouteRow={addRouteLeg}
+                onManualWindChange={updateManualWind}
+                onAltitudeChange={updateAltitudeForRouteLeg}
+                activeAltitudeLegIndex={activeAltitudeLegIndex}
+                onAltitudeSelect={setActiveAltitudeLegIndex}
+                onCopyAltitude={copyAltitudeFromLeg}
                 onOpenRowMenu={(x, y, rowIndex) => {
                   const clamped = clampContextMenuPosition(x, y)
                   setRowContextMenu({ x: clamped.x, y: clamped.y, rowIndex })
@@ -745,6 +993,7 @@ export function FlightplanApp({
                 radioNavEntries={effectiveRadioNav}
                 onHeaderChange={updateHeader}
                 weatherStatusLabel={weatherStatusLabel}
+                aloftWindStatus={aloftWindState}
                 onOpenWeatherPanel={() => {
                   setActivePanel('weather')
                   setWeatherRefreshToken((current) => current + 1)
@@ -761,6 +1010,11 @@ export function FlightplanApp({
                 }}
                 onOpenAircraftPicker={() => setActivePanel('aircraft')}
                 onRadioNavChange={updateRadioNav}
+                onManualWindChange={updateManualWind}
+                onAltitudeChange={updateAltitudeForRouteLeg}
+                activeAltitudeLegIndex={activeAltitudeLegIndex}
+                onAltitudeSelect={setActiveAltitudeLegIndex}
+                onCopyAltitude={copyAltitudeFromLeg}
               />
             </section>
 
@@ -776,7 +1030,7 @@ export function FlightplanApp({
                   <span>{formatNumber(derived.totals.distanceNm, 1)} nm</span>
                 </div>
               </div>
-              <RoutePreview legs={plan.routeLegs} />
+              <RoutePreview legs={effectivePlan.routeLegs} />
             </section>
           </div>
         )}
@@ -1316,6 +1570,124 @@ export function FlightplanApp({
   )
 }
 
+function WindCellInput({
+  value,
+  isManual,
+  onCommit,
+}: {
+  value: string
+  isManual: boolean
+  onCommit: (value: string) => boolean
+}) {
+  const [draft, setDraft] = useState(value)
+
+  useEffect(() => {
+    setDraft(value)
+  }, [value])
+
+  const commit = () => {
+    const success = onCommit(draft)
+    if (!success) {
+      setDraft(value)
+    }
+  }
+
+  return (
+    <input
+      className={isManual ? 'fp-inline-wind-input is-manual' : 'fp-inline-wind-input'}
+      value={draft}
+      onChange={(event) => setDraft(event.target.value)}
+      onBlur={commit}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter') {
+          commit()
+          event.currentTarget.blur()
+        }
+
+        if (event.key === 'Escape') {
+          setDraft(value)
+          event.currentTarget.blur()
+        }
+      }}
+      aria-label="Vind"
+    />
+  )
+}
+
+function AltitudeCellSelect({
+  value,
+  trueTrack,
+  variation,
+  isActive,
+  onFocus,
+  onChange,
+}: {
+  value: string
+  trueTrack: number
+  variation: number
+  isActive: boolean
+  onFocus: () => void
+  onChange: (value: string) => void
+}) {
+  const [isOpen, setIsOpen] = useState(false)
+  const preferredTrack = normalizeDegrees(trueTrack - variation)
+  const hasCustomValue = value !== '' && !selectableAltitudesFt.some((altitudeFt) => formatAltitudeOption(altitudeFt) === value)
+  const showMenu = isOpen && isActive
+
+  return (
+    <div className={isActive ? 'fp-inline-altitude-dropdown is-active' : 'fp-inline-altitude-dropdown'}>
+      <button
+        type="button"
+        className="fp-inline-altitude-select"
+        onClick={() => {
+          onFocus()
+          setIsOpen((current) => !current)
+        }}
+        aria-haspopup="listbox"
+        aria-expanded={showMenu}
+      >
+        {value}
+      </button>
+      {showMenu && (
+        <div className="fp-inline-altitude-menu" role="listbox">
+          {hasCustomValue ? (
+            <button
+              type="button"
+              className="fp-inline-altitude-option"
+              onClick={() => {
+                onFocus()
+                onChange(value)
+                setIsOpen(false)
+              }}
+            >
+              <span>{value}</span>
+            </button>
+          ) : null}
+          {selectableAltitudesFt.map((altitudeFt) => {
+            const label = formatAltitudeOption(altitudeFt)
+            const preferred = isPreferredAltitude(preferredTrack, altitudeFt)
+            return (
+              <button
+                key={altitudeFt}
+                type="button"
+                className={preferred ? 'fp-inline-altitude-option' : 'fp-inline-altitude-option is-discouraged'}
+                onClick={() => {
+                  onFocus()
+                  onChange(label)
+                  setIsOpen(false)
+                }}
+              >
+                <span>{label}</span>
+                {!preferred ? <small>Ej enligt halvcirkel</small> : null}
+              </button>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function EditorNumber({
   label,
   value,
@@ -1379,6 +1751,7 @@ function FlightPlanDocument({
   titleSlot,
   onHeaderChange,
   weatherStatusLabel,
+  aloftWindStatus,
   onOpenWeatherPanel,
   notamStatusLabel,
   onOpenNotamPanel,
@@ -1387,6 +1760,11 @@ function FlightPlanDocument({
   onOpenAircraftPicker,
   onRadioNavChange,
   onAddRouteRow,
+  onManualWindChange,
+  onAltitudeChange,
+  activeAltitudeLegIndex,
+  onAltitudeSelect,
+  onCopyAltitude,
   onOpenRowMenu,
 }: {
   plan: FlightPlanInput
@@ -1396,6 +1774,7 @@ function FlightPlanDocument({
   titleSlot?: ReactNode
   onHeaderChange: (key: keyof FlightPlanInput['header'], value: string) => void
   weatherStatusLabel: string
+  aloftWindStatus: AloftWindState
   onOpenWeatherPanel: () => void
   notamStatusLabel: string
   onOpenNotamPanel: () => void
@@ -1404,6 +1783,11 @@ function FlightPlanDocument({
   onOpenAircraftPicker: () => void
   onRadioNavChange: (index: number, key: 'name' | 'frequency', value: string) => void
   onAddRouteRow?: () => void
+  onManualWindChange: (rowIndex: number, value: string) => boolean
+  onAltitudeChange: (rowIndex: number, altitude: string) => void
+  activeAltitudeLegIndex: number | null
+  onAltitudeSelect: (rowIndex: number) => void
+  onCopyAltitude: (mode: 'all' | 'forward') => void
   onOpenRowMenu?: (x: number, y: number, rowIndex: number) => void
 }) {
   const [pressTimer, setPressTimer] = useState<number | null>(null)
@@ -1440,7 +1824,12 @@ function FlightPlanDocument({
           </div>
         </div>
         <div className="fp-header-meta-grid">
-          <HeaderField label="Datum" className="fp-meta-date"><input type="date" value={plan.header.date} onChange={(event) => onHeaderChange('date', event.target.value)} /></HeaderField>
+          <HeaderField label="Planerad start" className="fp-meta-date">
+            <div className="fp-header-datetime">
+              <input type="date" value={plan.header.date} onChange={(event) => onHeaderChange('date', event.target.value)} />
+              <input type="time" value={plan.header.plannedStartTime} onChange={(event) => onHeaderChange('plannedStartTime', event.target.value)} />
+            </div>
+          </HeaderField>
           <HeaderField label="Registrering" className="fp-meta-registration">
             <button type="button" className="fp-header-picker" onClick={onOpenAircraftPicker}>
               <strong>{plan.aircraftRegistration}</strong>
@@ -1475,6 +1864,30 @@ function FlightPlanDocument({
       </section>
 
       <section className="fp-route-table__wrap">
+        <div className="fp-route-weather-meta">
+          <span>
+            Höjdvind: Open-Meteo
+            {aloftWindStatus.status === 'loading' ? ' · uppdaterar…' : ''}
+            {aloftWindStatus.lastUpdatedAt ? ` · senast hämtad ${formatLocalTimestamp(aloftWindStatus.lastUpdatedAt)}` : ''}
+          </span>
+          <div className="fp-route-weather-meta-actions">
+            {activeAltitudeLegIndex != null ? (
+              <>
+                <button type="button" className="fp-route-meta-button" onClick={() => onCopyAltitude('forward')}>
+                  Kopiera höjd framåt
+                </button>
+                <button type="button" className="fp-route-meta-button" onClick={() => onCopyAltitude('all')}>
+                  Kopiera höjd till alla
+                </button>
+              </>
+            ) : null}
+            {aloftWindStatus.status === 'error' && aloftWindStatus.error ? (
+              <strong>{aloftWindStatus.error}</strong>
+            ) : (
+              <small>Skriv direkt i `W/v`. Välj höjd i `Alt`.</small>
+            )}
+          </div>
+        </div>
         <table className="fp-route-table">
           <thead>
             <tr>
@@ -1503,7 +1916,24 @@ function FlightPlanDocument({
                 onPointerLeave={clearPressTimer}
                 onPointerMove={clearPressTimer}
               >
-                <td>{row.wind}</td><td>{row.tas}</td><td className="fp-highlight-cell">{row.tt}</td><td>{row.wca}</td><td>{row.th}</td><td>{row.variation}</td><td className="fp-highlight-cell">{row.mh}</td><td>{row.altitude}</td>
+                <td className={row.windManual ? 'fp-route-cell-button is-manual' : 'fp-route-cell-button'}>
+                  <WindCellInput
+                    value={row.wind}
+                    isManual={row.windManual}
+                    onCommit={(value) => onManualWindChange(row.index, value)}
+                  />
+                </td>
+                <td>{row.tas}</td><td className="fp-highlight-cell">{row.tt}</td><td>{row.wca}</td><td>{row.th}</td><td>{row.variation}</td><td className="fp-highlight-cell">{row.mh}</td>
+                <td className="fp-route-cell-button">
+                  <AltitudeCellSelect
+                    value={row.altitude}
+                    trueTrack={typeof row.tt === 'number' ? row.tt : 0}
+                    variation={typeof row.variation === 'number' ? row.variation : 0}
+                    isActive={activeAltitudeLegIndex === row.index}
+                    onFocus={() => onAltitudeSelect(row.index)}
+                    onChange={(nextAltitude) => onAltitudeChange(row.index, nextAltitude)}
+                  />
+                </td>
                 <td
                   className="fp-highlight-cell fp-route-link"
                   onClick={() => {
@@ -1650,7 +2080,7 @@ function RoutePreview({ legs }: { legs: FlightPlanInput['routeLegs'] }) {
         {legs.map((leg, index) => (
           <div key={`${getRoutePointLabel(leg.from)}-${getRoutePointLabel(leg.to)}-${index}`}>
             <strong>{getRoutePointLabel(leg.from)} → {getRoutePointLabel(leg.to)}</strong>
-            <span>{leg.altitude} ft · {leg.windDirection}/{leg.windSpeedKt} kt</span>
+            <span>{leg.altitude} · {leg.windDirection}/{leg.windSpeedKt} kt</span>
           </div>
         ))}
       </div>
