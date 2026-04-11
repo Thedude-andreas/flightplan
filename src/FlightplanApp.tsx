@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent, ReactNode } from 'react'
 import './features/flightplan/flightplan.css'
-import { aircraftProfiles, createInitialFlightPlan } from './features/flightplan/data'
+import { aircraftProfiles, createInitialFlightPlan, DEFAULT_ROUTE_TAS_KT } from './features/flightplan/data'
 import { calculateFlightPlan, formatNumber, formatTimeFromMinutes } from './features/flightplan/calculations'
 import { snapCoordinate } from './features/flightplan/coordinates'
 import { getRoutePointLabel, legsToWaypoints, useGazetteerVersion, waypointsToLegs } from './features/flightplan/gazetteer'
@@ -24,6 +24,7 @@ import { fetchLfvWeatherBriefing, fetchWeatherForAirports, getAirportsNearRoute,
 import { formatWeatherBriefingText, getRelevantLhpAreas } from './features/flightplan/weatherRoute'
 import { getRouteWeatherMatches } from './features/flightplan/weatherSigmet'
 import { fetchRouteLegAloftWinds, type RouteLegAloftWind } from './features/flightplan/openMeteoAloft'
+import { calculateRouteLegMagneticVariations } from './features/flightplan/magneticVariation'
 import type { AircraftProfile, FlightPlanInput, RadioNavEntry } from './features/flightplan/types'
 
 type EditorPanel = 'fuel' | 'weightBalance' | 'performance' | 'aircraft' | 'weather' | 'notam'
@@ -342,6 +343,22 @@ function formatAltitudeOption(altitudeFt: number) {
   return `${altitudeFt}'`
 }
 
+function formatDegreeCellValue(value: number | string) {
+  if (value === '') {
+    return ''
+  }
+
+  return typeof value === 'number' ? `${value}°` : value.includes('°') ? value : `${value}°`
+}
+
+function formatUnitCellValue(value: number | string, unit: string) {
+  if (value === '') {
+    return ''
+  }
+
+  return typeof value === 'number' ? `${value} ${unit}` : value.includes(unit) ? value : `${value} ${unit}`
+}
+
 function isPreferredAltitude(trackDegrees: number, altitudeFt: number) {
   const normalizedTrack = normalizeDegrees(trackDegrees)
   const oddSet = altitudeFt % 1000 === 500
@@ -505,16 +522,25 @@ export function FlightplanApp({
   }, [plan.header.date, plan.header.plannedStartTime, plan.routeLegs, routeWindRequestKey])
 
   const effectivePlan = useMemo<FlightPlanInput>(() => {
-    if (aloftWindState.winds.length === 0) {
-      return plan
-    }
+    const magneticVariations = calculateRouteLegMagneticVariations(
+      plan.routeLegs,
+      plan.header.date,
+      plan.header.plannedStartTime,
+    )
 
     return {
       ...plan,
       routeLegs: plan.routeLegs.map((leg, index) => {
+        const nextLeg = magneticVariations[index]
+          ? {
+              ...leg,
+              variation: magneticVariations[index].declination,
+            }
+          : leg
+
         if (leg.manualWind) {
           return {
-            ...leg,
+            ...nextLeg,
             windDirection: leg.manualWind.direction,
             windSpeedKt: leg.manualWind.speedKt,
           }
@@ -523,11 +549,11 @@ export function FlightplanApp({
         const fetchedWind = aloftWindState.winds[index]
         return fetchedWind
           ? {
-              ...leg,
+              ...nextLeg,
               windDirection: fetchedWind.direction,
               windSpeedKt: fetchedWind.speedKt,
             }
-          : leg
+          : nextLeg
       }),
     }
   }, [aloftWindState.winds, plan])
@@ -823,6 +849,20 @@ export function FlightplanApp({
     }))
   }
 
+  const updateTasForRouteLeg = (index: number, value: string) => {
+    const normalized = value.trim()
+    const parsed = Number(normalized)
+    if (!normalized || !Number.isFinite(parsed) || parsed <= 0) {
+      return false
+    }
+
+    updateRouteLeg(index, (leg) => ({
+      ...leg,
+      tasKt: Math.round(parsed),
+    }))
+    return true
+  }
+
   const applyAltitudeToRange = (sourceIndex: number, targetIndex: number, altitude: string) => {
     const start = Math.min(sourceIndex, targetIndex)
     const end = Math.max(sourceIndex, targetIndex)
@@ -989,7 +1029,7 @@ export function FlightplanApp({
     setRowContextMenu(null)
     updatePlan((current) => ({
       ...current,
-      routeLegs: clearManualWindOverrides(waypointsToLegs(nextWaypoints, current.routeLegs, derived.aircraft.cruiseTasKt)),
+      routeLegs: clearManualWindOverrides(waypointsToLegs(nextWaypoints, current.routeLegs, DEFAULT_ROUTE_TAS_KT)),
     }))
   }
 
@@ -1057,6 +1097,7 @@ export function FlightplanApp({
                 onRadioNavChange={updateRadioNav}
                 onAddRouteRow={addRouteLeg}
                 onManualWindChange={updateManualWind}
+                onTasChange={updateTasForRouteLeg}
                 onAltitudeChange={updateAltitudeForRouteLeg}
                 activeAltitudeLegIndex={activeAltitudeLegIndex}
                 onAltitudeSelect={setActiveAltitudeLegIndex}
@@ -1124,6 +1165,7 @@ export function FlightplanApp({
                 onOpenAircraftPicker={() => setActivePanel('aircraft')}
                 onRadioNavChange={updateRadioNav}
                 onManualWindChange={updateManualWind}
+                onTasChange={updateTasForRouteLeg}
                 onAltitudeChange={updateAltitudeForRouteLeg}
                 activeAltitudeLegIndex={activeAltitudeLegIndex}
                 onAltitudeSelect={setActiveAltitudeLegIndex}
@@ -1732,6 +1774,53 @@ function WindCellInput({
   )
 }
 
+function TasCellInput({
+  value,
+  onCommit,
+}: {
+  value: number | string
+  onCommit: (value: string) => boolean
+}) {
+  const [draft, setDraft] = useState(String(value))
+
+  useEffect(() => {
+    setDraft(String(value))
+  }, [value])
+
+  const commit = () => {
+    const success = onCommit(draft)
+    if (!success) {
+      setDraft(String(value))
+    }
+  }
+
+  return (
+    <span className="fp-inline-unit-field">
+      <input
+        className="fp-inline-tas-input"
+        value={draft}
+        size={Math.max(String(draft || value || '').length, 2)}
+        inputMode="numeric"
+        onChange={(event) => setDraft(event.target.value)}
+        onBlur={commit}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter') {
+            commit()
+            event.currentTarget.blur()
+          }
+
+          if (event.key === 'Escape') {
+            setDraft(String(value))
+            event.currentTarget.blur()
+          }
+        }}
+        aria-label="TAS"
+      />
+      <span className="fp-inline-unit-label">kt</span>
+    </span>
+  )
+}
+
 function AltitudeCellSelect({
   rowIndex,
   rootRef,
@@ -1906,6 +1995,7 @@ function FlightPlanDocument({
   onRadioNavChange,
   onAddRouteRow,
   onManualWindChange,
+  onTasChange,
   onAltitudeChange,
   activeAltitudeLegIndex,
   onAltitudeSelect,
@@ -1934,6 +2024,7 @@ function FlightPlanDocument({
   onRadioNavChange: (index: number, key: 'name' | 'frequency', value: string) => void
   onAddRouteRow?: () => void
   onManualWindChange: (rowIndex: number, value: string) => boolean
+  onTasChange: (rowIndex: number, value: string) => boolean
   onAltitudeChange: (rowIndex: number, altitude: string) => void
   activeAltitudeLegIndex: number | null
   onAltitudeSelect: (rowIndex: number) => void
@@ -2029,7 +2120,7 @@ function FlightPlanDocument({
             {aloftWindStatus.status === 'error' && aloftWindStatus.error ? (
               <strong>{aloftWindStatus.error}</strong>
             ) : (
-              <small>Skriv direkt i `W/v`. Välj höjd i `Alt`.</small>
+              <small>Skriv direkt i `W/v` och `TAS`. Välj höjd i `Alt`. `var` beräknas lokalt med WMM-2025.</small>
             )}
           </div>
         </div>
@@ -2068,7 +2159,17 @@ function FlightPlanDocument({
                     onCommit={(value) => onManualWindChange(row.index, value)}
                   />
                 </td>
-                <td>{row.tas}</td><td className="fp-highlight-cell">{row.tt}</td><td>{row.wca}</td><td>{row.th}</td><td>{row.variation}</td><td className="fp-highlight-cell">{row.mh}</td>
+                <td className="fp-route-cell-button">
+                  <TasCellInput
+                    value={typeof row.tas === 'number' ? row.tas : ''}
+                    onCommit={(value) => onTasChange(row.index, value)}
+                  />
+                </td>
+                <td className="fp-highlight-cell">{formatDegreeCellValue(row.tt)}</td>
+                <td>{formatDegreeCellValue(row.wca)}</td>
+                <td>{formatDegreeCellValue(row.th)}</td>
+                <td>{formatDegreeCellValue(row.variation)}</td>
+                <td className="fp-highlight-cell">{formatDegreeCellValue(row.mh)}</td>
                 <td className="fp-route-cell-button">
                   <AltitudeCellSelect
                     rowIndex={row.index}
@@ -2096,7 +2197,11 @@ function FlightPlanDocument({
                 >
                   {row.segment}
                 </td>
-                <td>{row.navRef}</td><td>{row.gs}</td><td>{row.distInt}</td><td>{row.distAcc}</td><td>{row.timeInt}</td><td>{row.timeAcc}</td><td>{row.notes}</td>
+                <td>{row.navRef}</td>
+                <td>{formatUnitCellValue(row.gs, 'kt')}</td>
+                <td>{formatUnitCellValue(row.distInt, 'nm')}</td>
+                <td>{formatUnitCellValue(row.distAcc, 'nm')}</td>
+                <td>{row.timeInt}</td><td>{row.timeAcc}</td><td>{row.notes}</td>
               </tr>
             ))}
           </tbody>

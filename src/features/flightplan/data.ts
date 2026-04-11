@@ -1,5 +1,7 @@
 import type { AircraftProfile, FlightPlanInput } from './types'
 
+export const DEFAULT_ROUTE_TAS_KT = 110
+
 function getLocalDateParts() {
   const formatter = new Intl.DateTimeFormat('sv-SE', {
     timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
@@ -100,8 +102,8 @@ const initialFlightPlanTemplate: FlightPlanInput = {
       windDirection: 220,
       windSpeedKt: 15,
       manualWind: null,
-      tasKt: 102,
-      variation: 6,
+      tasKt: DEFAULT_ROUTE_TAS_KT,
+      variation: 0,
       altitude: "2500'",
       navRef: 'UPP',
       notes: 'Utpassage norr',
@@ -112,8 +114,8 @@ const initialFlightPlanTemplate: FlightPlanInput = {
       windDirection: 230,
       windSpeedKt: 18,
       manualWind: null,
-      tasKt: 102,
-      variation: 6,
+      tasKt: DEFAULT_ROUTE_TAS_KT,
+      variation: 0,
       altitude: "3000'",
       navRef: 'GVE',
       notes: '',
@@ -124,8 +126,8 @@ const initialFlightPlanTemplate: FlightPlanInput = {
       windDirection: 240,
       windSpeedKt: 16,
       manualWind: null,
-      tasKt: 102,
-      variation: 6,
+      tasKt: DEFAULT_ROUTE_TAS_KT,
+      variation: 0,
       altitude: "3500'",
       navRef: 'SDH',
       notes: 'Kustlinje',

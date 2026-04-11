@@ -30,7 +30,9 @@ import {
 } from './aviationData'
 import { calculateFlightPlan, formatTimeFromMinutes } from './calculations'
 import { formatCoordinateDms } from './coordinates'
+import { DEFAULT_ROUTE_TAS_KT } from './data'
 import { getRoutePointLabel, legsToWaypoints, pointWithNearestName, waypointsToLegs } from './gazetteer'
+import { calculateRouteLegMagneticVariations } from './magneticVariation'
 import {
   classifyMetarFlightRules,
   classifyTafFlightRules,
@@ -897,12 +899,28 @@ export function FlightplanMapEditor({
   }, [hasPendingStartPoint, plan.routeLegs])
   const displayWaypoints = dragPreviewWaypoints ?? waypoints
   const previewRouteLegs = useMemo(
-    () => (displayWaypoints.length < 2 ? [] : waypointsToLegs(displayWaypoints, plan.routeLegs, derived.aircraft.cruiseTasKt)),
-    [derived.aircraft.cruiseTasKt, displayWaypoints, plan.routeLegs],
+    () => (displayWaypoints.length < 2 ? [] : waypointsToLegs(displayWaypoints, plan.routeLegs, DEFAULT_ROUTE_TAS_KT)),
+    [displayWaypoints, plan.routeLegs],
   )
+  const previewRouteLegsWithVariation = useMemo(() => {
+    const magneticVariations = calculateRouteLegMagneticVariations(
+      previewRouteLegs,
+      plan.header.date,
+      plan.header.plannedStartTime,
+    )
+
+    return previewRouteLegs.map((leg, index) =>
+      magneticVariations[index]
+        ? {
+            ...leg,
+            variation: magneticVariations[index].declination,
+          }
+        : leg,
+    )
+  }, [plan.header.date, plan.header.plannedStartTime, previewRouteLegs])
   const previewDerived = useMemo(
-    () => calculateFlightPlan({ ...plan, routeLegs: previewRouteLegs }, [derived.aircraft]),
-    [derived.aircraft, plan, previewRouteLegs],
+    () => calculateFlightPlan({ ...plan, routeLegs: previewRouteLegsWithVariation }, [derived.aircraft]),
+    [derived.aircraft, plan, previewRouteLegsWithVariation],
   )
   const center = useMemo<[number, number]>(() => {
     if (displayWaypoints.length === 0) {
@@ -1092,7 +1110,7 @@ export function FlightplanMapEditor({
   const setWaypoints = (nextWaypoints: typeof waypoints) => {
     setDragPreviewWaypoints(null)
     setActiveSegmentInsertIndex(null)
-    const nextLegs = waypointsToLegs(nextWaypoints, plan.routeLegs, derived.aircraft.cruiseTasKt)
+    const nextLegs = waypointsToLegs(nextWaypoints, plan.routeLegs, DEFAULT_ROUTE_TAS_KT)
     onRouteLegsChange(nextLegs)
   }
 
@@ -1168,8 +1186,8 @@ export function FlightplanMapEditor({
           to: nextPoint,
           windDirection: 220,
           windSpeedKt: 15,
-          tasKt: derived.aircraft.cruiseTasKt,
-          variation: 6,
+          tasKt: DEFAULT_ROUTE_TAS_KT,
+          variation: 0,
           altitude: "3000'",
           navRef: '',
           notes: '',
@@ -1211,8 +1229,8 @@ export function FlightplanMapEditor({
           to: nextPoint,
           windDirection: 220,
           windSpeedKt: 15,
-          tasKt: derived.aircraft.cruiseTasKt,
-          variation: 6,
+          tasKt: DEFAULT_ROUTE_TAS_KT,
+          variation: 0,
           altitude: "3000'",
           navRef: '',
           notes: '',

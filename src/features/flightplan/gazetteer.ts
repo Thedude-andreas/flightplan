@@ -2,6 +2,7 @@ import { useSyncExternalStore } from 'react'
 import type { RoutePointInput, RouteLegInput } from './types'
 import { getSwedishAirports } from './aviationData'
 import { formatCoordinateDms, snapCoordinate } from './coordinates'
+import { DEFAULT_ROUTE_TAS_KT } from './data'
 
 type AirportEntry = {
   icao: string
@@ -239,7 +240,7 @@ export function legsToWaypoints(legs: RouteLegInput[]): RoutePointInput[] {
 export function waypointsToLegs(
   waypoints: RoutePointInput[],
   previousLegs: RouteLegInput[],
-  defaultTasKt: number,
+  defaultTasKt = DEFAULT_ROUTE_TAS_KT,
 ): RouteLegInput[] {
   if (waypoints.length < 2) {
     return previousLegs
@@ -254,7 +255,7 @@ export function waypointsToLegs(
       windSpeedKt: previous?.windSpeedKt ?? 15,
       manualWind: previous?.manualWind ?? null,
       tasKt: previous?.tasKt ?? defaultTasKt,
-      variation: previous?.variation ?? 6,
+      variation: previous?.variation ?? 0,
       altitude: previous?.altitude ?? "3000'",
       navRef: previous?.navRef ?? '',
       notes: previous?.notes ?? '',

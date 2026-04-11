@@ -449,6 +449,7 @@
 }
 
 .flightplan-page .fp-inline-wind-input,
+.flightplan-page .fp-inline-tas-input,
 .flightplan-page .fp-inline-altitude-select {
   width: 100%;
   border: 0;
@@ -457,6 +458,26 @@
   color: inherit;
   text-align: center;
   padding: 0;
+}
+
+.flightplan-page .fp-inline-unit-field {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+.flightplan-page .fp-inline-tas-input {
+  width: fit-content;
+  min-width: 2ch;
+  flex: 0 0 auto;
+}
+
+.flightplan-page .fp-inline-unit-label {
+  white-space: nowrap;
 }
 
 .flightplan-page .fp-inline-wind-input.is-manual {
