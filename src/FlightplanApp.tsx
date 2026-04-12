@@ -29,6 +29,8 @@ import type { AircraftProfile, FlightPlanInput, RadioNavEntry } from './features
 
 type EditorPanel = 'fuel' | 'weightBalance' | 'performance' | 'aircraft' | 'weather' | 'notam'
 type WorkspaceTab = 'flightplan' | 'map' | 'print'
+const aloftWindAutoFetchStorageKey = 'flightplan.aloftWindAutoFetch.v1'
+
 type RouteRow = {
   index: number
   wind: string
@@ -263,6 +265,7 @@ function emptyRouteRow(index: number): RouteRow {
 function createRouteRows(
   plan: FlightPlanInput,
   derived: ReturnType<typeof calculateFlightPlan>,
+  autoFetchWindEnabled: boolean,
   targetLength?: number,
 ): RouteRow[] {
   const hasPendingStartPoint =
@@ -278,27 +281,38 @@ function createRouteRows(
     return Array.from({ length: targetLength }, (_, index) => emptyRouteRow(index))
   }
 
-  const rows: RouteRow[] = derived.routeLegs.map((leg, index) => ({
-    index,
-    wind: leg.windText,
-    windManual: Boolean(plan.routeLegs[index].manualWind),
-    tas: plan.routeLegs[index].tasKt,
-    tt: leg.trueTrack,
-    mt: normalizeDegrees(leg.trueTrack - plan.routeLegs[index].variation),
-    wca: leg.windCorrectionAngle,
-    th: leg.trueHeading,
-    variation: plan.routeLegs[index].variation,
-    mh: leg.magneticHeading,
-    altitude: plan.routeLegs[index].altitude,
-    segment: leg.segmentName,
-    navRef: plan.routeLegs[index].navRef,
-    gs: leg.groundSpeedKt,
-    distInt: leg.distanceNm,
-    distAcc: leg.accumulatedDistanceNm,
-    timeInt: formatTimeFromMinutes(leg.legTimeMinutes),
-    timeAcc: formatTimeFromMinutes(leg.accumulatedTimeMinutes),
-    notes: plan.routeLegs[index].notes,
-  }))
+  const rows: RouteRow[] = derived.routeLegs.map((leg, index) => {
+    const sourceLeg = plan.routeLegs[index]
+    const manualWind = sourceLeg.manualWind
+    const hasStoredWind = sourceLeg.windDirection > 0 || sourceLeg.windSpeedKt > 0
+    const displayWind = manualWind
+      ? `${manualWind.direction}/${manualWind.speedKt}`
+      : autoFetchWindEnabled || hasStoredWind
+        ? `${sourceLeg.windDirection}/${sourceLeg.windSpeedKt}`
+        : ''
+
+    return {
+      index,
+      wind: displayWind,
+      windManual: Boolean(manualWind),
+      tas: sourceLeg.tasKt,
+      tt: leg.trueTrack,
+      mt: normalizeDegrees(leg.trueTrack - sourceLeg.variation),
+      wca: leg.windCorrectionAngle,
+      th: leg.trueHeading,
+      variation: sourceLeg.variation,
+      mh: leg.magneticHeading,
+      altitude: sourceLeg.altitude,
+      segment: leg.segmentName,
+      navRef: sourceLeg.navRef,
+      gs: leg.groundSpeedKt,
+      distInt: leg.distanceNm,
+      distAcc: leg.accumulatedDistanceNm,
+      timeInt: formatTimeFromMinutes(leg.legTimeMinutes),
+      timeAcc: formatTimeFromMinutes(leg.accumulatedTimeMinutes),
+      notes: sourceLeg.notes,
+    }
+  })
 
   if (!targetLength || rows.length >= targetLength) {
     return rows
@@ -333,11 +347,17 @@ function cloneFlightPlan(plan: FlightPlanInput): FlightPlanInput {
   }
 }
 
-function clearManualWindOverrides(routeLegs: FlightPlanInput['routeLegs']) {
-  return routeLegs.map((leg) => ({
-    ...leg,
-    manualWind: null,
-  }))
+function readStoredAloftWindAutoFetchEnabled() {
+  if (typeof window === 'undefined') {
+    return true
+  }
+
+  const raw = window.localStorage.getItem(aloftWindAutoFetchStorageKey)
+  if (raw == null) {
+    return true
+  }
+
+  return raw !== 'false'
 }
 
 const selectableAltitudesFt = Array.from({ length: 19 }, (_, index) => 500 + index * 500)
@@ -436,6 +456,7 @@ export function FlightplanApp({
   const [suppressNextAltitudeMenuClick, setSuppressNextAltitudeMenuClick] = useState(false)
   const altitudeMenuRootRef = useRef<HTMLDivElement | null>(null)
   const [weatherRefreshToken, setWeatherRefreshToken] = useState(0)
+  const [aloftWindAutoFetchEnabled, setAloftWindAutoFetchEnabled] = useState(readStoredAloftWindAutoFetchEnabled)
   const [aloftWindState, setAloftWindState] = useState<AloftWindState>({
     status: 'idle',
     winds: [],
@@ -481,6 +502,29 @@ export function FlightplanApp({
   )
 
   useEffect(() => {
+    window.localStorage.setItem(aloftWindAutoFetchStorageKey, String(aloftWindAutoFetchEnabled))
+  }, [aloftWindAutoFetchEnabled])
+
+  useEffect(() => {
+    if (!aloftWindAutoFetchEnabled) {
+      setAloftWindState((current) =>
+        current.lastUpdatedAt
+          ? {
+              status: 'ready',
+              winds: current.winds,
+              error: null,
+              lastUpdatedAt: current.lastUpdatedAt,
+            }
+          : {
+              status: 'idle',
+              winds: current.winds,
+              error: null,
+              lastUpdatedAt: null,
+            },
+      )
+      return
+    }
+
     if (!plan.header.date || plan.routeLegs.length === 0) {
       setAloftWindState({
         status: 'idle',
@@ -501,6 +545,40 @@ export function FlightplanApp({
 
     fetchRouteLegAloftWinds(plan.routeLegs, plan.header.date, plan.header.plannedStartTime, controller.signal)
       .then((winds) => {
+        setPlan((current) => {
+          const nextRouteLegs = current.routeLegs.map((leg, index) => {
+            const fetchedWind = winds[index]
+            if (!fetchedWind) {
+              return leg
+            }
+
+            return {
+              ...leg,
+              windDirection: fetchedWind.direction,
+              windSpeedKt: fetchedWind.speedKt,
+              manualWind: null,
+            }
+          })
+
+          const hasChanges = nextRouteLegs.some((leg, index) => {
+            const currentLeg = current.routeLegs[index]
+            return (
+              leg.windDirection !== currentLeg?.windDirection ||
+              leg.windSpeedKt !== currentLeg?.windSpeedKt ||
+              leg.manualWind !== currentLeg?.manualWind
+            )
+          })
+
+          if (!hasChanges) {
+            return current
+          }
+
+          return normalizePlanRadioNav({
+            ...current,
+            routeLegs: nextRouteLegs,
+          })
+        })
+
         setAloftWindState({
           status: 'ready',
           winds,
@@ -522,7 +600,7 @@ export function FlightplanApp({
       })
 
     return () => controller.abort()
-  }, [plan.header.date, plan.header.plannedStartTime, plan.routeLegs, routeWindRequestKey])
+  }, [aloftWindAutoFetchEnabled, routeWindRequestKey])
 
   const effectivePlan = useMemo<FlightPlanInput>(() => {
     const magneticVariations = calculateRouteLegMagneticVariations(
@@ -541,7 +619,7 @@ export function FlightplanApp({
             }
           : leg
 
-        if (leg.manualWind) {
+        if (!aloftWindAutoFetchEnabled && leg.manualWind) {
           return {
             ...nextLeg,
             windDirection: leg.manualWind.direction,
@@ -549,21 +627,20 @@ export function FlightplanApp({
           }
         }
 
-        const fetchedWind = aloftWindState.winds[index]
-        return fetchedWind
-          ? {
-              ...nextLeg,
-              windDirection: fetchedWind.direction,
-              windSpeedKt: fetchedWind.speedKt,
-            }
-          : nextLeg
+        return nextLeg
       }),
     }
-  }, [aloftWindState.winds, plan])
+  }, [aloftWindAutoFetchEnabled, plan])
 
   const derived = calculateFlightPlan(effectivePlan, aircraftOptions)
-  const routeRows = useMemo(() => createRouteRows(effectivePlan, derived), [effectivePlan, derived])
-  const printRouteRows = useMemo(() => createRouteRows(effectivePlan, derived, 13), [effectivePlan, derived])
+  const routeRows = useMemo(
+    () => createRouteRows(effectivePlan, derived, aloftWindAutoFetchEnabled),
+    [aloftWindAutoFetchEnabled, effectivePlan, derived],
+  )
+  const printRouteRows = useMemo(
+    () => createRouteRows(effectivePlan, derived, aloftWindAutoFetchEnabled, 13),
+    [aloftWindAutoFetchEnabled, effectivePlan, derived],
+  )
   const suggestedRadioNav = useMemo(() => buildSuggestedRadioNav(plan), [plan])
   const effectiveRadioNav = useMemo(
     () => mergeRadioNavEntries(plan.radioNav, suggestedRadioNav),
@@ -824,6 +901,10 @@ export function FlightplanApp({
   }
 
   const updateManualWind = (index: number, value: string) => {
+    if (aloftWindAutoFetchEnabled) {
+      return false
+    }
+
     const normalized = value.trim()
     if (!normalized) {
       updateRouteLeg(index, (leg) => ({ ...leg, manualWind: null }))
@@ -985,7 +1066,18 @@ export function FlightplanApp({
   const replaceRouteLegs = (routeLegs: FlightPlanInput['routeLegs']) => {
     updatePlan((current) => ({
       ...current,
-      routeLegs: clearManualWindOverrides(routeLegs),
+      routeLegs: routeLegs.map((leg, index) => {
+        if (aloftWindAutoFetchEnabled || index < current.routeLegs.length) {
+          return leg
+        }
+
+        return {
+          ...leg,
+          windDirection: 0,
+          windSpeedKt: 0,
+          manualWind: null,
+        }
+      }),
     }))
   }
 
@@ -1001,6 +1093,8 @@ export function FlightplanApp({
           {
             ...template,
             manualWind: null,
+            windDirection: aloftWindAutoFetchEnabled ? template.windDirection : 0,
+            windSpeedKt: aloftWindAutoFetchEnabled ? template.windSpeedKt : 0,
             from: { ...template.to },
             to: {
               name: `Punkt ${current.routeLegs.length + 1}`,
@@ -1032,7 +1126,7 @@ export function FlightplanApp({
     setRowContextMenu(null)
     updatePlan((current) => ({
       ...current,
-      routeLegs: clearManualWindOverrides(waypointsToLegs(nextWaypoints, current.routeLegs, DEFAULT_ROUTE_TAS_KT)),
+      routeLegs: waypointsToLegs(nextWaypoints, current.routeLegs, DEFAULT_ROUTE_TAS_KT),
     }))
   }
 
@@ -1082,6 +1176,8 @@ export function FlightplanApp({
                 onHeaderChange={updateHeader}
                 weatherStatusLabel={weatherStatusLabel}
                 aloftWindStatus={aloftWindState}
+                aloftWindAutoFetchEnabled={aloftWindAutoFetchEnabled}
+                onAloftWindAutoFetchChange={setAloftWindAutoFetchEnabled}
                 onOpenWeatherPanel={() => {
                   setActivePanel('weather')
                   setWeatherRefreshToken((current) => current + 1)
@@ -1125,6 +1221,7 @@ export function FlightplanApp({
               <FlightplanMapEditor
                 plan={plan}
                 derived={derived}
+                aloftWindAutoFetchEnabled={aloftWindAutoFetchEnabled}
                 aloftWinds={aloftWindState.winds}
                 aloftWindStatus={aloftWindState.status}
                 sigmetText={weatherState.sigmetText}
@@ -1153,6 +1250,8 @@ export function FlightplanApp({
                 onHeaderChange={updateHeader}
                 weatherStatusLabel={weatherStatusLabel}
                 aloftWindStatus={aloftWindState}
+                aloftWindAutoFetchEnabled={aloftWindAutoFetchEnabled}
+                onAloftWindAutoFetchChange={setAloftWindAutoFetchEnabled}
                 onOpenWeatherPanel={() => {
                   setActivePanel('weather')
                   setWeatherRefreshToken((current) => current + 1)
@@ -1738,10 +1837,12 @@ export function FlightplanApp({
 function WindCellInput({
   value,
   isManual,
+  disabled = false,
   onCommit,
 }: {
   value: string
   isManual: boolean
+  disabled?: boolean
   onCommit: (value: string) => boolean
 }) {
   const [draft, setDraft] = useState(value)
@@ -1761,6 +1862,7 @@ function WindCellInput({
     <input
       className={isManual ? 'fp-inline-wind-input is-manual' : 'fp-inline-wind-input'}
       value={draft}
+      disabled={disabled}
       onChange={(event) => setDraft(event.target.value)}
       onBlur={commit}
       onKeyDown={(event) => {
@@ -1991,6 +2093,8 @@ function FlightPlanDocument({
   onHeaderChange,
   weatherStatusLabel,
   aloftWindStatus,
+  aloftWindAutoFetchEnabled,
+  onAloftWindAutoFetchChange,
   onOpenWeatherPanel,
   notamStatusLabel,
   onOpenNotamPanel,
@@ -2020,6 +2124,8 @@ function FlightPlanDocument({
   onHeaderChange: (key: keyof FlightPlanInput['header'], value: string) => void
   weatherStatusLabel: string
   aloftWindStatus: AloftWindState
+  aloftWindAutoFetchEnabled: boolean
+  onAloftWindAutoFetchChange: (enabled: boolean) => void
   onOpenWeatherPanel: () => void
   notamStatusLabel: string
   onOpenNotamPanel: () => void
@@ -2116,16 +2222,39 @@ function FlightPlanDocument({
 
       <section className="fp-route-table__wrap">
         <div className="fp-route-weather-meta">
-          <span>
-            Höjdvind: Open-Meteo
-            {aloftWindStatus.status === 'loading' ? ' · uppdaterar…' : ''}
-            {aloftWindStatus.lastUpdatedAt ? ` · senast hämtad ${formatLocalTimestamp(aloftWindStatus.lastUpdatedAt)}` : ''}
-          </span>
+          <div className="fp-route-weather-meta-primary">
+            <span>Höjdvind: Open-Meteo</span>
+            <label className="fp-route-weather-toggle" aria-label="Hämta vind automatiskt">
+              <span>Hämta vind</span>
+              <button
+                type="button"
+                className="fp-route-weather-toggle__button"
+                role="switch"
+                aria-checked={aloftWindAutoFetchEnabled}
+                onClick={() => onAloftWindAutoFetchChange(!aloftWindAutoFetchEnabled)}
+              >
+                <span className="fp-route-weather-toggle__track" aria-hidden="true">
+                  <span className="fp-route-weather-toggle__thumb" />
+                </span>
+              </button>
+            </label>
+            {aloftWindAutoFetchEnabled ? (
+              <span>
+                {aloftWindStatus.status === 'loading' ? 'uppdaterar…' : null}
+                {aloftWindStatus.status === 'loading' && aloftWindStatus.lastUpdatedAt ? ' · ' : null}
+                {aloftWindStatus.lastUpdatedAt ? `senast hämtad ${formatLocalTimestamp(aloftWindStatus.lastUpdatedAt)}` : null}
+              </span>
+            ) : null}
+          </div>
           <div className="fp-route-weather-meta-actions">
             {aloftWindStatus.status === 'error' && aloftWindStatus.error ? (
               <strong>{aloftWindStatus.error}</strong>
             ) : (
-              <small>Skriv direkt i `W/v` och `TAS`. Välj höjd i `Alt`. `var` beräknas lokalt med WMM-2025.</small>
+              <small>
+                {aloftWindAutoFetchEnabled
+                  ? 'Vind hämtas automatiskt när ben, höjd eller planerad start ändras.'
+                  : 'När hämtning är av kan `W/v` ändras manuellt och värdet ligger kvar tills du ändrar det eller slår på hämtning.'}
+              </small>
             )}
           </div>
         </div>
@@ -2179,6 +2308,7 @@ function FlightPlanDocument({
                   <WindCellInput
                     value={row.wind}
                     isManual={row.windManual}
+                    disabled={aloftWindAutoFetchEnabled}
                     onCommit={(value) => onManualWindChange(row.index, value)}
                   />
                 </td>

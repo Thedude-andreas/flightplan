@@ -390,6 +390,57 @@
   color: #51473a;
 }
 
+.flightplan-page .fp-route-weather-meta-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.flightplan-page .fp-route-weather-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.flightplan-page .fp-route-weather-toggle__button {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+}
+
+.flightplan-page .fp-route-weather-toggle__track {
+  position: relative;
+  display: block;
+  width: 34px;
+  height: 18px;
+  border-radius: 999px;
+  background: #b8b09d;
+  transition: background 140ms ease;
+}
+
+.flightplan-page .fp-route-weather-toggle__button[aria-checked="true"] .fp-route-weather-toggle__track {
+  background: #1f6bff;
+}
+
+.flightplan-page .fp-route-weather-toggle__thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(21, 21, 21, 0.26);
+  transition: transform 140ms ease;
+}
+
+.flightplan-page .fp-route-weather-toggle__button[aria-checked="true"] .fp-route-weather-toggle__thumb {
+  transform: translateX(16px);
+}
+
 .flightplan-page .fp-route-weather-meta strong {
   color: #8f2d2d;
 }
@@ -484,6 +535,11 @@
   text-decoration: underline;
   text-underline-offset: 0.16rem;
   font-weight: 700;
+}
+
+.flightplan-page .fp-inline-wind-input:disabled {
+  opacity: 0.72;
+  cursor: default;
 }
 
 .flightplan-page .fp-inline-altitude-select {
