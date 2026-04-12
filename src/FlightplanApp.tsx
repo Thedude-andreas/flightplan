@@ -35,6 +35,7 @@ type RouteRow = {
   windManual: boolean
   tas: number | string
   tt: number | string
+  mt: number | string
   wca: number | string
   th: number | string
   variation: number | string
@@ -242,6 +243,7 @@ function emptyRouteRow(index: number): RouteRow {
     windManual: false,
     tas: '',
     tt: '',
+    mt: '',
     wca: '',
     th: '',
     variation: '',
@@ -282,6 +284,7 @@ function createRouteRows(
     windManual: Boolean(plan.routeLegs[index].manualWind),
     tas: plan.routeLegs[index].tasKt,
     tt: leg.trueTrack,
+    mt: normalizeDegrees(leg.trueTrack - plan.routeLegs[index].variation),
     wca: leg.windCorrectionAngle,
     th: leg.trueHeading,
     variation: plan.routeLegs[index].variation,
@@ -2127,9 +2130,27 @@ function FlightPlanDocument({
           </div>
         </div>
         <table className="fp-route-table">
+          <colgroup>
+            <col style={{ width: '7%' }} />
+            <col style={{ width: '5%' }} />
+            <col style={{ width: '4.2%' }} />
+            <col style={{ width: '4.2%' }} />
+            <col style={{ width: '4.2%' }} />
+            <col style={{ width: '4.2%' }} />
+            <col style={{ width: '4.2%' }} />
+            <col style={{ width: '4.2%' }} />
+            <col style={{ width: '6%' }} />
+            <col style={{ width: '16%' }} />
+            <col style={{ width: '5%' }} />
+            <col style={{ width: '6%' }} />
+            <col style={{ width: '6%' }} />
+            <col style={{ width: '5%' }} />
+            <col style={{ width: '5%' }} />
+            <col style={{ width: '13.8%' }} />
+          </colgroup>
           <thead>
             <tr>
-              <th>W/v</th><th>TAS</th><th>TT</th><th>WCA</th><th>TH</th><th>var</th><th>MH</th><th>Alt</th><th>STRÄCKA</th><th>VOR/NDB</th><th>GS</th><th>DIST INT</th><th>DIST ACC</th><th>TID INT</th><th>TID ACC</th><th>NOTERING</th>
+              <th>W/v</th><th>TAS</th><th>TT</th><th>WCA</th><th>TH</th><th>var</th><th>MT</th><th>MH</th><th>Alt</th><th>STRÄCKA</th><th>GS</th><th>DIST INT</th><th>DIST ACC</th><th>TID INT</th><th>TID ACC</th><th>NOTERING</th>
             </tr>
           </thead>
           <tbody>
@@ -2171,6 +2192,7 @@ function FlightPlanDocument({
                 <td>{formatDegreeCellValue(row.wca)}</td>
                 <td>{formatDegreeCellValue(row.th)}</td>
                 <td>{formatDegreeCellValue(row.variation)}</td>
+                <td className="fp-highlight-cell">{formatDegreeCellValue(row.mt)}</td>
                 <td className="fp-highlight-cell">{formatDegreeCellValue(row.mh)}</td>
                 <td className="fp-route-cell-button">
                   <AltitudeCellSelect
@@ -2199,7 +2221,6 @@ function FlightPlanDocument({
                 >
                   {row.segment}
                 </td>
-                <td>{row.navRef}</td>
                 <td>{formatUnitCellValue(row.gs, 'kt')}</td>
                 <td>{formatUnitCellValue(row.distInt, 'nm')}</td>
                 <td>{formatUnitCellValue(row.distAcc, 'nm')}</td>
