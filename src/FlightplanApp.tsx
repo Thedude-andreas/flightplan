@@ -1142,12 +1142,12 @@ export function FlightplanApp({
 
   const weatherStatusLabel =
     nearbyRouteAirports.length > 0
-      ? `LFV routeväder + ${nearbyRouteAirports.length} flygplatser`
-      : 'LFV routeväder'
+      ? `LFV routeväder väderbriefing + ${nearbyRouteAirports.length} flygplatser`
+      : 'LFV routeväder väderbriefing'
   const notamStatusLabel =
     nearbyRouteAirports.length > 0
-      ? `Ruttbriefing + ${nearbyRouteAirports.length} flygplatser`
-      : 'Öppna route-NOTAM'
+      ? `NOTAM-briefing + ${nearbyRouteAirports.length} flygplatser`
+      : 'NOTAM-briefing'
 
   return (
     <div className={`flightplan-page ${activeTab === 'map' ? 'is-map-view' : ''}`}>
@@ -2215,8 +2215,8 @@ function FlightPlanDocument({
               <small>{weatherStatusLabel}</small>
             </button>
           </HeaderField>
-          <HeaderField label="Blocktid" className="fp-meta-block-time"><strong>{formatTimeFromMinutes(derived.totals.blockTimeMinutes)}</strong></HeaderField>
-          <HeaderField label="Flygtid" className="fp-meta-flight-time"><strong>{formatTimeFromMinutes(derived.totals.flightTimeMinutes)}</strong></HeaderField>
+          <HeaderField label="Blocktid" className="fp-meta-block-time"><strong></strong></HeaderField>
+          <HeaderField label="Flygtid" className="fp-meta-flight-time"><strong></strong></HeaderField>
         </div>
       </section>
 
