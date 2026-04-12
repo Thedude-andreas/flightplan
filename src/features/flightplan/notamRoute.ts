@@ -4,6 +4,7 @@ import type { FlightPlanInput } from './types'
 import type { NotamSupplement } from './notam'
 
 const earthRadiusNm = 3440.065
+const METERS_PER_NAUTICAL_MILE = 1852
 
 type RoutePoint = {
   lat: number
@@ -302,6 +303,15 @@ function centroid(points: RoutePoint[]) {
   }
 }
 
+function hasCoordinateChain(rawText: string) {
+  const normalized = rawText
+    .replace(/\u2013|\u2014/g, '-')
+    .replace(/\u00a0/g, ' ')
+    .replace(/\s+/g, ' ')
+
+  return /(\d{6}(?:\.\d+)?[NS]\s+\d{7}(?:\.\d+)?[EW]|\d{6}(?:\.\d+)?[NS]\d{7}(?:\.\d+)?[EW])\s*-\s*(\d{6}(?:\.\d+)?[NS]\s+\d{7}(?:\.\d+)?[EW]|\d{6}(?:\.\d+)?[NS]\d{7}(?:\.\d+)?[EW])/i.test(normalized)
+}
+
 function isClosedPolygon(points: RoutePoint[], rawText: string) {
   if (points.length < 3) {
     return false
@@ -309,6 +319,10 @@ function isClosedPolygon(points: RoutePoint[], rawText: string) {
 
   if (/AREA\s+BOUNDED\s+BY|POLYGON/i.test(rawText)) {
     return true
+  }
+
+  if (!hasCoordinateChain(rawText)) {
+    return false
   }
 
   const first = points[0]
@@ -652,13 +666,18 @@ export type NotamMapOverlayFeature = {
 
 function extractCircleRadiusNm(rawText: string): number | null {
   const normalized = rawText.replace(/\s+/g, ' ')
-  const patterns = [
-    /(?:WI\s+A\s+)?CIRCLE\s+WITH\s+RADIUS\s+(\d+(?:\.\d+)?)\s*NM/i,
-    /(?:EN\s+)?CIRKEL\s+MED\s+RADIE\s+(\d+(?:\.\d+)?)\s*NM/i,
-    /INOM\s+EN\s+RADIE\s+AV\s+(\d+(?:\.\d+)?)\s*NM/i,
+  const patterns: Array<{ pattern: RegExp; unit: 'nm' | 'm' }> = [
+    { pattern: /(?:WI\s+A\s+)?CIRCLE\s+WITH\s+RADIUS\s+(\d+(?:\.\d+)?)\s*NM/i, unit: 'nm' },
+    { pattern: /(?:WI\s+A\s+)?CIRCLE\s+WITH\s+RADIUS\s+(\d+(?:\.\d+)?)\s*M(?:ETERS?|ETRES?)?\b/i, unit: 'm' },
+    { pattern: /(?:EN\s+)?CIRKEL\s+MED\s+RADIE\s+(\d+(?:\.\d+)?)\s*NM/i, unit: 'nm' },
+    { pattern: /(?:EN\s+)?CIRKEL\s+MED\s+RADIE\s+(\d+(?:\.\d+)?)\s*M(?:ETER)?\b/i, unit: 'm' },
+    { pattern: /INOM\s+EN\s+RADIE\s+AV\s+(\d+(?:\.\d+)?)\s*NM/i, unit: 'nm' },
+    { pattern: /INOM\s+EN\s+RADIE\s+AV\s+(\d+(?:\.\d+)?)\s*M(?:ETER)?\b/i, unit: 'm' },
+    { pattern: /WITHIN\s+A\s+RADIUS\s+OF\s+(\d+(?:\.\d+)?)\s*NM/i, unit: 'nm' },
+    { pattern: /WITHIN\s+A\s+RADIUS\s+OF\s+(\d+(?:\.\d+)?)\s*M(?:ETERS?|ETRES?)?\b/i, unit: 'm' },
   ]
 
-  for (const pattern of patterns) {
+  for (const { pattern, unit } of patterns) {
     const match = normalized.match(pattern)
     if (!match) {
       continue
@@ -666,7 +685,7 @@ function extractCircleRadiusNm(rawText: string): number | null {
 
     const value = Number(match[1])
     if (Number.isFinite(value) && value > 0) {
-      return value
+      return unit === 'm' ? value / METERS_PER_NAUTICAL_MILE : value
     }
   }
 
@@ -700,6 +719,10 @@ function shouldRenderAsPolyline(rawText: string, points: RoutePoint[]) {
 
   if (/AREA\s+BOUNDED\s+BY|POLYGON|CIRCLE\s+WITH\s+RADIUS/.test(normalized)) {
     return false
+  }
+
+  if (hasCoordinateChain(rawText)) {
+    return true
   }
 
   if (
@@ -797,6 +820,32 @@ function splitSupplementGeometrySections(rawText: string) {
   }
 
   return sections.length > 0 ? sections : [normalized]
+}
+
+function splitIndependentObstacleEntries(rawText: string) {
+  const normalized = rawText.replace(/\u00a0/g, ' ').trim()
+
+  if (/AREA\s+BOUNDED\s+BY|POLYGON/i.test(normalized) || hasCoordinateChain(normalized)) {
+    return [normalized]
+  }
+
+  const entryPattern = /(?=\b\d+\.\s+(?:Group of|Crane erected|Obstacle|Mast|Tower|Wind turbine|Windturbine|Light erected))/i
+  const parts = normalized
+    .split(entryPattern)
+    .map((entry) => entry.trim())
+    .filter(Boolean)
+
+  if (parts.length <= 1) {
+    return [normalized]
+  }
+
+  const headingMatch = normalized.match(/^(.*?)(?=\b1\.\s+(?:Group of|Crane erected|Obstacle|Mast|Tower|Wind turbine|Windturbine|Light erected))/i)
+  const heading = headingMatch?.[1]?.trim() ?? ''
+
+  return parts.map((entry) => {
+    const prefixed = heading && !entry.startsWith(heading) ? `${heading} ${entry}` : entry
+    return prefixed.trim()
+  })
 }
 
 function notamMapSourceLabel(source: NotamMapOverlayFeature['source']) {
@@ -918,10 +967,12 @@ export function buildNotamMapOverlayFeatures(
 
     const rawText = supplement.rawText ?? supplement.title
     for (const [index, section] of splitSupplementGeometrySections(rawText).entries()) {
-      pushGeometryFromCoordinateText(features, section, 'aip-sup', `sup-${supplement.id}-${index}`, {
-        id: supplement.id,
-        url: supplement.url,
-      })
+      for (const [entryIndex, entry] of splitIndependentObstacleEntries(section).entries()) {
+        pushGeometryFromCoordinateText(features, entry, 'aip-sup', `sup-${supplement.id}-${index}-${entryIndex}`, {
+          id: supplement.id,
+          url: supplement.url,
+        })
+      }
     }
   }
 
