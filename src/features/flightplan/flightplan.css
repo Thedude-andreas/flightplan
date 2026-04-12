@@ -1669,7 +1669,8 @@
 }
 
 .flightplan-page .fp-waypoint-icon,
-.flightplan-page .fp-direction-icon {
+.flightplan-page .fp-direction-icon,
+.flightplan-page .fp-wind-arrow-icon {
   background: transparent;
   border: 0;
 }
@@ -1702,6 +1703,41 @@
   stroke-width: 1.8;
   stroke-linecap: round;
   stroke-linejoin: round;
+}
+
+.flightplan-page .fp-wind-arrow-icon {
+  width: 40px !important;
+  height: 40px !important;
+  margin-left: -20px;
+  margin-top: -20px;
+}
+
+.flightplan-page .fp-wind-arrow-icon svg {
+  display: block;
+  width: 40px;
+  height: 40px;
+  overflow: visible;
+  filter: drop-shadow(0 1px 3px rgba(255, 255, 255, 0.88));
+}
+
+.flightplan-page .fp-wind-arrow-icon circle,
+.flightplan-page .fp-wind-arrow-icon line,
+.flightplan-page .fp-wind-arrow-icon path {
+  fill: none;
+  stroke: #0f172a;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.flightplan-page .fp-wind-arrow-icon circle {
+  fill: rgba(255, 253, 248, 0.88);
+  stroke: #0f172a;
+  stroke-width: 1.8;
+}
+
+.flightplan-page .fp-wind-arrow-icon path {
+  fill: #0f172a;
 }
 
 .flightplan-page .fp-route-leg-card { border: 1px solid #d3cbb8; border-radius: 0.85rem; padding: 0.9rem; background: #fffef9; }

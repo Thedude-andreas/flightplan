@@ -46,6 +46,7 @@ import {
 } from './weather'
 import { formatNotamText, type NotamMapOverlayFeature } from './notamRoute'
 import { getAllWeatherOverlays, type RouteWeatherOverlay } from './weatherSigmet'
+import type { RouteLegAloftWind } from './openMeteoAloft'
 import type { FlightPlanInput, FlightPlanDerived } from './types'
 
 type BasemapKey = 'topo' | 'osm' | 'hot'
@@ -54,6 +55,7 @@ type MapLayerPreferences = {
   airspaces: boolean
   weatherOverlays: boolean
   notamOverlays: boolean
+  aloftWindArrows: boolean
   navaids: boolean
   airports: boolean
   metar: boolean
@@ -68,6 +70,7 @@ const defaultMapLayerPreferences: MapLayerPreferences = {
   airspaces: true,
   weatherOverlays: true,
   notamOverlays: true,
+  aloftWindArrows: true,
   navaids: true,
   airports: true,
   metar: true,
@@ -177,6 +180,11 @@ function createMapLabelIcon(className: string, label: string) {
   })
 }
 
+function normalizeDegrees(value: number) {
+  const result = value % 360
+  return result < 0 ? result + 360 : result
+}
+
 const routeLineWeight = 6
 const airportLabelMinZoom = 8
 const airportMarkerRadiusPx = 4
@@ -211,6 +219,7 @@ function readStoredMapLayerPreferences(): MapLayerPreferences {
       airspaces: typeof parsed.airspaces === 'boolean' ? parsed.airspaces : defaultMapLayerPreferences.airspaces,
       weatherOverlays: typeof parsed.weatherOverlays === 'boolean' ? parsed.weatherOverlays : defaultMapLayerPreferences.weatherOverlays,
       notamOverlays: typeof parsed.notamOverlays === 'boolean' ? parsed.notamOverlays : defaultMapLayerPreferences.notamOverlays,
+      aloftWindArrows: typeof parsed.aloftWindArrows === 'boolean' ? parsed.aloftWindArrows : defaultMapLayerPreferences.aloftWindArrows,
       navaids: typeof parsed.navaids === 'boolean' ? parsed.navaids : defaultMapLayerPreferences.navaids,
       airports: typeof parsed.airports === 'boolean' ? parsed.airports : defaultMapLayerPreferences.airports,
       metar: typeof parsed.metar === 'boolean' ? parsed.metar : defaultMapLayerPreferences.metar,
@@ -613,6 +622,42 @@ function projectedMidpoint(
   }
 }
 
+function projectedOffsetMidpoint(
+  map: L.Map | null,
+  a: FlightPlanInput['routeLegs'][number]['from'],
+  b: FlightPlanInput['routeLegs'][number]['to'],
+  offsetPx: number,
+) {
+  if (!map) {
+    return midpoint(a, b)
+  }
+
+  const fromPoint = map.latLngToLayerPoint([a.lat, a.lon])
+  const toPoint = map.latLngToLayerPoint([b.lat, b.lon])
+  const dx = toPoint.x - fromPoint.x
+  const dy = toPoint.y - fromPoint.y
+  const length = Math.hypot(dx, dy)
+
+  if (length < 1e-6) {
+    return midpoint(a, b)
+  }
+
+  const centerPoint = L.point(
+    (fromPoint.x + toPoint.x) / 2,
+    (fromPoint.y + toPoint.y) / 2,
+  )
+  const offsetPoint = L.point(
+    centerPoint.x - (dy / length) * offsetPx,
+    centerPoint.y + (dx / length) * offsetPx,
+  )
+  const offsetLatLng = map.layerPointToLatLng(offsetPoint)
+
+  return {
+    lat: offsetLatLng.lat,
+    lon: offsetLatLng.lng,
+  }
+}
+
 function createChevronIcon(rotationDeg: number) {
   return divIcon({
     className: 'fp-direction-icon',
@@ -625,6 +670,56 @@ function createChevronIcon(rotationDeg: number) {
     `,
     iconSize: [16, 16],
     iconAnchor: [8, 8],
+  })
+}
+
+function createWindArrowIcon(directionFromDeg: number, speedKt: number) {
+  const rotationDeg = normalizeDegrees(directionFromDeg)
+  const roundedSpeedKt = Math.max(0, Math.round(speedKt / 5) * 5)
+  const pennants = Math.floor(roundedSpeedKt / 50)
+  const remainingAfterPennants = roundedSpeedKt % 50
+  const longBarbs = Math.floor(remainingAfterPennants / 10)
+  const shortBarb = remainingAfterPennants % 10 >= 5
+  const elementSpacing = 4.4
+  const firstElementY = 8.5
+
+  const calmWindMarkup =
+    roundedSpeedKt < 5
+      ? '<circle cx="20" cy="20" r="6.2" />'
+      : ''
+
+  const pennantMarkup = Array.from({ length: pennants }, (_, index) => {
+    const y = firstElementY + index * elementSpacing
+    return `<path d="M20 ${y} L20 ${y + elementSpacing} L29 ${y + elementSpacing - 0.2} Z" />`
+  }).join('')
+
+  const fullBarbMarkup = Array.from({ length: longBarbs }, (_, index) => {
+    const y = firstElementY + (pennants + index) * elementSpacing
+    return `<line x1="20" y1="${y}" x2="29" y2="${y + 4.6}" />`
+  }).join('')
+
+  const halfBarbMarkup = shortBarb
+    ? (() => {
+        const y = firstElementY + (pennants + longBarbs) * elementSpacing
+        return `<line x1="20" y1="${y}" x2="25.6" y2="${y + 2.9}" />`
+      })()
+    : ''
+
+  return divIcon({
+    className: 'fp-wind-arrow-icon',
+    html: `
+      <svg viewBox="0 0 40 40" aria-hidden="true">
+        <g transform="rotate(${rotationDeg} 20 20)">
+          ${roundedSpeedKt >= 5 ? '<line x1="20" y1="31" x2="20" y2="8" />' : ''}
+          ${calmWindMarkup}
+          ${pennantMarkup}
+          ${fullBarbMarkup}
+          ${halfBarbMarkup}
+        </g>
+      </svg>
+    `,
+    iconSize: [40, 40],
+    iconAnchor: [20, 20],
   })
 }
 
@@ -835,6 +930,8 @@ function RouteInsertDragHandler({
 export function FlightplanMapEditor({
   plan,
   derived,
+  aloftWinds = [],
+  aloftWindStatus = 'idle',
   sigmetText = null,
   notamMapFeatures = [],
   notamMapNotice = null,
@@ -848,6 +945,8 @@ export function FlightplanMapEditor({
 }: {
   plan: FlightPlanInput
   derived: FlightPlanDerived
+  aloftWinds?: RouteLegAloftWind[]
+  aloftWindStatus?: 'idle' | 'loading' | 'error' | 'ready'
   sigmetText?: string | null
   notamMapFeatures?: NotamMapOverlayFeature[]
   notamMapNotice?: string | null
@@ -882,6 +981,7 @@ export function FlightplanMapEditor({
   const showAirspaces = mapLayerPreferences.airspaces
   const showWeatherOverlays = mapLayerPreferences.weatherOverlays
   const showNotamOverlays = mapLayerPreferences.notamOverlays
+  const showAloftWindArrows = mapLayerPreferences.aloftWindArrows
   const showNavaids = mapLayerPreferences.navaids
   const showAirports = mapLayerPreferences.airports
   const showMetar = mapLayerPreferences.metar
@@ -1358,7 +1458,7 @@ export function FlightplanMapEditor({
                 aria-label="Öppna visningsmeny"
               >
                 Visning
-                <span>{enabledLayerCount}/7</span>
+                <span>{enabledLayerCount}/8</span>
               </button>
               {isMapLayerMenuOpen ? (
                 <div className="fp-map-layer-menu__popover" role="menu" aria-label="Kartdata">
@@ -1404,6 +1504,18 @@ export function FlightplanMapEditor({
                     label="NOTAM / AIP SUP"
                     meta={notamMapStatus === 'ready' ? `${notamMapFeatures.length} kartobjekt` : 'En-route och NAV-varningar'}
                     onToggle={() => toggleMapLayerPreference('notamOverlays')}
+                  />
+                  <MapLayerSwitch
+                    checked={showAloftWindArrows}
+                    label="Höjdvindar"
+                    meta={
+                      aloftWindStatus === 'loading'
+                        ? 'Open-Meteo uppdaterar höjdvind'
+                        : aloftWinds.length > 0
+                          ? `Open-Meteo längs rutten (${aloftWinds.length})`
+                          : 'Open-Meteo höjdvind längs rutten'
+                    }
+                    onToggle={() => toggleMapLayerPreference('aloftWindArrows')}
                   />
                   <MapLayerSwitch
                     checked={showNavaids}
@@ -1470,6 +1582,7 @@ export function FlightplanMapEditor({
           <ZoomControl position="topright" />
           <Pane name={notamMapPane} style={{ zIndex: 525 }} />
           <Pane name="fp-navaid-pane" style={{ zIndex: 530 }} />
+          <Pane name="fp-wind-pane" style={{ zIndex: 545 }} />
           <Pane name="fp-airport-pane" style={{ zIndex: 560 }} />
           <TileLayer attribution={basemaps[basemap].attribution} url={basemaps[basemap].url} />
           <MapInstanceHandler onReady={setMapInstance} />
@@ -1748,6 +1861,39 @@ export function FlightplanMapEditor({
                       mouseout: () => scheduleHideNotamInfoPanel(feature.id),
                     }}
                   />
+                )
+              })
+            : null}
+
+          {showAloftWindArrows
+            ? aloftWinds.map((wind, index) => {
+                const leg = plan.routeLegs[index]
+                if (!leg) {
+                  return null
+                }
+
+                return (
+                  <Marker
+                    key={`wind-${index}-${wind.requestedTime}-${wind.altitudeMetersMsl}`}
+                    pane="fp-wind-pane"
+                    position={(() => {
+                      const point = projectedOffsetMidpoint(mapInstance, leg.from, leg.to, 18)
+                      return [point.lat, point.lon] as [number, number]
+                    })()}
+                    icon={createWindArrowIcon(wind.direction, wind.speedKt)}
+                    keyboard={false}
+                    zIndexOffset={120}
+                    eventHandlers={{ mouseout: closeLeafletTooltipOnMouseOut }}
+                  >
+                    <Tooltip direction="top" offset={[0, -10]} opacity={0.95} className="fp-wind-arrow-tooltip">
+                      <div className="fp-airport-tooltip fp-wind-arrow-tooltip__content">
+                        <strong>{getRoutePointLabel(leg.from)} → {getRoutePointLabel(leg.to)}</strong>
+                        <span>Vind {wind.direction}° / {wind.speedKt} kt</span>
+                        <span>Höjd {leg.altitude || `${Math.round(wind.altitudeMetersMsl / 0.3048)}'`}</span>
+                        <span>{wind.requestedTime.replace('T', ' ')}</span>
+                      </div>
+                    </Tooltip>
+                  </Marker>
                 )
               })
             : null}

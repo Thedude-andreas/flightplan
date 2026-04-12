@@ -1122,6 +1122,8 @@ export function FlightplanApp({
               <FlightplanMapEditor
                 plan={plan}
                 derived={derived}
+                aloftWinds={aloftWindState.winds}
+                aloftWindStatus={aloftWindState.status}
                 sigmetText={weatherState.sigmetText}
                 notamMapFeatures={notamMapFeatures}
                 notamMapNotice={notamMapNotice}
