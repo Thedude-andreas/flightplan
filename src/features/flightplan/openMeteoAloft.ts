@@ -4,6 +4,10 @@ import { parseAltitudeFeet } from './weatherRoute'
 const OPEN_METEO_FORECAST_URL = 'https://api.open-meteo.com/v1/forecast'
 const PRESSURE_LEVELS = [1000, 975, 950, 925, 900, 850, 800, 700, 600, 500, 400, 300, 250, 200, 150, 100, 70, 50, 30] as const
 const METERS_PER_FOOT = 0.3048
+const ALOFT_CACHE_TTL_MS = 5 * 60 * 1000
+const OPEN_METEO_MAX_CONCURRENT_REQUESTS = 2
+const OPEN_METEO_MAX_RETRIES = 3
+const OPEN_METEO_RETRY_DELAY_MS = 1200
 
 export type AloftWind = {
   direction: number
@@ -24,6 +28,13 @@ type HourlyResponse = {
 type OpenMeteoForecastResponse = {
   hourly?: HourlyResponse
 }
+
+type CachedAloftWind = {
+  value: RouteLegAloftWind
+  cachedAtMs: number
+}
+
+const aloftWindCache = new Map<string, CachedAloftWind>()
 
 function round(value: number) {
   return Math.round(value)
@@ -95,6 +106,84 @@ function getHourlyNumberArray(hourly: HourlyResponse, key: string) {
   return Array.isArray(value) ? value : null
 }
 
+function getLegRequestCacheKey(
+  leg: FlightPlanInput['routeLegs'][number],
+  requestedTime: string,
+  timezone: string,
+) {
+  const midpoint = getMidpoint(leg)
+  const altitudeMetersMsl = round(getAltitudeMetersMsl(leg.altitude))
+  return [
+    midpoint.lat.toFixed(4),
+    midpoint.lon.toFixed(4),
+    altitudeMetersMsl,
+    requestedTime,
+    timezone,
+  ].join('|')
+}
+
+function readCachedLegAloftWind(cacheKey: string) {
+  const cached = aloftWindCache.get(cacheKey)
+  if (!cached) {
+    return null
+  }
+
+  if (Date.now() - cached.cachedAtMs > ALOFT_CACHE_TTL_MS) {
+    aloftWindCache.delete(cacheKey)
+    return null
+  }
+
+  return cached.value
+}
+
+function storeCachedLegAloftWind(cacheKey: string, value: RouteLegAloftWind) {
+  aloftWindCache.set(cacheKey, {
+    value,
+    cachedAtMs: Date.now(),
+  })
+}
+
+function parseRetryAfterMilliseconds(response: Response) {
+  const retryAfter = response.headers.get('retry-after')
+  if (!retryAfter) {
+    return null
+  }
+
+  const seconds = Number(retryAfter)
+  if (Number.isFinite(seconds) && seconds >= 0) {
+    return seconds * 1000
+  }
+
+  const timestampMs = Date.parse(retryAfter)
+  if (Number.isFinite(timestampMs)) {
+    return Math.max(0, timestampMs - Date.now())
+  }
+
+  return null
+}
+
+function waitForDelay(delayMs: number, signal: AbortSignal) {
+  return new Promise<void>((resolve, reject) => {
+    if (signal.aborted) {
+      reject(new DOMException('Aborted', 'AbortError'))
+      return
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      signal.removeEventListener('abort', onAbort)
+      resolve()
+    }, delayMs)
+
+    const onAbort = () => {
+      window.clearTimeout(timeoutId)
+      signal.removeEventListener('abort', onAbort)
+      reject(new DOMException('Aborted', 'AbortError'))
+    }
+
+    signal.addEventListener('abort', onAbort)
+  })
+}
+
 async function fetchLegAloftWind(
   leg: FlightPlanInput['routeLegs'][number],
   requestedTime: string,
@@ -103,6 +192,11 @@ async function fetchLegAloftWind(
 ): Promise<RouteLegAloftWind> {
   const midpoint = getMidpoint(leg)
   const altitudeMetersMsl = getAltitudeMetersMsl(leg.altitude)
+  const cacheKey = getLegRequestCacheKey(leg, requestedTime, timezone)
+  const cached = readCachedLegAloftWind(cacheKey)
+  if (cached) {
+    return cached
+  }
   const hourlyVariables = PRESSURE_LEVELS.flatMap((level) => [
     `wind_speed_${level}hPa`,
     `wind_direction_${level}hPa`,
@@ -118,9 +212,26 @@ async function fetchLegAloftWind(
   url.searchParams.set('start_hour', requestedTime)
   url.searchParams.set('end_hour', requestedTime)
 
-  const response = await fetch(url, { signal })
-  if (!response.ok) {
-    throw new Error(`Open-Meteo svarade med HTTP ${response.status}`)
+  let response: Response | null = null
+  for (let attempt = 0; attempt <= OPEN_METEO_MAX_RETRIES; attempt += 1) {
+    response = await fetch(url, { signal })
+    if (response.ok) {
+      break
+    }
+
+    if (response.status !== 429 || attempt === OPEN_METEO_MAX_RETRIES) {
+      throw new Error(`Open-Meteo svarade med HTTP ${response.status}`)
+    }
+
+    const retryDelayMs =
+      parseRetryAfterMilliseconds(response)
+      ?? OPEN_METEO_RETRY_DELAY_MS * (attempt + 1)
+
+    await waitForDelay(retryDelayMs, signal)
+  }
+
+  if (!response?.ok) {
+    throw new Error('Open-Meteo svarade inte med giltig höjdvind.')
   }
 
   const payload = (await response.json()) as OpenMeteoForecastResponse
@@ -167,12 +278,15 @@ async function fetchLegAloftWind(
           upperSample.wind,
         )
 
-  return {
+  const result = {
     ...wind,
     midpoint,
     altitudeMetersMsl: round(altitudeMetersMsl),
     requestedTime,
   }
+
+  storeCachedLegAloftWind(cacheKey, result)
+  return result
 }
 
 export async function fetchRouteLegAloftWinds(
@@ -187,5 +301,18 @@ export async function fetchRouteLegAloftWinds(
   }
 
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
-  return Promise.all(routeLegs.map((leg) => fetchLegAloftWind(leg, requestedTime, timezone, signal)))
+  const results = new Array<RouteLegAloftWind>(routeLegs.length)
+  let nextIndex = 0
+
+  async function runWorker() {
+    while (nextIndex < routeLegs.length) {
+      const currentIndex = nextIndex
+      nextIndex += 1
+      results[currentIndex] = await fetchLegAloftWind(routeLegs[currentIndex], requestedTime, timezone, signal)
+    }
+  }
+
+  const workerCount = Math.min(OPEN_METEO_MAX_CONCURRENT_REQUESTS, routeLegs.length)
+  await Promise.all(Array.from({ length: workerCount }, () => runWorker()))
+  return results
 }
