@@ -1459,8 +1459,15 @@ export function FlightplanMapEditor({
                 onClick={() => setIsMapLayerMenuOpen((open) => !open)}
                 aria-label="Öppna visningsmeny"
               >
-                Visning
-                <span>{enabledLayerCount}/8</span>
+                <span className="fp-map-layer-menu__button-main">
+                  <span className="fp-map-layer-menu__hamburger" aria-hidden="true">
+                    <i />
+                    <i />
+                    <i />
+                  </span>
+                  <span className="fp-map-layer-menu__label">Visning</span>
+                </span>
+                <span className="fp-map-layer-menu__count">{enabledLayerCount}/8</span>
               </button>
               {isMapLayerMenuOpen ? (
                 <div className="fp-map-layer-menu__popover" role="menu" aria-label="Kartdata">
