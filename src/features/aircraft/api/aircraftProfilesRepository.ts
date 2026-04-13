@@ -1,5 +1,5 @@
 import { getSupabaseClient } from '../../../lib/supabase/client'
-import type { CreateAircraftProfileInput, AircraftProfileRecord } from '../types'
+import type { CreateAircraftProfileInput, AircraftProfileRecord, UpdateAircraftProfileInput } from '../types'
 
 type AircraftProfileRow = {
   id: string
@@ -53,6 +53,21 @@ export async function listAircraftProfiles() {
   return ((data ?? []) as AircraftProfileRow[]).map(mapRecord)
 }
 
+export async function getAircraftProfileById(id: string) {
+  const supabase = requireClient()
+  const { data, error } = await supabase
+    .from('aircraft_profiles')
+    .select('id, owner_user_id, name, registration, type_name, visibility, payload, created_at, updated_at, archived_at')
+    .eq('id', id)
+    .maybeSingle()
+
+  if (error) {
+    throw error
+  }
+
+  return data ? mapRecord(data as AircraftProfileRow) : null
+}
+
 export async function createAircraftProfile(input: CreateAircraftProfileInput) {
   const supabase = requireClient()
   const {
@@ -86,4 +101,44 @@ export async function createAircraftProfile(input: CreateAircraftProfileInput) {
   }
 
   return mapRecord(data as AircraftProfileRow)
+}
+
+export async function updateAircraftProfile(id: string, input: UpdateAircraftProfileInput, expectedUpdatedAt?: string | null) {
+  const supabase = requireClient()
+  let query = supabase
+    .from('aircraft_profiles')
+    .update({
+      name: input.name,
+      registration: input.registration,
+      type_name: input.typeName,
+      visibility: input.visibility ?? 'private',
+      payload: input.payload,
+    })
+    .eq('id', id)
+
+  if (expectedUpdatedAt) {
+    query = query.eq('updated_at', expectedUpdatedAt)
+  }
+
+  const { data, error } = await query
+    .select('id, owner_user_id, name, registration, type_name, visibility, payload, created_at, updated_at, archived_at')
+    .single()
+
+  if (error) {
+    throw error
+  }
+
+  return mapRecord(data as AircraftProfileRow)
+}
+
+export async function deleteAircraftProfile(id: string) {
+  const supabase = requireClient()
+  const { error } = await supabase
+    .from('aircraft_profiles')
+    .update({ archived_at: new Date().toISOString() })
+    .eq('id', id)
+
+  if (error) {
+    throw error
+  }
 }

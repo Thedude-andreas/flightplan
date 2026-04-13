@@ -266,6 +266,7 @@ function createRouteRows(
   plan: FlightPlanInput,
   derived: ReturnType<typeof calculateFlightPlan>,
   autoFetchWindEnabled: boolean,
+  tasInputUnit: 'kt' | 'mph',
   targetLength?: number,
 ): RouteRow[] {
   const hasPendingStartPoint =
@@ -295,7 +296,7 @@ function createRouteRows(
       index,
       wind: displayWind,
       windManual: Boolean(manualWind),
-      tas: sourceLeg.tasKt,
+      tas: tasInputUnit === 'mph' ? Math.round(sourceLeg.tasKt / 0.8689762419) : sourceLeg.tasKt,
       tt: leg.trueTrack,
       mt: normalizeDegrees(leg.trueTrack - sourceLeg.variation),
       wca: leg.windCorrectionAngle,
@@ -633,13 +634,14 @@ export function FlightplanApp({
   }, [aloftWindAutoFetchEnabled, plan])
 
   const derived = calculateFlightPlan(effectivePlan, aircraftOptions)
+  const tasInputUnit = derived.aircraft.tasInputUnit ?? 'kt'
   const routeRows = useMemo(
-    () => createRouteRows(effectivePlan, derived, aloftWindAutoFetchEnabled),
-    [aloftWindAutoFetchEnabled, effectivePlan, derived],
+    () => createRouteRows(effectivePlan, derived, aloftWindAutoFetchEnabled, tasInputUnit),
+    [aloftWindAutoFetchEnabled, effectivePlan, derived, tasInputUnit],
   )
   const printRouteRows = useMemo(
-    () => createRouteRows(effectivePlan, derived, aloftWindAutoFetchEnabled, 13),
-    [aloftWindAutoFetchEnabled, effectivePlan, derived],
+    () => createRouteRows(effectivePlan, derived, aloftWindAutoFetchEnabled, tasInputUnit, 13),
+    [aloftWindAutoFetchEnabled, effectivePlan, derived, tasInputUnit],
   )
   const suggestedRadioNav = useMemo(() => buildSuggestedRadioNav(plan), [plan])
   const effectiveRadioNav = useMemo(
@@ -942,7 +944,7 @@ export function FlightplanApp({
 
     updateRouteLeg(index, (leg) => ({
       ...leg,
-      tasKt: Math.round(parsed),
+      tasKt: Math.round(tasInputUnit === 'mph' ? parsed * 0.8689762419 : parsed),
     }))
     return true
   }
@@ -1171,6 +1173,7 @@ export function FlightplanApp({
                 plan={plan}
                 derived={derived}
                 routeRows={routeRows}
+                tasInputUnit={tasInputUnit}
                 radioNavEntries={effectiveRadioNav}
                 titleSlot={documentTitleSlot}
                 onHeaderChange={updateHeader}
@@ -1246,6 +1249,7 @@ export function FlightplanApp({
                 plan={plan}
                 derived={derived}
                 routeRows={printRouteRows}
+                tasInputUnit={tasInputUnit}
                 radioNavEntries={effectiveRadioNav}
                 onHeaderChange={updateHeader}
                 weatherStatusLabel={weatherStatusLabel}
@@ -1883,9 +1887,11 @@ function WindCellInput({
 
 function TasCellInput({
   value,
+  unit,
   onCommit,
 }: {
   value: number | string
+  unit: 'kt' | 'mph'
   onCommit: (value: string) => boolean
 }) {
   const [draft, setDraft] = useState(String(value))
@@ -1902,7 +1908,7 @@ function TasCellInput({
   }
 
   return (
-    <span className="fp-inline-unit-field">
+    <span className={unit === 'mph' ? 'fp-inline-unit-field is-imperial' : 'fp-inline-unit-field'}>
       <input
         className="fp-inline-tas-input"
         value={draft}
@@ -1923,7 +1929,7 @@ function TasCellInput({
         }}
         aria-label="TAS"
       />
-      <span className="fp-inline-unit-label">kt</span>
+      <span className="fp-inline-unit-label">{unit}</span>
     </span>
   )
 }
@@ -2088,6 +2094,7 @@ function FlightPlanDocument({
   plan,
   derived,
   routeRows,
+  tasInputUnit,
   radioNavEntries,
   titleSlot,
   onHeaderChange,
@@ -2119,6 +2126,7 @@ function FlightPlanDocument({
   plan: FlightPlanInput
   derived: ReturnType<typeof calculateFlightPlan>
   routeRows: RouteRow[]
+  tasInputUnit: 'kt' | 'mph'
   radioNavEntries: RadioNavEntry[]
   titleSlot?: ReactNode
   onHeaderChange: (key: keyof FlightPlanInput['header'], value: string) => void
@@ -2279,7 +2287,7 @@ function FlightPlanDocument({
           </colgroup>
           <thead>
             <tr>
-              <th>W/v</th><th>TAS</th><th>TT</th><th>WCA</th><th>TH</th><th>var</th><th>MT</th><th>MH</th><th>Alt</th><th>STRÄCKA</th><th>GS</th><th>DIST INT</th><th>DIST ACC</th><th>TID INT</th><th>TID ACC</th><th>NOTERING</th>
+              <th>W/v</th><th className={tasInputUnit === 'mph' ? 'fp-tas-heading is-imperial' : 'fp-tas-heading'}>{`TAS (${tasInputUnit})`}</th><th>TT</th><th>WCA</th><th>TH</th><th>var</th><th>MT</th><th>MH</th><th>Alt</th><th>STRÄCKA</th><th>GS</th><th>DIST INT</th><th>DIST ACC</th><th>TID INT</th><th>TID ACC</th><th>NOTERING</th>
             </tr>
           </thead>
           <tbody>
@@ -2312,9 +2320,10 @@ function FlightPlanDocument({
                     onCommit={(value) => onManualWindChange(row.index, value)}
                   />
                 </td>
-                <td className="fp-route-cell-button">
+                <td className={tasInputUnit === 'mph' ? 'fp-route-cell-button fp-route-cell-button--imperial' : 'fp-route-cell-button'}>
                   <TasCellInput
                     value={typeof row.tas === 'number' ? row.tas : ''}
+                    unit={tasInputUnit}
                     onCommit={(value) => onTasChange(row.index, value)}
                   />
                 </td>

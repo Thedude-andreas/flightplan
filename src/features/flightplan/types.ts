@@ -2,6 +2,7 @@ export type AircraftProfile = {
   registration: string
   typeName: string
   callsign: string
+  tasInputUnit?: 'kt' | 'mph'
   cruiseTasKt: number
   fuelBurnLph: number
   fuelDensityKgPerLiter: number

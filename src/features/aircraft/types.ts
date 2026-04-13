@@ -1,4 +1,4 @@
-import type { AircraftProfile } from '../flightplan/types'
+import type { AircraftProfile } from './profileTypes'
 import type { Visibility } from '../../shared/types/persistence'
 
 export type AircraftProfileRecord = {
@@ -21,3 +21,5 @@ export type CreateAircraftProfileInput = {
   visibility?: Visibility
   payload: AircraftProfile
 }
+
+export type UpdateAircraftProfileInput = CreateAircraftProfileInput

@@ -521,6 +521,12 @@
   margin: 0 auto;
 }
 
+.flightplan-page .fp-inline-unit-field.is-imperial,
+.flightplan-page .fp-route-cell-button--imperial,
+.flightplan-page .fp-tas-heading.is-imperial {
+  background: rgba(145, 84, 18, 0.12);
+}
+
 .flightplan-page .fp-inline-tas-input {
   width: fit-content;
   min-width: 2ch;

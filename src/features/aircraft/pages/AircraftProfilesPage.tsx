@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getErrorMessage } from '../../../lib/supabase/errors'
-import { createAircraftProfile, listAircraftProfiles } from '../api/aircraftProfilesRepository'
+import { deleteAircraftProfile, listAircraftProfiles } from '../api/aircraftProfilesRepository'
 import type { AircraftProfileRecord } from '../types'
-import { aircraftProfiles } from '../../flightplan/data'
+import './aircraft.css'
 
 function formatDateTime(value: string) {
   return new Intl.DateTimeFormat('sv-SE', {
@@ -15,7 +15,6 @@ function formatDateTime(value: string) {
 export function AircraftProfilesPage() {
   const [profiles, setProfiles] = useState<AircraftProfileRecord[]>([])
   const [loading, setLoading] = useState(true)
-  const [creating, setCreating] = useState(false)
   const [error, setError] = useState('')
 
   async function loadProfiles() {
@@ -35,32 +34,14 @@ export function AircraftProfilesPage() {
     void loadProfiles()
   }, [])
 
-  async function handleCreateTemplateProfile() {
-    const template = aircraftProfiles[0]
-    if (!template) {
-      return
-    }
-
-    setCreating(true)
+  async function handleDelete(id: string) {
     setError('')
 
     try {
-      const created = await createAircraftProfile({
-        name: `${template.registration} mall`,
-        registration: `${template.registration}-COPY`,
-        typeName: template.typeName,
-        payload: {
-          ...template,
-          registration: `${template.registration}-COPY`,
-          typeName: `${template.typeName} kopia`,
-        },
-      })
-
-      setProfiles((current) => [created, ...current])
+      await deleteAircraftProfile(id)
+      setProfiles((current) => current.filter((profile) => profile.id !== id))
     } catch (nextError) {
-      setError(getErrorMessage(nextError, 'Kunde inte skapa flygplansprofil.'))
-    } finally {
-      setCreating(false)
+      setError(getErrorMessage(nextError, 'Kunde inte ta bort flygplansprofilen.'))
     }
   }
 
@@ -70,11 +51,9 @@ export function AircraftProfilesPage() {
         <div>
           <p className="app-eyebrow">Flygplansprofiler</p>
           <h1>Mina flygplan</h1>
-          <p>Första kopplingen till Supabase. Listan visar privata profiler för inloggad användare.</p>
+          <p>Bygg profiler från registerlookup, SkyDemon-import eller manuell inmatning.</p>
         </div>
-        <button type="button" onClick={handleCreateTemplateProfile} disabled={creating}>
-          {creating ? 'Skapar...' : 'Skapa från mall'}
-        </button>
+        <Link to="/app/aircraft/new" className="button-link">Ny profil</Link>
       </div>
 
       {error && <p className="account-error">{error}</p>}
@@ -84,7 +63,7 @@ export function AircraftProfilesPage() {
       ) : profiles.length === 0 ? (
         <div className="app-card">
           <h2>Inga sparade profiler</h2>
-          <p>Börja med att skapa en profil från mallen. Nästa steg blir en riktig editorvy för profiler.</p>
+          <p>Skapa en tom profil eller importera en `.aircraft`-fil från SkyDemon.</p>
         </div>
       ) : (
         <div className="resource-list">
@@ -98,10 +77,15 @@ export function AircraftProfilesPage() {
                 <span className="resource-pill">{profile.visibility}</span>
               </div>
               <p>Senast uppdaterad {formatDateTime(profile.updatedAt)}</p>
+              <p>
+                {profile.payload.identity?.manufacturer || 'Okänd tillverkare'}
+                {profile.payload.identity?.model ? ` · ${profile.payload.identity.model}` : ''}
+                {profile.payload.registrySnapshot?.registeredOwners[0] ? ` · ${profile.payload.registrySnapshot.registeredOwners[0]}` : ''}
+              </p>
               <div className="resource-list__actions">
-                <Link to="/app/flightplans/new" className="button-link">
-                  Använd i ny färdplan
-                </Link>
+                <Link to={`/app/aircraft/${profile.id}`} className="button-link">Öppna</Link>
+                <Link to="/app/flightplans/new" className="button-link">Använd i ny färdplan</Link>
+                <button type="button" onClick={() => handleDelete(profile.id)}>Ta bort</button>
               </div>
             </article>
           ))}

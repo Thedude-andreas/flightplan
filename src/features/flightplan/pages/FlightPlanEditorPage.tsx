@@ -7,10 +7,12 @@ import { useNetworkStatus } from '../../../lib/network/useNetworkStatus'
 import { clearDraft, loadDraft, saveDraft } from '../../../lib/storage/draftStorage'
 import { getErrorMessage } from '../../../lib/supabase/errors'
 import type { DraftEnvelope, SaveState } from '../../../shared/types/persistence'
+import { listAircraftProfiles } from '../../aircraft/api/aircraftProfilesRepository'
+import { toLegacyAircraftProfile } from '../../aircraft/profileUtils'
 import { createFlightPlan, getFlightPlanById, updateFlightPlan } from '../api/flightPlansRepository'
 import { preloadSwedishAviationData } from '../aviationData'
-import { createEmptyFlightPlan, createInitialFlightPlan } from '../data'
-import type { FlightPlanInput } from '../types'
+import { aircraftProfiles as staticAircraftProfiles, createEmptyFlightPlan, createInitialFlightPlan } from '../data'
+import type { AircraftProfile, FlightPlanInput } from '../types'
 
 type FlightPlanDraftValue = {
   name: string
@@ -83,6 +85,22 @@ function serializePlan(plan: FlightPlanInput | null) {
   return plan ? JSON.stringify(plan) : ''
 }
 
+function createAircraftOptions(records: Awaited<ReturnType<typeof listAircraftProfiles>>) {
+  const mapped = records
+    .map((record) => toLegacyAircraftProfile(record.payload))
+    .filter((profile): profile is AircraftProfile => profile != null)
+
+  const seen = new Set<string>()
+  return [...mapped, ...staticAircraftProfiles].filter((profile) => {
+    if (seen.has(profile.registration)) {
+      return false
+    }
+
+    seen.add(profile.registration)
+    return true
+  })
+}
+
 export function FlightPlanEditorPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -106,6 +124,7 @@ export function FlightPlanEditorPage() {
   const [editorRevision, setEditorRevision] = useState(0)
   const [editorActiveTab, setEditorActiveTab] = useState<EditorWorkspaceTab>('flightplan')
   const [editorMapViewport, setEditorMapViewport] = useState<FlightplanMapViewport | null>(null)
+  const [aircraftOptions, setAircraftOptions] = useState<AircraftProfile[]>(staticAircraftProfiles)
 
   const draftKey = useMemo(() => {
     if (!user) {
@@ -143,6 +162,11 @@ export function FlightPlanEditorPage() {
       didHydrateRef.current = false
 
       try {
+        const availableAircraftProfiles = await listAircraftProfiles().catch(() => [])
+        if (isActive) {
+          setAircraftOptions(createAircraftOptions(availableAircraftProfiles))
+        }
+
         if (id) {
           const record = await getFlightPlanById(id)
 
@@ -531,6 +555,7 @@ export function FlightPlanEditorPage() {
       <FlightplanApp
         key={`${recordId ?? 'new'}:${baseUpdatedAt ?? 'draft'}:${editorRevision}`}
         initialPlan={initialPlan}
+        initialAircraftOptions={aircraftOptions}
         initialActiveTab={editorActiveTab}
         initialMapViewport={editorMapViewport}
         documentTitleSlot={

@@ -1,0 +1,161 @@
+.aircraft-editor__grid {
+  display: grid;
+  gap: 20px;
+}
+
+.aircraft-section {
+  display: grid;
+  gap: 18px;
+}
+
+.aircraft-section__header,
+.aircraft-subsection__header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.aircraft-section h2,
+.aircraft-subsection h3 {
+  margin: 0;
+}
+
+.aircraft-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.aircraft-field {
+  display: grid;
+  gap: 8px;
+}
+
+.aircraft-field--wide {
+  grid-column: 1 / -1;
+}
+
+.aircraft-field span {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.aircraft-field input,
+.aircraft-field select,
+.aircraft-list__row input,
+.aircraft-list__row select {
+  min-height: 46px;
+  padding: 0 14px;
+  border: 1px solid rgba(18, 32, 42, 0.12);
+  border-radius: 14px;
+  background: #fff;
+}
+
+.aircraft-field small {
+  color: #566570;
+}
+
+.aircraft-unit-input {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  border: 1px solid rgba(18, 32, 42, 0.12);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.aircraft-unit-input input {
+  border: 0;
+  border-radius: 0;
+}
+
+.aircraft-unit-input strong {
+  display: grid;
+  place-items: center;
+  min-width: 72px;
+  padding: 0 12px;
+  font-size: 0.9rem;
+}
+
+.aircraft-unit-input--metric {
+  background: linear-gradient(135deg, rgba(10, 87, 122, 0.04), rgba(10, 87, 122, 0.09));
+}
+
+.aircraft-unit-input--metric strong,
+.aircraft-unit-chip--metric {
+  background: rgba(10, 87, 122, 0.12);
+  color: #0c5d7f;
+}
+
+.aircraft-unit-input--imperial {
+  background: linear-gradient(135deg, rgba(145, 84, 18, 0.05), rgba(145, 84, 18, 0.11));
+}
+
+.aircraft-unit-input--imperial strong,
+.aircraft-unit-chip--imperial {
+  background: rgba(145, 84, 18, 0.14);
+  color: #85490d;
+}
+
+.aircraft-unit-preview {
+  display: grid;
+  gap: 10px;
+}
+
+.aircraft-unit-chip {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-weight: 700;
+}
+
+.aircraft-subsection {
+  display: grid;
+  gap: 12px;
+}
+
+.aircraft-list,
+.aircraft-conflict-list,
+.aircraft-cruise-list {
+  display: grid;
+  gap: 12px;
+}
+
+.aircraft-list__row {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid rgba(18, 32, 42, 0.08);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.aircraft-cruise-card,
+.aircraft-conflict {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid rgba(18, 32, 42, 0.08);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.aircraft-note {
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(22, 56, 80, 0.06);
+  color: #2d4657;
+}
+
+.aircraft-section--conflicts {
+  border: 1px solid rgba(145, 84, 18, 0.2);
+}
+
+@media (max-width: 720px) {
+  .aircraft-section__header,
+  .aircraft-subsection__header {
+    flex-direction: column;
+  }
+}

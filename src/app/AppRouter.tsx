@@ -8,6 +8,9 @@ const AccountPage = lazy(async () => ({
 const AircraftProfilesPage = lazy(async () => ({
   default: (await import('../features/aircraft/pages/AircraftProfilesPage')).AircraftProfilesPage,
 }))
+const AircraftProfileEditorPage = lazy(async () => ({
+  default: (await import('../features/aircraft/pages/AircraftProfileEditorPage')).AircraftProfileEditorPage,
+}))
 const DashboardPage = lazy(async () => ({
   default: (await import('../features/dashboard/pages/DashboardPage')).DashboardPage,
 }))
@@ -62,6 +65,8 @@ export function AppRouter() {
             <Route path="flightplans/new" element={<FlightPlanEditorPage />} />
             <Route path="flightplans/:id" element={<FlightPlanEditorPage />} />
             <Route path="aircraft" element={<AircraftProfilesPage />} />
+            <Route path="aircraft/new" element={<AircraftProfileEditorPage />} />
+            <Route path="aircraft/:id" element={<AircraftProfileEditorPage />} />
             <Route path="account" element={<AccountPage />} />
           </Route>
         </Route>
