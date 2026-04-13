@@ -263,23 +263,78 @@ function MapLayerSwitch({
   )
 }
 
-function notamMapPathOptions(source: NotamMapOverlayFeature['source'], kind: 'area' | 'line') {
+function getOverlayStrokeWeight(
+  zoom: number,
+  profile: 'weather-area' | 'weather-line' | 'notam-area' | 'notam-line',
+) {
+  if (profile === 'weather-area') {
+    if (zoom <= 6) {
+      return 1
+    }
+    if (zoom <= 8) {
+      return 1.2
+    }
+    if (zoom <= 10) {
+      return 1.5
+    }
+    return 1.8
+  }
+
+  if (profile === 'weather-line') {
+    if (zoom <= 6) {
+      return 1.4
+    }
+    if (zoom <= 8) {
+      return 1.8
+    }
+    if (zoom <= 10) {
+      return 2.2
+    }
+    return 2.6
+  }
+
+  if (profile === 'notam-area') {
+    if (zoom <= 6) {
+      return 1
+    }
+    if (zoom <= 8) {
+      return 1.25
+    }
+    if (zoom <= 10) {
+      return 1.5
+    }
+    return 1.9
+  }
+
+  if (zoom <= 6) {
+    return 1.4
+  }
+  if (zoom <= 8) {
+    return 1.8
+  }
+  if (zoom <= 10) {
+    return 2.2
+  }
+  return 2.8
+}
+
+function notamMapPathOptions(source: NotamMapOverlayFeature['source'], kind: 'area' | 'line', zoom: number) {
   if (source === 'notam-enroute') {
     return kind === 'area'
       ? {
           color: '#b45309',
           fillColor: '#fcd34d',
           fillOpacity: 0.22,
-          weight: 2,
+          weight: getOverlayStrokeWeight(zoom, 'notam-area'),
           dashArray: '5 4' as const,
         }
-      : { color: '#b45309', weight: 3, opacity: 0.92, dashArray: '6 5' as const }
+      : { color: '#b45309', weight: getOverlayStrokeWeight(zoom, 'notam-line'), opacity: 0.92, dashArray: '6 5' as const }
   }
 
   if (source === 'notam-warning') {
     return kind === 'area'
-      ? { color: '#b91c1c', fillColor: '#fca5a5', fillOpacity: 0.22, weight: 2.5 }
-      : { color: '#b91c1c', weight: 3.5, opacity: 0.95, dashArray: '2 4' as const }
+      ? { color: '#b91c1c', fillColor: '#fca5a5', fillOpacity: 0.22, weight: getOverlayStrokeWeight(zoom, 'notam-area') + 0.15 }
+      : { color: '#b91c1c', weight: getOverlayStrokeWeight(zoom, 'notam-line') + 0.2, opacity: 0.95, dashArray: '2 4' as const }
   }
 
   return kind === 'area'
@@ -287,10 +342,10 @@ function notamMapPathOptions(source: NotamMapOverlayFeature['source'], kind: 'ar
         color: '#4338ca',
         fillColor: '#a5b4fc',
         fillOpacity: 0.2,
-        weight: 2,
+        weight: getOverlayStrokeWeight(zoom, 'notam-area'),
         dashArray: '8 4' as const,
       }
-    : { color: '#4338ca', weight: 3, opacity: 0.9, dashArray: '10 5' as const }
+    : { color: '#4338ca', weight: getOverlayStrokeWeight(zoom, 'notam-line'), opacity: 0.9, dashArray: '10 5' as const }
 }
 
 function createNotamMapSymbolIcon(source: NotamMapOverlayFeature['source']) {
@@ -1701,7 +1756,7 @@ export function FlightplanMapEditor({
                       positions={overlay.geometry.points.map((point) => [point.lat, point.lon] as [number, number])}
                       pathOptions={{
                         color: sigmetOverlayPalette.color,
-                        weight: 2,
+                        weight: getOverlayStrokeWeight(mapZoom, 'weather-area'),
                         fillColor: sigmetOverlayPalette.fillColor,
                         fillOpacity: 0.16,
                         dashArray: '6 4',
@@ -1720,7 +1775,7 @@ export function FlightplanMapEditor({
                       positions={overlay.geometry.points.map((point) => [point.lat, point.lon] as [number, number])}
                       pathOptions={{
                         color: sigmetOverlayPalette.lineColor,
-                        weight: 3,
+                        weight: getOverlayStrokeWeight(mapZoom, 'weather-line'),
                         opacity: 0.95,
                         dashArray: '8 6',
                       }}
@@ -1739,7 +1794,7 @@ export function FlightplanMapEditor({
                       radius={overlay.geometry.radiusNm * 1852}
                       pathOptions={{
                         color: sigmetOverlayPalette.color,
-                        weight: 2,
+                        weight: getOverlayStrokeWeight(mapZoom, 'weather-area'),
                         fillColor: sigmetOverlayPalette.fillColor,
                         fillOpacity: 0.12,
                         dashArray: '6 4',
@@ -1799,7 +1854,7 @@ export function FlightplanMapEditor({
                       pane={notamMapPane}
                       center={[lat, lon]}
                       radius={feature.radiusNm * 1852}
-                      pathOptions={notamMapPathOptions(feature.source, 'area')}
+                      pathOptions={notamMapPathOptions(feature.source, 'area', mapZoom)}
                       eventHandlers={{
                         mouseover: () => showNotamInfoPanel(feature),
                         mouseout: () => scheduleHideNotamInfoPanel(feature.id),
@@ -1832,7 +1887,7 @@ export function FlightplanMapEditor({
                       key={feature.id}
                       pane={notamMapPane}
                       positions={feature.positions}
-                      pathOptions={notamMapPathOptions(feature.source, 'area')}
+                      pathOptions={notamMapPathOptions(feature.source, 'area', mapZoom)}
                       eventHandlers={{
                         mouseover: () => showNotamInfoPanel(feature),
                         mouseout: () => scheduleHideNotamInfoPanel(feature.id),
@@ -1847,7 +1902,7 @@ export function FlightplanMapEditor({
                       key={feature.id}
                       pane={notamMapPane}
                       positions={feature.positions}
-                      pathOptions={notamMapPathOptions(feature.source, 'line')}
+                      pathOptions={notamMapPathOptions(feature.source, 'line', mapZoom)}
                       eventHandlers={{
                         mouseover: () => showNotamInfoPanel(feature),
                         mouseout: () => scheduleHideNotamInfoPanel(feature.id),
