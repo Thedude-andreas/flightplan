@@ -3,7 +3,6 @@ import type { PointerEvent as ReactPointerEvent, ReactNode } from 'react'
 import './features/flightplan/flightplan.css'
 import { aircraftProfiles, createInitialFlightPlan, DEFAULT_ROUTE_TAS_KT } from './features/flightplan/data'
 import { calculateFlightPlan, formatNumber, formatTimeFromMinutes } from './features/flightplan/calculations'
-import { snapCoordinate } from './features/flightplan/coordinates'
 import { getRoutePointLabel, legsToWaypoints, useGazetteerVersion, waypointsToLegs } from './features/flightplan/gazetteer'
 import { FlightplanMapEditor, type FlightplanMapViewport } from './features/flightplan/FlightplanMapEditor'
 import {
@@ -1195,33 +1194,6 @@ export function FlightplanApp({
     }))
   }
 
-  const addRouteLeg = () => {
-    updatePlan((current) => {
-      const lastLeg = current.routeLegs[current.routeLegs.length - 1]
-      const template = lastLeg ?? current.routeLegs[0]
-
-      return {
-        ...current,
-        routeLegs: [
-          ...current.routeLegs,
-          {
-            ...template,
-            manualWind: null,
-            windDirection: aloftWindAutoFetchEnabled ? template.windDirection : 0,
-            windSpeedKt: aloftWindAutoFetchEnabled ? template.windSpeedKt : 0,
-            from: { ...template.to },
-            to: {
-              name: `Punkt ${current.routeLegs.length + 1}`,
-              lat: snapCoordinate(template.to.lat + 0.25),
-              lon: snapCoordinate(template.to.lon + 0.2),
-            },
-            notes: '',
-          },
-        ].slice(0, 13),
-      }
-    })
-  }
-
   const removeWaypointFromRoute = (waypointIndex: number) => {
     if (plan.routeLegs.length <= 1) {
       return
@@ -1309,7 +1281,6 @@ export function FlightplanApp({
                 }}
                 onOpenAircraftPicker={() => setActivePanel('aircraft')}
                 onRadioNavChange={updateRadioNav}
-                onAddRouteRow={addRouteLeg}
                 onManualWindChange={updateManualWind}
                 onTasChange={updateTasForRouteLeg}
                 onAltitudeChange={updateAltitudeForRouteLeg}
@@ -2231,7 +2202,6 @@ function FlightPlanDocument({
   onRouteSegmentSelect,
   onOpenAircraftPicker,
   onRadioNavChange,
-  onAddRouteRow,
   onManualWindChange,
   onTasChange,
   onAltitudeChange,
@@ -2263,7 +2233,6 @@ function FlightPlanDocument({
   onRouteSegmentSelect: (rowIndex: number) => void
   onOpenAircraftPicker: () => void
   onRadioNavChange: (index: number, key: 'name' | 'frequency', value: string) => void
-  onAddRouteRow?: () => void
   onManualWindChange: (rowIndex: number, value: string) => boolean
   onTasChange: (rowIndex: number, value: string) => boolean
   onAltitudeChange: (rowIndex: number, altitude: string) => void
@@ -2490,13 +2459,6 @@ function FlightPlanDocument({
             ))}
           </tbody>
         </table>
-        {onAddRouteRow && (
-          <div className="fp-route-actions fp-no-print">
-            <button type="button" onClick={onAddRouteRow} disabled={routeRows.length >= 13}>
-              Lägg till rad
-            </button>
-          </div>
-        )}
       </section>
 
       <section className="fp-bottom-grid">

@@ -591,15 +591,6 @@
   background: #f1ecdf;
 }
 
-.flightplan-page .fp-route-actions { display: flex; justify-content: flex-end; margin-top: 0.75rem; }
-.flightplan-page .fp-route-actions button {
-  border: 1px solid #232323;
-  background: #f5f2e8;
-  color: #151515;
-  padding: 0.5rem 0.95rem;
-  border-radius: 12px;
-}
-
 .flightplan-page .fp-context-menu {
   position: fixed;
   z-index: 3000;
