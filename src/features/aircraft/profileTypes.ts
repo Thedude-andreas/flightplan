@@ -8,6 +8,7 @@ export type MeasurementUnit =
   | 'm'
   | 'ft'
   | 'mm'
+  | 'cm'
   | 'in'
 
 export type MeasurementValue = {
@@ -112,7 +113,7 @@ export type DescentProfile = {
 export type UnitPreferences = {
   weight: 'kg' | 'lb'
   fuelVolume: 'l' | 'gal_us'
-  arm: 'mm' | 'in'
+  arm: 'mm' | 'cm' | 'in'
   tas: 'kt' | 'mph'
   runwayDistance: 'm' | 'ft'
 }

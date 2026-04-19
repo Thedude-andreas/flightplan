@@ -3,6 +3,36 @@
   gap: 20px;
 }
 
+.aircraft-import-dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.aircraft-import-dialog__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(10, 18, 26, 0.48);
+  backdrop-filter: blur(6px);
+}
+
+.aircraft-import-dialog__panel {
+  position: relative;
+  z-index: 1;
+  width: min(720px, 100%);
+  display: grid;
+  gap: 18px;
+}
+
+.aircraft-import-dialog__panel--wide {
+  width: min(920px, 100%);
+  max-height: min(80vh, 920px);
+  overflow: auto;
+}
+
 .aircraft-section {
   display: grid;
   gap: 18px;
@@ -102,6 +132,11 @@
   gap: 10px;
 }
 
+.aircraft-unit-preview__internal {
+  font-size: 0.92rem;
+  color: #566570;
+}
+
 .aircraft-unit-chip {
   display: inline-flex;
   align-items: center;
@@ -132,6 +167,27 @@
   background: rgba(255, 255, 255, 0.78);
 }
 
+.aircraft-list__row--compact {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  align-items: end;
+}
+
+.aircraft-list__row--envelope .aircraft-unit-input strong {
+  min-width: 64px;
+}
+
+.aircraft-list__row--envelope {
+  grid-template-columns: minmax(220px, 1fr) minmax(220px, 1fr) auto;
+}
+
+.aircraft-list__row--envelope .aircraft-field {
+  min-width: 0;
+}
+
+.aircraft-list__row--envelope .aircraft-unit-input {
+  width: 100%;
+}
+
 .aircraft-cruise-card,
 .aircraft-conflict {
   display: grid;
@@ -142,11 +198,139 @@
   background: rgba(255, 255, 255, 0.78);
 }
 
+.aircraft-cruise-card.is-dragging {
+  opacity: 0.55;
+}
+
+.aircraft-cruise-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.aircraft-envelope-graph {
+  position: relative;
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid rgba(18, 32, 42, 0.08);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.aircraft-envelope-graph svg {
+  width: 100%;
+  height: auto;
+}
+
+.aircraft-envelope-graph__frame {
+  fill: rgba(12, 93, 127, 0.03);
+  stroke: rgba(18, 32, 42, 0.14);
+}
+
+.aircraft-envelope-graph__grid {
+  stroke: rgba(18, 32, 42, 0.1);
+  stroke-width: 1;
+}
+
+.aircraft-envelope-graph__label {
+  fill: #566570;
+  font-size: 10px;
+}
+
+.aircraft-envelope-graph__point {
+  fill: #0c5d7f;
+  cursor: default;
+}
+
+.aircraft-envelope-graph__station-line {
+  stroke: rgba(145, 84, 18, 0.5);
+  stroke-width: 1.5;
+}
+
+.aircraft-envelope-graph__fuel-line {
+  stroke: rgba(17, 112, 64, 0.55);
+  stroke-width: 1.5;
+}
+
+.aircraft-envelope-graph__station-label {
+  fill: #6f4316;
+  font-size: 10px;
+}
+
+.aircraft-envelope-graph__fuel-label {
+  fill: #117040;
+  font-size: 10px;
+}
+
+.aircraft-envelope-graph__axis-title {
+  fill: #243745;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.aircraft-envelope-graph__tooltip {
+  position: absolute;
+  transform: translate(-50%, calc(-100% - 10px));
+  display: grid;
+  gap: 4px;
+  min-width: 132px;
+  padding: 10px 12px;
+  border: 1px solid rgba(18, 32, 42, 0.12);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: 0 10px 22px rgba(18, 32, 42, 0.12);
+  color: #243745;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.aircraft-envelope-graph__tooltip strong {
+  font-size: 0.9rem;
+}
+
+.aircraft-envelope-graph__tooltip span {
+  font-size: 0.85rem;
+}
+
+.aircraft-choice-button {
+  min-height: 42px;
+  padding: 0 14px;
+  border: 1px solid rgba(18, 32, 42, 0.14);
+  border-radius: 12px;
+  background: #fff;
+}
+
+.aircraft-choice-button.is-selected {
+  border-color: #0c5d7f;
+  background: rgba(10, 87, 122, 0.09);
+  color: #0c5d7f;
+  font-weight: 700;
+}
+
 .aircraft-note {
   padding: 12px 14px;
   border-radius: 14px;
   background: rgba(22, 56, 80, 0.06);
   color: #2d4657;
+}
+
+.aircraft-warning {
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(145, 84, 18, 0.09);
+  border: 1px solid rgba(145, 84, 18, 0.18);
+  color: #6f4316;
+}
+
+.aircraft-import-preview {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border-radius: 16px;
+  background: rgba(12, 93, 127, 0.05);
+  border: 1px solid rgba(12, 93, 127, 0.12);
 }
 
 .aircraft-section--conflicts {

@@ -1,6 +1,21 @@
 import type { AircraftProfile, AircraftStation, FuelTank } from './profileTypes'
 import { createEmptyAircraftProfile, createMeasurement, createSourceRecord, normalizeRegistration } from './profileUtils'
 
+export type SkyDemonImportUnits = {
+  weightUnit: 'kg' | 'lb'
+  fuelVolumeUnit: 'l' | 'gal_us'
+  armUnit: 'mm' | 'cm' | 'in'
+}
+
+export type SkyDemonImportSamples = {
+  emptyArm: number | null
+  firstStationArm: number | null
+  firstFuelTankArm: number | null
+  emptyWeight: number | null
+  maxTakeoffWeight: number | null
+  maxFuel: number | null
+}
+
 function parseNumber(value: string | null) {
   if (!value) {
     return null
@@ -27,7 +42,7 @@ function parseBoolean(value: string | null) {
 function mapLoadingPoint(
   node: Element,
   weightUnit: 'kg' | 'lb',
-  armUnit: 'mm' | 'in',
+  armUnit: 'mm' | 'cm' | 'in',
 ): AircraftStation {
   const defaultValue = parseNumber(node.getAttribute('DefaultValue'))
   const maxValue = parseNumber(node.getAttribute('MaximumValue'))
@@ -48,7 +63,7 @@ function mapLoadingPoint(
 function mapFuelLoadingPoint(
   node: Element,
   volumeUnit: 'l' | 'gal_us',
-  armUnit: 'mm' | 'in',
+  armUnit: 'mm' | 'cm' | 'in',
 ): FuelTank {
   const leverArm = parseNumber(node.getAttribute('LeverArm'))
   const capacity = parseNumber(node.getAttribute('Capacity'))
@@ -65,7 +80,7 @@ function mapFuelLoadingPoint(
   }
 }
 
-export function parseSkyDemonAircraftXml(xmlText: string, fileName: string) {
+function parseAircraftDocument(xmlText: string) {
   const document = new DOMParser().parseFromString(xmlText, 'application/xml')
   const aircraft = document.querySelector('Aircraft')
 
@@ -77,9 +92,48 @@ export function parseSkyDemonAircraftXml(xmlText: string, fileName: string) {
     throw new Error('Kunde inte läsa SkyDemon-filen som XML.')
   }
 
+  return aircraft
+}
+
+export function detectSkyDemonImportUnits(xmlText: string): SkyDemonImportUnits {
+  const aircraft = parseAircraftDocument(xmlText)
+
   const fuelVolumeUnit = aircraft.getAttribute('FuelMeasurementVolumeType')?.toLowerCase().includes('gallon') ? 'gal_us' : 'l'
   const fuelMassUnit = aircraft.getAttribute('FuelMeasurementMassType')?.toLowerCase().includes('pound') ? 'lb' : 'kg'
   const armUnit = 'in'
+
+  return {
+    weightUnit: fuelMassUnit,
+    fuelVolumeUnit,
+    armUnit,
+  }
+}
+
+export function inspectSkyDemonImportSamples(xmlText: string): SkyDemonImportSamples {
+  const aircraft = parseAircraftDocument(xmlText)
+  const firstStation = aircraft.querySelector('LoadingPoints > LoadingPoint')
+  const firstFuelTank = aircraft.querySelector('LoadingPoints > FuelLoadingPoint')
+
+  return {
+    emptyArm: parseNumber(aircraft.getAttribute('EmptyArmLon')),
+    firstStationArm: parseNumber(firstStation?.getAttribute('LeverArm') ?? null),
+    firstFuelTankArm: parseNumber(firstFuelTank?.getAttribute('LeverArm') ?? null),
+    emptyWeight: parseNumber(aircraft.getAttribute('EmptyWeight')),
+    maxTakeoffWeight: parseNumber(aircraft.getAttribute('MaximumWeight')),
+    maxFuel: parseNumber(aircraft.getAttribute('MaxFuel')),
+  }
+}
+
+export function parseSkyDemonAircraftXml(
+  xmlText: string,
+  fileName: string,
+  overrides: Partial<SkyDemonImportUnits> = {},
+) {
+  const aircraft = parseAircraftDocument(xmlText)
+  const detectedUnits = detectSkyDemonImportUnits(xmlText)
+  const fuelVolumeUnit = overrides.fuelVolumeUnit ?? detectedUnits.fuelVolumeUnit
+  const fuelMassUnit = overrides.weightUnit ?? detectedUnits.weightUnit
+  const armUnit = overrides.armUnit ?? detectedUnits.armUnit
   const profile: AircraftProfile = createEmptyAircraftProfile('skydemon_import')
   const registration = normalizeRegistration(aircraft.getAttribute('Registration') ?? aircraft.getAttribute('Name') ?? '')
   const model = aircraft.getAttribute('Type')?.trim() ?? ''

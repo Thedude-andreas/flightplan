@@ -16,6 +16,7 @@ const POUNDS_PER_KILOGRAM = 2.2046226218
 const LITERS_PER_US_GALLON = 3.785411784
 const KNOTS_PER_MPH = 0.8689762419
 const FEET_PER_METER = 3.280839895
+const MILLIMETERS_PER_CENTIMETER = 10
 const MILLIMETERS_PER_INCH = 25.4
 
 function randomId(prefix: string) {
@@ -23,7 +24,11 @@ function randomId(prefix: string) {
 }
 
 export function normalizeRegistration(value: string) {
-  return value.trim().toUpperCase().replace(/^SE[- ]?/, 'SE-').replace(/[^A-Z0-9-]/g, '')
+  return value.trim().toUpperCase().replace(/[^A-Z0-9-]/g, '')
+}
+
+export function isValidSwedishRegistration(value: string) {
+  return /^SE-[A-Z]{3}$/.test(normalizeRegistration(value))
 }
 
 export function convertValue(value: number, from: MeasurementUnit, to: MeasurementUnit) {
@@ -41,6 +46,8 @@ export function convertValue(value: number, from: MeasurementUnit, to: Measureme
         return value * KNOTS_PER_MPH
       case 'ft':
         return value / FEET_PER_METER
+      case 'cm':
+        return value * MILLIMETERS_PER_CENTIMETER
       case 'in':
         return value * MILLIMETERS_PER_INCH
       default:
@@ -57,6 +64,8 @@ export function convertValue(value: number, from: MeasurementUnit, to: Measureme
       return metricValue / KNOTS_PER_MPH
     case 'ft':
       return metricValue * FEET_PER_METER
+    case 'cm':
+      return metricValue / MILLIMETERS_PER_CENTIMETER
     case 'in':
       return metricValue / MILLIMETERS_PER_INCH
     default:
@@ -130,7 +139,7 @@ export function createEmptyAircraftProfile(origin: AircraftSourceKind = 'manual'
     displayName: '',
     notes: '',
     identity: {
-      registration: '',
+      registration: 'SE-',
       manufacturer: '',
       model: '',
       variant: '',
