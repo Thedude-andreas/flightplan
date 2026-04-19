@@ -325,9 +325,101 @@ function createRouteRows(
 function cloneAircraftProfile(source: AircraftProfile): AircraftProfile {
   return {
     ...source,
-    armsMm: { ...source.armsMm },
+    stations: source.stations.map((station) => ({ ...station })),
+    fuelStation: { ...source.fuelStation },
     limits: { ...source.limits },
     performance: { ...source.performance },
+  }
+}
+
+function createStationLoadsForAircraft(aircraft: AircraftProfile) {
+  return aircraft.stations.map((station) => ({
+    stationId: station.id,
+    weightKg: station.defaultWeightKg ?? 0,
+  }))
+}
+
+function mapLegacyStationWeight(
+  station: AircraftProfile['stations'][number],
+  legacyWeightBalance: {
+    frontLeftKg?: number
+    frontRightKg?: number
+    rearLeftKg?: number
+    rearRightKg?: number
+    baggageKg?: number
+  },
+  seatIndex: number,
+) {
+  const stationName = station.name.toLowerCase()
+
+  if (station.kind === 'baggage' || stationName.includes('bagage')) {
+    return legacyWeightBalance.baggageKg ?? station.defaultWeightKg ?? 0
+  }
+
+  if (seatIndex === 0) {
+    return legacyWeightBalance.frontLeftKg ?? station.defaultWeightKg ?? 0
+  }
+
+  if (seatIndex === 1) {
+    return legacyWeightBalance.frontRightKg ?? station.defaultWeightKg ?? 0
+  }
+
+  if (seatIndex === 2) {
+    return legacyWeightBalance.rearLeftKg ?? station.defaultWeightKg ?? 0
+  }
+
+  if (seatIndex === 3) {
+    return legacyWeightBalance.rearRightKg ?? station.defaultWeightKg ?? 0
+  }
+
+  return station.defaultWeightKg ?? 0
+}
+
+function getAircraftForPlan(plan: FlightPlanInput, aircraftOptions: AircraftProfile[]) {
+  return aircraftOptions.find((aircraft) => aircraft.registration === plan.aircraftRegistration) ?? aircraftOptions[0]
+}
+
+function normalizeWeightBalanceForAircraft(
+  plan: FlightPlanInput,
+  aircraft: AircraftProfile | undefined,
+  useDefaultLoads = false,
+): FlightPlanInput['weightBalance'] {
+  if (!aircraft) {
+    return {
+      stationLoads: Array.isArray((plan.weightBalance as { stationLoads?: FlightPlanInput['weightBalance']['stationLoads'] }).stationLoads)
+        ? (plan.weightBalance as { stationLoads: FlightPlanInput['weightBalance']['stationLoads'] }).stationLoads.map((load) => ({ ...load }))
+        : [],
+    }
+  }
+
+  if (useDefaultLoads) {
+    return {
+      stationLoads: createStationLoadsForAircraft(aircraft),
+    }
+  }
+
+  const currentWeightBalance = plan.weightBalance as FlightPlanInput['weightBalance'] & {
+    frontLeftKg?: number
+    frontRightKg?: number
+    rearLeftKg?: number
+    rearRightKg?: number
+    baggageKg?: number
+  }
+  const currentLoads = Array.isArray(currentWeightBalance.stationLoads)
+    ? currentWeightBalance.stationLoads
+    : null
+  const seatStations = aircraft.stations.filter((station) => station.kind === 'seat')
+
+  return {
+    stationLoads: aircraft.stations.map((station) => {
+      const existingLoad = currentLoads?.find((load) => load.stationId === station.id)
+      const seatIndex = seatStations.findIndex((seat) => seat.id === station.id)
+
+      return {
+        stationId: station.id,
+        weightKg: existingLoad?.weightKg ?? mapLegacyStationWeight(station, currentWeightBalance, seatIndex),
+      }
+    }),
   }
 }
 
@@ -344,7 +436,11 @@ function cloneFlightPlan(plan: FlightPlanInput): FlightPlanInput {
     radioNav: plan.radioNav.map((entry) => ({ ...entry })),
     performance: { ...plan.performance },
     fuel: { ...plan.fuel },
-    weightBalance: { ...plan.weightBalance },
+    weightBalance: {
+      stationLoads: Array.isArray(plan.weightBalance.stationLoads)
+        ? plan.weightBalance.stationLoads.map((load) => ({ ...load }))
+        : [],
+    },
   }
 }
 
@@ -417,6 +513,11 @@ export function FlightplanApp({
   onMapViewportChange,
 }: FlightplanAppProps = {}) {
   useGazetteerVersion()
+  const aircraftOptions = useMemo<AircraftProfile[]>(
+    () => (initialAircraftOptions ?? aircraftProfiles).map(cloneAircraftProfile),
+    [initialAircraftOptions],
+  )
+
   const normalizePlanRadioNav = (nextPlan: FlightPlanInput): FlightPlanInput => {
     const departureLabel = getEndpointLabel(nextPlan.routeLegs[0]?.from, nextPlan.header.departureAerodrome)
     const destinationLabel = getEndpointLabel(
@@ -441,14 +542,22 @@ export function FlightplanApp({
     }
   }
 
+  const normalizePlanForAircraft = (nextPlan: FlightPlanInput, useDefaultLoads = false): FlightPlanInput => {
+    const aircraft = getAircraftForPlan(nextPlan, aircraftOptions)
+    const syncedWeightBalance = normalizeWeightBalanceForAircraft(nextPlan, aircraft, useDefaultLoads)
+
+    return normalizePlanRadioNav({
+      ...nextPlan,
+      aircraftRegistration: aircraft?.registration ?? nextPlan.aircraftRegistration,
+      weightBalance: syncedWeightBalance,
+    })
+  }
+
   const [plan, setPlan] = useState<FlightPlanInput>(() =>
-    normalizePlanRadioNav(cloneFlightPlan(initialPlan ?? createInitialFlightPlan())),
+    normalizePlanForAircraft(cloneFlightPlan(initialPlan ?? createInitialFlightPlan())),
   )
   const [activePanel, setActivePanel] = useState<EditorPanel | null>(null)
   const [activeTab, setActiveTab] = useState<WorkspaceTab>(initialActiveTab)
-  const [aircraftOptions] = useState<AircraftProfile[]>(() =>
-    (initialAircraftOptions ?? aircraftProfiles).map(cloneAircraftProfile),
-  )
   const [rowContextMenu, setRowContextMenu] = useState<RowContextMenuState>(null)
   const [focusedLegIndex, setFocusedLegIndex] = useState<number | null>(null)
   const [activeAltitudeLegIndex, setActiveAltitudeLegIndex] = useState<number | null>(null)
@@ -574,7 +683,7 @@ export function FlightplanApp({
             return current
           }
 
-          return normalizePlanRadioNav({
+          return normalizePlanForAircraft({
             ...current,
             routeLegs: nextRouteLegs,
           })
@@ -634,6 +743,7 @@ export function FlightplanApp({
   }, [aloftWindAutoFetchEnabled, plan])
 
   const derived = calculateFlightPlan(effectivePlan, aircraftOptions)
+  const selectedAircraft = derived.aircraft
   const tasInputUnit = derived.aircraft.tasInputUnit ?? 'kt'
   const routeRows = useMemo(
     () => createRouteRows(effectivePlan, derived, aloftWindAutoFetchEnabled, tasInputUnit),
@@ -846,7 +956,7 @@ export function FlightplanApp({
   }, [activePanel, activeTab, nearbyRouteAirports, notamRefreshToken])
 
   const updatePlan = (updater: (current: FlightPlanInput) => FlightPlanInput) => {
-    setPlan((current) => normalizePlanRadioNav(updater(current)))
+    setPlan((current) => normalizePlanForAircraft(updater(current)))
   }
 
   const updateHeader = (key: keyof FlightPlanInput['header'], value: string) => {
@@ -882,12 +992,14 @@ export function FlightplanApp({
     }))
   }
 
-  const updateWeightBalance = (key: keyof FlightPlanInput['weightBalance'], value: number) => {
+  const updateWeightBalance = (stationId: string, value: number) => {
     updatePlan((current) => ({
       ...current,
       weightBalance: {
         ...current.weightBalance,
-        [key]: value,
+        stationLoads: current.weightBalance.stationLoads.map((load) =>
+          load.stationId === stationId ? { ...load, weightKg: value } : load,
+        ),
       },
     }))
   }
@@ -1351,7 +1463,10 @@ export function FlightplanApp({
                         type="button"
                         className={isActive ? 'is-active' : ''}
                         onClick={() => {
-                          updatePlan((current) => ({ ...current, aircraftRegistration: aircraft.registration }))
+                          setPlan((current) => normalizePlanForAircraft({
+                            ...current,
+                            aircraftRegistration: aircraft.registration,
+                          }, true))
                           setActivePanel(null)
                         }}
                       >
@@ -1400,11 +1515,18 @@ export function FlightplanApp({
                   </button>
                 </div>
                 <div className="fp-seat-map">
-                  <SeatBox title="Fram vänster" value={plan.weightBalance.frontLeftKg} onChange={(value) => updateWeightBalance('frontLeftKg', value)} />
-                  <SeatBox title="Fram höger" value={plan.weightBalance.frontRightKg} onChange={(value) => updateWeightBalance('frontRightKg', value)} />
-                  <SeatBox title="Bak vänster" value={plan.weightBalance.rearLeftKg} onChange={(value) => updateWeightBalance('rearLeftKg', value)} />
-                  <SeatBox title="Bak höger" value={plan.weightBalance.rearRightKg} onChange={(value) => updateWeightBalance('rearRightKg', value)} />
-                  <SeatBox title="Bagage" value={plan.weightBalance.baggageKg} onChange={(value) => updateWeightBalance('baggageKg', value)} baggage />
+                  {selectedAircraft.stations.map((station) => {
+                    const stationLoad = plan.weightBalance.stationLoads.find((load) => load.stationId === station.id)
+                    return (
+                      <SeatBox
+                        key={station.id}
+                        title={station.name}
+                        value={stationLoad?.weightKg ?? station.defaultWeightKg ?? 0}
+                        onChange={(value) => updateWeightBalance(station.id, value)}
+                        baggage={station.kind === 'baggage'}
+                      />
+                    )
+                  })}
                 </div>
                 <div className="fp-stat-block">
                   <div><span>TOW</span><strong>{formatNumber(derived.weightBalance.towKg, 1)} kg</strong></div>
@@ -2412,15 +2534,23 @@ function FlightPlanDocument({
           <div className="fp-fuel-burn-note">Förbrukning {formatNumber(derived.fuel.burnRateLph, 1)} lit/tim</div>
         </div>
 
-        <div className="fp-subtable fp-weight-panel" onClick={() => onSectionSelect('weightBalance')}>
+        <div
+          className={`fp-subtable fp-weight-panel${derived.weightBalance.withinLimits ? '' : ' is-out-of-limits'}`}
+          onClick={() => onSectionSelect('weightBalance')}
+        >
           <div className="fp-subtable-title">VIKT & BALANS</div>
           <div className="fp-wb-grid">
             <div className="fp-wb-header"><span></span><strong>Vikt</strong><strong>Arm</strong><strong>Moment</strong></div>
-            <div><span>Tomvikt</span><span>{formatNumber(derived.aircraft.emptyWeightKg, 1)}</span><span>-</span><span>{formatNumber(derived.aircraft.emptyMomentKgMm)}</span></div>
-            <div><span>Fram</span><span>{formatNumber(derived.weightBalance.frontKg, 1)}</span><span>{formatNumber(derived.aircraft.armsMm.frontLeft)}</span><span>{formatNumber(derived.weightBalance.frontKg * derived.aircraft.armsMm.frontLeft)}</span></div>
-            <div><span>Bak</span><span>{formatNumber(derived.weightBalance.rearKg, 1)}</span><span>{formatNumber(derived.aircraft.armsMm.rearLeft)}</span><span>{formatNumber(derived.weightBalance.rearKg * derived.aircraft.armsMm.rearLeft)}</span></div>
-            <div><span>Bagage</span><span>{formatNumber(derived.weightBalance.baggageKg, 1)}</span><span>{formatNumber(derived.aircraft.armsMm.baggage)}</span><span>{formatNumber(derived.weightBalance.baggageKg * derived.aircraft.armsMm.baggage)}</span></div>
-            <div><span>Bränsle</span><span>{formatNumber(derived.weightBalance.fuelWeightKg, 1)}</span><span>{formatNumber(derived.aircraft.armsMm.fuel)}</span><span>{formatNumber(derived.weightBalance.fuelWeightKg * derived.aircraft.armsMm.fuel)}</span></div>
+            <div><span>Tomvikt</span><span>{formatNumber(derived.aircraft.emptyWeightKg, 1)}</span><span>{formatNumber(derived.aircraft.emptyArmMm)}</span><span>{formatNumber(derived.weightBalance.emptyMomentKgMm)}</span></div>
+            {derived.weightBalance.stationLoads.map((station) => (
+              <div key={station.stationId}>
+                <span>{station.name}</span>
+                <span>{formatNumber(station.weightKg, 1)}</span>
+                <span>{formatNumber(station.armMm)}</span>
+                <span>{formatNumber(station.momentKgMm)}</span>
+              </div>
+            ))}
+            <div><span>{derived.aircraft.fuelStation.name}</span><span>{formatNumber(derived.weightBalance.fuelWeightKg, 1)}</span><span>{formatNumber(derived.aircraft.fuelStation.armMm)}</span><span>{formatNumber(derived.weightBalance.fuelWeightKg * derived.aircraft.fuelStation.armMm)}</span></div>
             <div className="fp-sum-row"><span>TOW</span><span>{formatNumber(derived.weightBalance.towKg, 1)}</span><span>{formatNumber(derived.weightBalance.armMm)}</span><span>{formatNumber(derived.weightBalance.totalMomentKgMm)}</span></div>
             <div className="fp-wb-limits"><span>MAX TOW {formatNumber(derived.aircraft.limits.maxTowKg, 1)} kg</span><span>Arm max {formatNumber(derived.aircraft.limits.maxArmMm)}</span><span>Arm min {formatNumber(derived.aircraft.limits.minArmMm)}</span></div>
           </div>

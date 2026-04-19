@@ -94,27 +94,37 @@ function computeWeightBalance(
   aircraft: AircraftProfile,
   fuelLiters: number,
 ): WeightBalanceDerived {
-  const frontKg = plan.weightBalance.frontLeftKg + plan.weightBalance.frontRightKg
-  const rearKg = plan.weightBalance.rearLeftKg + plan.weightBalance.rearRightKg
-  const baggageKg = plan.weightBalance.baggageKg
+  const stationLoads = aircraft.stations.map((station) => {
+    const plannedLoad = plan.weightBalance.stationLoads.find((load) => load.stationId === station.id)
+    const weightKg = plannedLoad?.weightKg ?? station.defaultWeightKg ?? 0
+
+    return {
+      stationId: station.id,
+      name: station.name,
+      kind: station.kind,
+      weightKg,
+      armMm: station.armMm,
+      momentKgMm: weightKg * station.armMm,
+    }
+  })
   const fuelWeightKg = fuelLiters * aircraft.fuelDensityKgPerLiter
+  const emptyMomentKgMm = aircraft.emptyWeightKg * aircraft.emptyArmMm
 
   const totalMomentKgMm =
-    aircraft.emptyMomentKgMm +
-    plan.weightBalance.frontLeftKg * aircraft.armsMm.frontLeft +
-    plan.weightBalance.frontRightKg * aircraft.armsMm.frontRight +
-    plan.weightBalance.rearLeftKg * aircraft.armsMm.rearLeft +
-    plan.weightBalance.rearRightKg * aircraft.armsMm.rearRight +
-    baggageKg * aircraft.armsMm.baggage +
-    fuelWeightKg * aircraft.armsMm.fuel
+    emptyMomentKgMm +
+    stationLoads.reduce((sum, station) => sum + station.momentKgMm, 0) +
+    fuelWeightKg * aircraft.fuelStation.armMm
 
-  const towKg = aircraft.emptyWeightKg + frontKg + rearKg + baggageKg + fuelWeightKg
+  const towKg = aircraft.emptyWeightKg + stationLoads.reduce((sum, station) => sum + station.weightKg, 0) + fuelWeightKg
   const armMm = totalMomentKgMm / towKg
 
   return {
-    frontKg: round(frontKg, 1),
-    rearKg: round(rearKg, 1),
-    baggageKg: round(baggageKg, 1),
+    emptyMomentKgMm: round(emptyMomentKgMm),
+    stationLoads: stationLoads.map((station) => ({
+      ...station,
+      weightKg: round(station.weightKg, 1),
+      momentKgMm: round(station.momentKgMm),
+    })),
     fuelWeightKg: round(fuelWeightKg, 1),
     towKg: round(towKg, 1),
     totalMomentKgMm: round(totalMomentKgMm),

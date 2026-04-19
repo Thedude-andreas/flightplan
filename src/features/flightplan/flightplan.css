@@ -667,6 +667,14 @@
 .flightplan-page .fp-weight-panel,
 .flightplan-page .fp-performance-panel { cursor: pointer; }
 
+.flightplan-page .fp-weight-panel.is-out-of-limits {
+  background: #f3cfc9;
+}
+
+.flightplan-page .fp-weight-panel.is-out-of-limits .fp-subtable-title {
+  background: rgba(146, 47, 37, 0.12);
+}
+
 .flightplan-page .fp-fuel-table,
 .flightplan-page .fp-wb-grid { display: grid; }
 .flightplan-page .fp-fuel-table > div { display: grid; grid-template-columns: 1.4fr 0.8fr 0.8fr; }

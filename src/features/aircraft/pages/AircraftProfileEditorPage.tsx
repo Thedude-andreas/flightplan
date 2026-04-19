@@ -137,6 +137,18 @@ type PendingImportConflicts = {
   conflicts: ImportConflict[]
 }
 
+type PendingStationMerge = {
+  importedProfile: AircraftProfile
+  groups: Array<{
+    id: string
+    armMm: number
+    stationIds: string[]
+    stationNames: string[]
+    selectedChoice: 'merge' | 'keep' | null
+    mergedName: string
+  }>
+}
+
 function hasMeaningfulValue(value: string) {
   return value.trim().length > 0
 }
@@ -418,6 +430,81 @@ function mergeImportedProfile(current: AircraftProfile, imported: AircraftProfil
   return nextProfile
 }
 
+function createDuplicateArmGroups(imported: AircraftProfile): PendingStationMerge['groups'] {
+  const groupedStations = new Map<number, AircraftStation[]>()
+
+  for (const station of imported.weightBalance.stations) {
+    if (!station.arm) {
+      continue
+    }
+
+    const existing = groupedStations.get(station.arm.value) ?? []
+    existing.push(station)
+    groupedStations.set(station.arm.value, existing)
+  }
+
+  return Array.from(groupedStations.entries())
+    .filter(([, stations]) => stations.length > 1)
+    .sort((left, right) => left[0] - right[0])
+    .map(([armMm, stations]) => ({
+      id: crypto.randomUUID(),
+      armMm,
+      stationIds: stations.map((station) => station.id),
+      stationNames: stations.map((station) => station.name.trim() || 'Namnlös station'),
+      selectedChoice: null,
+      mergedName: stations.map((station) => station.name.trim()).filter(Boolean).join(' / ') || 'Sammanslagen station',
+    }))
+}
+
+function mergeStationsWithSameArm(imported: AircraftProfile, groups: PendingStationMerge['groups']) {
+  const mergedById = new Map(groups.filter((group) => group.selectedChoice === 'merge').map((group) => [group.id, group]))
+  if (mergedById.size === 0) {
+    return imported
+  }
+
+  const handledStationIds = new Set<string>()
+  const nextStations: AircraftStation[] = []
+
+  for (const station of imported.weightBalance.stations) {
+    const matchingGroup = Array.from(mergedById.values()).find((group) => group.stationIds.includes(station.id))
+    if (!matchingGroup) {
+      nextStations.push(station)
+      continue
+    }
+
+    if (handledStationIds.has(station.id)) {
+      continue
+    }
+
+    const groupedStations = imported.weightBalance.stations.filter((candidate) => matchingGroup.stationIds.includes(candidate.id))
+    groupedStations.forEach((candidate) => handledStationIds.add(candidate.id))
+
+    const totalDefaultWeight = groupedStations.reduce((sum, candidate) => sum + (candidate.defaultWeight?.value ?? 0), 0)
+    const hasDefaultWeight = groupedStations.some((candidate) => candidate.defaultWeight != null)
+    const totalMaxWeight = groupedStations.reduce((sum, candidate) => sum + (candidate.maxWeight?.value ?? 0), 0)
+    const hasMaxWeight = groupedStations.some((candidate) => candidate.maxWeight != null)
+    const kinds = new Set(groupedStations.map((candidate) => candidate.kind))
+    const canonicalKind = kinds.size === 1 ? groupedStations[0].kind : 'generic'
+
+    nextStations.push({
+      id: `station-${crypto.randomUUID()}`,
+      name: matchingGroup.mergedName.trim() || 'Sammanslagen station',
+      kind: canonicalKind,
+      arm: groupedStations[0].arm,
+      defaultWeight: hasDefaultWeight ? createMeasurement(totalDefaultWeight, 'kg', 'kg') : null,
+      maxWeight: hasMaxWeight ? createMeasurement(totalMaxWeight, 'kg', 'kg') : null,
+    })
+  }
+
+  return {
+    ...imported,
+    weightBalance: {
+      ...imported.weightBalance,
+      stations: nextStations,
+    },
+  }
+}
+
 function createRegistryCandidateProfile(profile: AircraftProfile, snapshot: AircraftProfile['registrySnapshot'] extends infer _ ? NonNullable<AircraftProfile['registrySnapshot']> : never): AircraftProfile {
   const nextProfile = applyRegistrySnapshot(profile, snapshot)
 
@@ -488,6 +575,7 @@ export function AircraftProfileEditorPage() {
   const [lookupLoading, setLookupLoading] = useState(false)
   const [importLoading, setImportLoading] = useState(false)
   const [pendingImport, setPendingImport] = useState<PendingImport | null>(null)
+  const [pendingStationMerge, setPendingStationMerge] = useState<PendingStationMerge | null>(null)
   const [pendingImportConflicts, setPendingImportConflicts] = useState<PendingImportConflicts | null>(null)
   const [error, setError] = useState('')
   const canLookupRegistry = isValidSwedishRegistration(profile?.identity.registration ?? '')
@@ -634,6 +722,17 @@ export function AircraftProfileEditorPage() {
     try {
       const imported = parseSkyDemonAircraftXml(pendingImport.xmlText, pendingImport.fileName, pendingImport.selectedUnits)
       const preparedImport = await prepareImportedProfile(imported)
+      const duplicateArmGroups = createDuplicateArmGroups(preparedImport)
+
+      if (duplicateArmGroups.length > 0) {
+        setPendingStationMerge({
+          importedProfile: preparedImport,
+          groups: duplicateArmGroups,
+        })
+        setPendingImport(null)
+        return
+      }
+
       const conflicts = createImportConflicts(profile, preparedImport)
 
       if (conflicts.length > 0) {
@@ -655,6 +754,39 @@ export function AircraftProfileEditorPage() {
     } finally {
       setImportLoading(false)
     }
+  }
+
+  function confirmStationMerge() {
+    if (!pendingStationMerge || !profile) {
+      return
+    }
+
+    if (pendingStationMerge.groups.some((group) => group.selectedChoice == null)) {
+      return
+    }
+
+    if (pendingStationMerge.groups.some((group) => group.selectedChoice === 'merge' && !group.mergedName.trim())) {
+      setError('Ange namn för alla sammanslagna stationer innan importen fortsätter.')
+      return
+    }
+
+    const preparedImport = mergeStationsWithSameArm(pendingStationMerge.importedProfile, pendingStationMerge.groups)
+    const conflicts = createImportConflicts(profile, preparedImport)
+
+    if (conflicts.length > 0) {
+      setPendingImportConflicts({
+        sourceLabel: 'Import',
+        incomingLabel: 'Import',
+        currentProfile: profile,
+        importedProfile: preparedImport,
+        conflicts,
+      })
+      setPendingStationMerge(null)
+      return
+    }
+
+    setProfile(preparedImport)
+    setPendingStationMerge(null)
   }
 
   function confirmImportConflicts() {
@@ -720,6 +852,93 @@ export function AircraftProfileEditorPage() {
 
   return (
     <section className="app-panel aircraft-editor">
+      {pendingStationMerge && (
+        <div className="aircraft-import-dialog" role="dialog" aria-modal="true" aria-labelledby="aircraft-station-merge-title">
+          <div className="aircraft-import-dialog__backdrop" />
+          <div className="app-card aircraft-import-dialog__panel aircraft-import-dialog__panel--wide">
+            <div className="aircraft-section__header">
+              <div>
+                <p className="app-eyebrow">Import</p>
+                <h2 id="aircraft-station-merge-title">Stationer med samma arm</h2>
+                <p>Filen innehåller stationer som delar samma arm. Välj om de ska behållas separat eller slås ihop innan importen slutförs.</p>
+              </div>
+              <div className="resource-list__actions">
+                <button type="button" className="button-link" onClick={() => setPendingStationMerge(null)}>
+                  Avbryt
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmStationMerge}
+                  disabled={pendingStationMerge.groups.some((group) => group.selectedChoice == null || (group.selectedChoice === 'merge' && !group.mergedName.trim()))}
+                >
+                  Fortsätt import
+                </button>
+              </div>
+            </div>
+
+            <div className="aircraft-note">
+              {pendingStationMerge.groups.filter((group) => group.selectedChoice == null).length} val kvar innan importen kan fortsätta.
+            </div>
+
+            <div className="aircraft-conflict-list">
+              {pendingStationMerge.groups.map((group) => (
+                <article key={group.id} className="aircraft-conflict">
+                  <strong>Arm {group.armMm} mm</strong>
+                  <div>Stationer: {group.stationNames.join(', ')}</div>
+                  <div className="resource-list__actions">
+                    <button
+                      type="button"
+                      className={group.selectedChoice === 'keep' ? 'aircraft-choice-button is-selected' : 'aircraft-choice-button'}
+                      onClick={() => setPendingStationMerge({
+                        ...pendingStationMerge,
+                        groups: pendingStationMerge.groups.map((item) =>
+                          item.id === group.id
+                            ? { ...item, selectedChoice: 'keep' }
+                            : item,
+                        ),
+                      })}
+                    >
+                      Behåll separata
+                    </button>
+                    <button
+                      type="button"
+                      className={group.selectedChoice === 'merge' ? 'aircraft-choice-button is-selected' : 'aircraft-choice-button'}
+                      onClick={() => setPendingStationMerge({
+                        ...pendingStationMerge,
+                        groups: pendingStationMerge.groups.map((item) =>
+                          item.id === group.id
+                            ? { ...item, selectedChoice: 'merge' }
+                            : item,
+                        ),
+                      })}
+                    >
+                      Slå ihop
+                    </button>
+                  </div>
+
+                  {group.selectedChoice === 'merge' && (
+                    <label className="aircraft-field aircraft-field--wide">
+                      <span>Namn på ny station</span>
+                      <input
+                        value={group.mergedName}
+                        onChange={(event) => setPendingStationMerge({
+                          ...pendingStationMerge,
+                          groups: pendingStationMerge.groups.map((item) =>
+                            item.id === group.id
+                              ? { ...item, mergedName: event.target.value }
+                              : item,
+                          ),
+                        })}
+                      />
+                    </label>
+                  )}
+                </article>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {pendingImportConflicts && (
         <div className="aircraft-import-dialog" role="dialog" aria-modal="true" aria-labelledby="aircraft-import-conflicts-title">
           <div className="aircraft-import-dialog__backdrop" />

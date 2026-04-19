@@ -30,14 +30,18 @@ export const aircraftProfiles: AircraftProfile[] = [
     fuelBurnLph: 32,
     fuelDensityKgPerLiter: 0.72,
     emptyWeightKg: 735,
-    emptyMomentKgMm: 251370,
-    armsMm: {
-      frontLeft: 940,
-      frontRight: 940,
-      rearLeft: 1830,
-      rearRight: 1830,
-      baggage: 2480,
-      fuel: 1210,
+    emptyArmMm: 342,
+    stations: [
+      { id: 'front-left', name: 'Fram vänster', kind: 'seat', armMm: 940, defaultWeightKg: 84, maxWeightKg: null },
+      { id: 'front-right', name: 'Fram höger', kind: 'seat', armMm: 940, defaultWeightKg: 78, maxWeightKg: null },
+      { id: 'rear-left', name: 'Bak vänster', kind: 'seat', armMm: 1830, defaultWeightKg: 0, maxWeightKg: null },
+      { id: 'rear-right', name: 'Bak höger', kind: 'seat', armMm: 1830, defaultWeightKg: 72, maxWeightKg: null },
+      { id: 'baggage', name: 'Bagage', kind: 'baggage', armMm: 2480, defaultWeightKg: 18, maxWeightKg: null },
+    ],
+    fuelStation: {
+      id: 'fuel',
+      name: 'Bränsle',
+      armMm: 1210,
     },
     limits: {
       maxTowKg: 1110,
@@ -58,14 +62,18 @@ export const aircraftProfiles: AircraftProfile[] = [
     fuelBurnLph: 30,
     fuelDensityKgPerLiter: 0.72,
     emptyWeightKg: 640,
-    emptyMomentKgMm: 214500,
-    armsMm: {
-      frontLeft: 870,
-      frontRight: 870,
-      rearLeft: 1650,
-      rearRight: 1650,
-      baggage: 2230,
-      fuel: 1090,
+    emptyArmMm: 335.2,
+    stations: [
+      { id: 'front-left', name: 'Fram vänster', kind: 'seat', armMm: 870, defaultWeightKg: 84, maxWeightKg: null },
+      { id: 'front-right', name: 'Fram höger', kind: 'seat', armMm: 870, defaultWeightKg: 0, maxWeightKg: null },
+      { id: 'rear-left', name: 'Bak vänster', kind: 'seat', armMm: 1650, defaultWeightKg: 0, maxWeightKg: null },
+      { id: 'rear-right', name: 'Bak höger', kind: 'seat', armMm: 1650, defaultWeightKg: 0, maxWeightKg: null },
+      { id: 'baggage', name: 'Bagage', kind: 'baggage', armMm: 2230, defaultWeightKg: 0, maxWeightKg: null },
+    ],
+    fuelStation: {
+      id: 'fuel',
+      name: 'Bränsle',
+      armMm: 1090,
     },
     limits: {
       maxTowKg: 998,
@@ -153,11 +161,13 @@ const initialFlightPlanTemplate: FlightPlanInput = {
     extraOnBoardLiters: 8,
   },
   weightBalance: {
-    frontLeftKg: 84,
-    frontRightKg: 78,
-    rearLeftKg: 0,
-    rearRightKg: 72,
-    baggageKg: 18,
+    stationLoads: [
+      { stationId: 'front-left', weightKg: 84 },
+      { stationId: 'front-right', weightKg: 78 },
+      { stationId: 'rear-left', weightKg: 0 },
+      { stationId: 'rear-right', weightKg: 72 },
+      { stationId: 'baggage', weightKg: 18 },
+    ],
   },
 }
 

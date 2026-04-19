@@ -7,14 +7,19 @@ export type AircraftProfile = {
   fuelBurnLph: number
   fuelDensityKgPerLiter: number
   emptyWeightKg: number
-  emptyMomentKgMm: number
-  armsMm: {
-    frontLeft: number
-    frontRight: number
-    rearLeft: number
-    rearRight: number
-    baggage: number
-    fuel: number
+  emptyArmMm: number
+  stations: Array<{
+    id: string
+    name: string
+    kind: 'seat' | 'baggage' | 'generic'
+    armMm: number
+    defaultWeightKg: number | null
+    maxWeightKg: number | null
+  }>
+  fuelStation: {
+    id: string
+    name: string
+    armMm: number
   }
   limits: {
     maxTowKg: number
@@ -88,11 +93,10 @@ export type FuelInput = {
 }
 
 export type WeightBalanceInput = {
-  frontLeftKg: number
-  frontRightKg: number
-  rearLeftKg: number
-  rearRightKg: number
-  baggageKg: number
+  stationLoads: Array<{
+    stationId: string
+    weightKg: number
+  }>
 }
 
 export type FlightPlanInput = {
@@ -120,9 +124,15 @@ export type DerivedRouteLeg = {
 }
 
 export type WeightBalanceDerived = {
-  frontKg: number
-  rearKg: number
-  baggageKg: number
+  emptyMomentKgMm: number
+  stationLoads: Array<{
+    stationId: string
+    name: string
+    kind: 'seat' | 'baggage' | 'generic'
+    weightKg: number
+    armMm: number
+    momentKgMm: number
+  }>
   fuelWeightKg: number
   towKg: number
   totalMomentKgMm: number

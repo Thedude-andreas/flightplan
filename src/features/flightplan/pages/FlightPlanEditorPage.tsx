@@ -90,8 +90,12 @@ function createAircraftOptions(records: Awaited<ReturnType<typeof listAircraftPr
     .map((record) => toLegacyAircraftProfile(record.payload))
     .filter((profile): profile is AircraftProfile => profile != null)
 
+  if (mapped.length > 0) {
+    return mapped
+  }
+
   const seen = new Set<string>()
-  return [...mapped, ...staticAircraftProfiles].filter((profile) => {
+  return staticAircraftProfiles.filter((profile) => {
     if (seen.has(profile.registration)) {
       return false
     }

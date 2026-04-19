@@ -422,9 +422,7 @@ export function resolveConflict(
 }
 
 export function toLegacyAircraftProfile(profile: AircraftProfile): LegacyAircraftProfile | null {
-  const frontStation = profile.weightBalance.stations.find((station) => station.name.toLowerCase().includes('fram'))
-  const rearStation = profile.weightBalance.stations.find((station) => station.name.toLowerCase().includes('bak'))
-  const baggageStation = profile.weightBalance.stations.find((station) => station.name.toLowerCase().includes('bagage'))
+  const stations = profile.weightBalance.stations.filter((station) => station.arm)
   const fuelTank = profile.weightBalance.fuelTanks[0]
   const cruiseEntry = profile.performance.cruiseProfiles[0]?.entries[0]
 
@@ -434,9 +432,7 @@ export function toLegacyAircraftProfile(profile: AircraftProfile): LegacyAircraf
     !profile.weightBalance.emptyWeight ||
     !profile.weightBalance.emptyArm ||
     !profile.weightBalance.maxTakeoffWeight ||
-    !frontStation?.arm ||
-    !rearStation?.arm ||
-    !baggageStation?.arm ||
+    stations.length === 0 ||
     !fuelTank?.arm ||
     !cruiseEntry?.airspeed ||
     !cruiseEntry?.fuelBurn
@@ -452,14 +448,19 @@ export function toLegacyAircraftProfile(profile: AircraftProfile): LegacyAircraf
     fuelBurnLph: roundValue(convertValue(cruiseEntry.fuelBurn.value, cruiseEntry.fuelBurn.unit, 'l')),
     fuelDensityKgPerLiter: 0.72,
     emptyWeightKg: profile.weightBalance.emptyWeight.value,
-    emptyMomentKgMm: roundValue(profile.weightBalance.emptyWeight.value * profile.weightBalance.emptyArm.value, 0),
-    armsMm: {
-      frontLeft: frontStation.arm.value,
-      frontRight: frontStation.arm.value,
-      rearLeft: rearStation.arm.value,
-      rearRight: rearStation.arm.value,
-      baggage: baggageStation.arm.value,
-      fuel: fuelTank.arm.value,
+    emptyArmMm: profile.weightBalance.emptyArm.value,
+    stations: stations.map((station) => ({
+      id: station.id,
+      name: station.name,
+      kind: station.kind,
+      armMm: station.arm!.value,
+      defaultWeightKg: station.defaultWeight?.value ?? null,
+      maxWeightKg: station.maxWeight?.value ?? null,
+    })),
+    fuelStation: {
+      id: fuelTank.id,
+      name: fuelTank.name || 'Bränsle',
+      armMm: fuelTank.arm.value,
     },
     limits: {
       maxTowKg: profile.weightBalance.maxTakeoffWeight.value,
