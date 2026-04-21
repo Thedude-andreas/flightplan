@@ -27,6 +27,14 @@ export function DashboardPage() {
             Visa profiler
           </Link>
         </article>
+
+        <article className="app-card">
+          <h2>Kompetens</h2>
+          <p>Följ upp GU/RU per kurs, hantera gruppmedlemmar och bygg sammanställningar över kommande utbildningsbehov.</p>
+          <Link to="/app/competency" className="button-link">
+            Visa kompetensmodul
+          </Link>
+        </article>
       </div>
     </section>
   )

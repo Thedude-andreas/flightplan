@@ -1,0 +1,208 @@
+.competency-page {
+  align-content: start;
+}
+
+.competency-tabs {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.competency-tabs a {
+  padding: 10px 14px;
+  border: 1px solid rgba(18, 32, 42, 0.12);
+  border-radius: 999px;
+  background: #fff;
+  text-decoration: none;
+  color: #163850;
+  font-weight: 600;
+}
+
+.competency-tabs a.active {
+  border-color: #163850;
+  background: #163850;
+  color: #f7fafc;
+}
+
+.competency-kpis,
+.competency-two-column {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.competency-kpis .app-card h2 {
+  margin: 0;
+  font-size: clamp(2rem, 5vw, 3rem);
+  line-height: 1;
+}
+
+.competency-report-card,
+.competency-members-card,
+.competency-detail-card {
+  min-height: 0;
+}
+
+.competency-report-card .competency-kpis {
+  margin-bottom: 8px;
+}
+
+.competency-member-list {
+  display: grid;
+  gap: 10px;
+  max-height: 720px;
+  overflow: auto;
+}
+
+.competency-member-list__item {
+  display: grid;
+  gap: 4px;
+  padding: 14px 16px;
+  border: 1px solid rgba(18, 32, 42, 0.1);
+  border-radius: 16px;
+  background: #f9fbfc;
+  text-align: left;
+}
+
+.competency-member-list__item--active {
+  border-color: rgba(22, 56, 80, 0.28);
+  background: rgba(22, 56, 80, 0.08);
+}
+
+.competency-member-list__item span {
+  color: #5d6b75;
+}
+
+.competency-status-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.competency-status-card {
+  display: grid;
+  gap: 8px;
+  padding: 16px;
+  border: 1px solid rgba(18, 32, 42, 0.08);
+  border-radius: 18px;
+  background: #fbfcfd;
+}
+
+.competency-status-card p {
+  margin: 0;
+}
+
+.competency-status-card__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: start;
+}
+
+.competency-status-card__header div {
+  display: grid;
+  gap: 4px;
+}
+
+.competency-status-card__header span {
+  color: #5d6b75;
+}
+
+.competency-form {
+  display: grid;
+  gap: 16px;
+}
+
+.competency-inline-form {
+  margin-top: 12px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(18, 32, 42, 0.08);
+}
+
+.competency-inline-form h3 {
+  margin: 0;
+}
+
+.competency-form-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.competency-form-grid label {
+  display: grid;
+  gap: 8px;
+}
+
+.competency-form-grid span {
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.competency-form-grid input,
+.competency-form-grid select,
+.competency-form-grid textarea {
+  min-height: 44px;
+  border: 1px solid rgba(18, 32, 42, 0.12);
+  border-radius: 14px;
+  padding: 10px 12px;
+  background: #fff;
+}
+
+.competency-form-grid textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.competency-form-grid__wide {
+  grid-column: 1 / -1;
+}
+
+.competency-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+}
+
+.competency-checkbox input {
+  min-height: auto;
+}
+
+.competency-multi-select {
+  min-height: 180px;
+}
+
+.competency-table-wrapper {
+  overflow: auto;
+}
+
+.competency-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.competency-table th,
+.competency-table td {
+  padding: 12px 10px;
+  border-bottom: 1px solid rgba(18, 32, 42, 0.08);
+  text-align: left;
+  vertical-align: top;
+}
+
+.competency-table th {
+  color: #5d6b75;
+  font-size: 0.86rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+@media (max-width: 640px) {
+  .competency-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .competency-status-card__header {
+    display: grid;
+  }
+}

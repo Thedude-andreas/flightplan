@@ -1,11 +1,34 @@
+import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../features/auth/hooks/useAuth'
+import { getCurrentCompetencyPermission } from '../features/competency/api/competencyRepository'
 import { AppVersionBadge } from '../shared/components/AppVersionBadge'
 
 export function AppLayout() {
   const { user } = useAuth()
   const location = useLocation()
   const isFlightPlanEditor = /^\/app\/flightplans(?:\/new|\/[^/]+)$/.test(location.pathname)
+  const [canAccessCompetency, setCanAccessCompetency] = useState(false)
+
+  useEffect(() => {
+    let isMounted = true
+
+    void getCurrentCompetencyPermission()
+      .then((permission) => {
+        if (isMounted) {
+          setCanAccessCompetency(Boolean(permission?.moduleAccess))
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setCanAccessCompetency(false)
+        }
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
 
   return (
     <div className={`app-layout ${isFlightPlanEditor ? 'app-layout--editor' : ''}`}>
@@ -23,6 +46,7 @@ export function AppLayout() {
             </NavLink>
             <NavLink to="/app/flightplans">Färdplaner</NavLink>
             <NavLink to="/app/aircraft">Flygplan</NavLink>
+            {canAccessCompetency ? <NavLink to="/app/competency">Kompetens</NavLink> : null}
             <NavLink to="/app/account">Konto</NavLink>
           </nav>
         </aside>

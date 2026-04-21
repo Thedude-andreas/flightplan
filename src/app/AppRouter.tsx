@@ -14,6 +14,18 @@ const AircraftProfileEditorPage = lazy(async () => ({
 const DashboardPage = lazy(async () => ({
   default: (await import('../features/dashboard/pages/DashboardPage')).DashboardPage,
 }))
+const CompetencyLayoutPage = lazy(async () => ({
+  default: (await import('../features/competency/pages/CompetencyLayoutPage')).CompetencyLayoutPage,
+}))
+const CompetencyAdminPage = lazy(async () => ({
+  default: (await import('../features/competency/pages/CompetencyAdminPage')).CompetencyAdminPage,
+}))
+const CompetencyManagerPage = lazy(async () => ({
+  default: (await import('../features/competency/pages/CompetencyManagerPage')).CompetencyManagerPage,
+}))
+const CompetencyNeedsPage = lazy(async () => ({
+  default: (await import('../features/competency/pages/CompetencyNeedsPage')).CompetencyNeedsPage,
+}))
 const ForgotPasswordPage = lazy(async () => ({
   default: (await import('../features/auth/pages/ForgotPasswordPage')).ForgotPasswordPage,
 }))
@@ -67,6 +79,12 @@ export function AppRouter() {
             <Route path="aircraft" element={<AircraftProfilesPage />} />
             <Route path="aircraft/new" element={<AircraftProfileEditorPage />} />
             <Route path="aircraft/:id" element={<AircraftProfileEditorPage />} />
+            <Route path="competency" element={<CompetencyLayoutPage />}>
+              <Route index element={<Navigate to="needs" replace />} />
+              <Route path="admin" element={<CompetencyAdminPage />} />
+              <Route path="manager" element={<CompetencyManagerPage />} />
+              <Route path="needs" element={<CompetencyNeedsPage />} />
+            </Route>
             <Route path="account" element={<AccountPage />} />
           </Route>
         </Route>
