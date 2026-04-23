@@ -4,9 +4,10 @@ import { useAuth } from '../hooks/useAuth'
 export function ProtectedRoute() {
   const { configured, status } = useAuth()
   const location = useLocation()
+  const returnTo = `${location.pathname}${location.search}${location.hash}`
 
   if (!configured) {
-    return <Navigate to="/login" replace state={{ from: location.pathname, configurationRequired: true }} />
+    return <Navigate to="/login" replace state={{ from: returnTo, configurationRequired: true }} />
   }
 
   if (status === 'loading') {
@@ -14,7 +15,7 @@ export function ProtectedRoute() {
   }
 
   if (status !== 'authenticated') {
-    return <Navigate to="/login" replace state={{ from: location.pathname }} />
+    return <Navigate to="/login" replace state={{ from: returnTo }} />
   }
 
   return <Outlet />

@@ -47,6 +47,9 @@ const VerifyEmailPage = lazy(async () => ({
 const FlightPlanEditorPage = lazy(async () => ({
   default: (await import('../features/flightplan/pages/FlightPlanEditorPage')).FlightPlanEditorPage,
 }))
+const AviationDataPreviewPage = lazy(async () => ({
+  default: (await import('../features/flightplan/pages/AviationDataPreviewPage')).AviationDataPreviewPage,
+}))
 const FlightPlansPage = lazy(async () => ({
   default: (await import('../features/flightplan/pages/FlightPlansPage')).FlightPlansPage,
 }))
@@ -73,6 +76,7 @@ export function AppRouter() {
         <Route element={<ProtectedRoute />}>
           <Route path="/app" element={<AppLayout />}>
             <Route index element={<DashboardPage />} />
+            <Route path="aviation-data-preview" element={<AviationDataPreviewPage />} />
             <Route path="flightplans" element={<FlightPlansPage />} />
             <Route path="flightplans/new" element={<FlightPlanEditorPage />} />
             <Route path="flightplans/:id" element={<FlightPlanEditorPage />} />

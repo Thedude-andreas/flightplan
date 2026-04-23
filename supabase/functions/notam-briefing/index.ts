@@ -51,7 +51,7 @@ function jsonResponse(body: unknown, status = 200) {
 
 function normalizeWhitespace(value: string) {
   return value
-    .replace(/\u0000/g, '')
+    .replaceAll('\u0000', '')
     .replace(/\r/g, '')
     .replace(/\s+/g, ' ')
     .replace(/[ \t]+\n/g, '\n')
@@ -279,7 +279,7 @@ async function extractDatasourceSupplements(eAipRootUrl: string) {
   const supplements = rows
     .map((row) => {
       const yearText = normalizeWhitespace(row.year?.text ?? '')
-      const href = row.year?.href?.replace(/\#.*/, '') ?? null
+      const href = row.year?.href?.replace(/#.*/, '') ?? null
       const periodText = normalizeWhitespace(row.period?.text ?? '') || null
       const subject = stripHtml(row.subject?.text ?? '') || yearText
       const idMatch = yearText.match(/(\d+\/\d{4})/)

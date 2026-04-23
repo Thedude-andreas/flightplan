@@ -2,7 +2,34 @@ import { swedishAirports as embeddedAirports } from './generated/airports.se'
 import { swedishAirspaces as embeddedAirspaces } from './generated/airspaces.se'
 import { swedishNavaids as embeddedNavaids } from './generated/radio-nav.se'
 
-const dataBaseUrl = `${import.meta.env.BASE_URL}vfrplan-data`
+const previewDataBaseUrlParam = 'aviationDataBaseUrl'
+
+function normalizeDataBaseUrl(value: string) {
+  return value.endsWith('/') ? value.slice(0, -1) : value
+}
+
+function getConfiguredDataBaseUrl() {
+  const configuredUrl = import.meta.env.VITE_AVIATION_DATA_BASE_URL?.trim()
+  if (configuredUrl) {
+    return normalizeDataBaseUrl(configuredUrl)
+  }
+
+  return normalizeDataBaseUrl(`${import.meta.env.BASE_URL}vfrplan-data`)
+}
+
+export function getSwedishAviationDataBaseUrl() {
+  if (typeof window === 'undefined') {
+    return getConfiguredDataBaseUrl()
+  }
+
+  const params = new URLSearchParams(window.location.search)
+  const previewUrl = params.get(previewDataBaseUrlParam)?.trim()
+  if (previewUrl && /^https?:\/\//i.test(previewUrl)) {
+    return normalizeDataBaseUrl(previewUrl)
+  }
+
+  return getConfiguredDataBaseUrl()
+}
 
 export type SwedishAirspaceGeometry =
   | { type: 'Polygon'; coordinates: number[][][] }
@@ -109,7 +136,7 @@ let aviationData: SwedishAviationData | null = null
 let aviationDataPromise: Promise<SwedishAviationData> | null = null
 
 async function fetchJson<T>(path: string, fallback?: () => T) {
-  const response = await fetch(`${dataBaseUrl}/${path}`)
+  const response = await fetch(`${getSwedishAviationDataBaseUrl()}/${path}`)
   if (!response.ok) {
     if (fallback) {
       return fallback()

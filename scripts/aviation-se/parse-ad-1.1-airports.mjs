@@ -1,6 +1,8 @@
+import { execFileSync } from 'node:child_process'
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
+const offlineZipPath = resolve('data/aviation/se/raw/lfv/AIP_OFFLINE.zip')
 const candidatePaths = [
   resolve('data/aviation/se/raw/lfv/ES-AD-1.1-en-GB.html'),
   resolve('data/aviation/se/raw/lfv/AIP_OFFLINE/eAIP/ES-AD 1.1-en-GB.html'),
@@ -9,9 +11,16 @@ const candidatePaths = [
 const cachedSearchIndexPath = resolve('data/aviation/se/raw/lfv/searchIndex.current.js')
 
 function findInputFile() {
+  if (existsSync(offlineZipPath)) {
+    const entry = findZipEntry(/^eAIP\/ES-AD 1\.1-en-GB\.html$/)
+    if (entry) {
+      return { source: 'zip', path: entry }
+    }
+  }
+
   for (const candidate of candidatePaths) {
     if (existsSync(candidate)) {
-      return candidate
+      return { source: 'file', path: candidate }
     }
   }
 
@@ -25,7 +34,7 @@ function findInputFile() {
         if (name.isDirectory()) {
           stack.push(absolutePath)
         } else if (/ES-AD.?1\.1-en-GB\.html$/i.test(name.name)) {
-          return absolutePath
+          return { source: 'file', path: absolutePath }
         }
       }
     }
@@ -35,6 +44,13 @@ function findInputFile() {
 }
 
 function findOfflineSearchIndex() {
+  if (existsSync(offlineZipPath)) {
+    const entry = findZipEntry(/^searchIndex\.js$/)
+    if (entry) {
+      return { source: 'zip', path: entry }
+    }
+  }
+
   const extractedRoot = resolve('data/aviation/se/raw/lfv/AIP_OFFLINE')
   if (!existsSync(extractedRoot)) {
     return null
@@ -48,12 +64,68 @@ function findOfflineSearchIndex() {
       if (name.isDirectory()) {
         stack.push(absolutePath)
       } else if (name.name === 'searchIndex.js') {
-        return absolutePath
+        return { source: 'file', path: absolutePath }
       }
     }
   }
 
   return null
+}
+
+function findZipEntry(pattern) {
+  const output = execFileSync(
+    'python3',
+    [
+      '-c',
+      `
+import json
+import re
+import sys
+import zipfile
+
+pattern = re.compile(sys.argv[2])
+with zipfile.ZipFile(sys.argv[1]) as archive:
+    for name in archive.namelist():
+        if pattern.match(name):
+            print(json.dumps(name, ensure_ascii=False))
+            break
+      `,
+      offlineZipPath,
+      pattern.source,
+    ],
+    {
+      encoding: 'utf8',
+      maxBuffer: 1024 * 1024,
+    },
+  ).trim()
+
+  return output ? JSON.parse(output) : null
+}
+
+function readInputSource(input) {
+  if (input.source === 'zip') {
+    return execFileSync(
+      'python3',
+      [
+        '-c',
+        `
+import sys
+import zipfile
+
+with zipfile.ZipFile(sys.argv[1]) as archive:
+    sys.stdout.write(archive.read(sys.argv[2]).decode('utf-8', errors='replace'))
+        `,
+        offlineZipPath,
+        input.path,
+      ],
+      {
+        encoding: 'utf8',
+        maxBuffer: 20 * 1024 * 1024,
+      },
+    )
+  }
+
+  return readFileSync(input.path, 'utf8')
 }
 
 function decodeEntities(value) {
@@ -227,8 +299,8 @@ async function loadAd2ArpLookup() {
   const offlineSearchIndexPath = findOfflineSearchIndex()
   if (offlineSearchIndexPath) {
     return {
-      source: offlineSearchIndexPath,
-      entries: extractArpFromAd2SearchIndex(readFileSync(offlineSearchIndexPath, 'utf8')),
+      source: offlineSearchIndexPath.path,
+      entries: extractArpFromAd2SearchIndex(readInputSource(offlineSearchIndexPath)),
     }
   }
 
@@ -252,15 +324,16 @@ async function loadAd2ArpLookup() {
 }
 
 async function main() {
-  const inputPath = findInputFile()
+  const inputSource = findInputFile()
 
-  if (!inputPath) {
+  if (!inputSource) {
     console.error('Unable to locate LFV AD 1.1 HTML source.')
     console.error('Expected a fetched HTML page or an extracted AIP offline package.')
     process.exit(1)
   }
 
-  const html = readFileSync(inputPath, 'utf8')
+  const html = readInputSource(inputSource)
+  const inputPath = inputSource.path
   const tables = [...html.matchAll(/<table[\s\S]*?<\/table>/gi)].map((match) => match[0])
   const aerodromeTable = tables.find((table) => /AD_1_1_B_TABLE/.test(table))
 

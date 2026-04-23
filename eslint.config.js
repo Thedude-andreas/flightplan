@@ -6,7 +6,7 @@ import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist', 'src/features/flightplan/generated/**']),
+  globalIgnores(['dist', 'src/features/flightplan/generated/**', 'supabase/functions/**/vendor/**']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [

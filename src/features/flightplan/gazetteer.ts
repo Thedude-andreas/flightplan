@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react'
 import type { RoutePointInput, RouteLegInput } from './types'
-import { getSwedishAirports } from './aviationData'
+import { getSwedishAirports, getSwedishAviationDataBaseUrl } from './aviationData'
 import { formatCoordinateDms, snapCoordinate } from './coordinates'
 import { DEFAULT_ROUTE_TAS_KT } from './data'
 
@@ -28,7 +28,6 @@ const kindPreference = {
   island: 0.98,
   mountain: 0.98,
 } as const
-const placesDataUrl = `${import.meta.env.BASE_URL}vfrplan-data/places.se.json`
 
 type SwedishPlaceKind = keyof typeof placeSearchRadiusNmByKind
 
@@ -106,7 +105,7 @@ export function preloadSwedishPlaces() {
     return placesLoadPromise ?? Promise.resolve()
   }
 
-  placesLoadPromise = fetch(placesDataUrl)
+  placesLoadPromise = fetch(`${getSwedishAviationDataBaseUrl()}/places.se.json`)
     .then(async (response) => {
       if (!response.ok) {
         throw new Error(`Unable to load place gazetteer (${response.status})`)

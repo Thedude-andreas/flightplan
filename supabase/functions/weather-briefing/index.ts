@@ -48,13 +48,6 @@ type CachedLhpArea = {
   windLevels: CachedWindLevel[]
 }
 
-type CachedPayload = {
-  sigmetSourceUrl: string | null
-  sigmetPublishedAt: string | null
-  sigmetText: string | null
-  lhpAreas: CachedLhpArea[]
-}
-
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -67,7 +60,7 @@ function jsonResponse(body: unknown, status = 200) {
 
 function normalizeWhitespace(value: string) {
   return value
-    .replace(/\u0000/g, '')
+    .replaceAll('\u0000', '')
     .replace(/\r/g, '')
     .replace(/[ \t]+\n/g, '\n')
     .replace(/\n{3,}/g, '\n\n')

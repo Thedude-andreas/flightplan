@@ -505,7 +505,7 @@ function mergeStationsWithSameArm(imported: AircraftProfile, groups: PendingStat
   }
 }
 
-function createRegistryCandidateProfile(profile: AircraftProfile, snapshot: AircraftProfile['registrySnapshot'] extends infer _ ? NonNullable<AircraftProfile['registrySnapshot']> : never): AircraftProfile {
+function createRegistryCandidateProfile(profile: AircraftProfile, snapshot: NonNullable<AircraftProfile['registrySnapshot']>): AircraftProfile {
   const nextProfile = applyRegistrySnapshot(profile, snapshot)
 
   return {

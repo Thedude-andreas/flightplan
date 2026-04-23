@@ -6,6 +6,122 @@
   min-height: 100vh;
 }
 
+.aviation-preview-page {
+  display: grid;
+  gap: 1rem;
+}
+
+.aviation-preview-page__header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.aviation-preview-page__header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.aviation-preview-page__header p {
+  margin: 0.3rem 0 0;
+  color: #4b5563;
+}
+
+.aviation-preview-page__header dl {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(90px, 1fr));
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.aviation-preview-page__header dl div {
+  border: 1px solid #d1d5db;
+  background: #fff;
+  padding: 0.55rem 0.7rem;
+}
+
+.aviation-preview-page__header dt {
+  color: #6b7280;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+}
+
+.aviation-preview-page__header dd {
+  margin: 0.15rem 0 0;
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.aviation-preview-page__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 1rem;
+  min-height: min(720px, calc(100vh - 220px));
+}
+
+.aviation-preview-map,
+.aviation-preview-panel {
+  border: 1px solid #d1d5db;
+  background: #fff;
+}
+
+.aviation-preview-map__leaflet {
+  width: 100%;
+  height: min(720px, calc(100vh - 220px));
+  min-height: 520px;
+}
+
+.aviation-preview-panel {
+  padding: 1rem;
+  overflow: auto;
+}
+
+.aviation-preview-panel h2 {
+  margin: 0 0 0.7rem;
+  font-size: 1rem;
+}
+
+.aviation-preview-panel h2:not(:first-child) {
+  margin-top: 1.2rem;
+}
+
+.aviation-preview-panel ul {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+.aviation-preview-panel__swatch {
+  display: inline-block;
+  width: 0.8rem;
+  height: 0.8rem;
+  margin-right: 0.4rem;
+  border-radius: 50%;
+  vertical-align: -0.08rem;
+}
+
+.aviation-preview-panel__swatch.is-old { background: #9aa0a6; }
+.aviation-preview-panel__swatch.is-new { background: #f97316; }
+.aviation-preview-panel__swatch.is-added { background: #0f8f55; }
+.aviation-preview-panel__swatch.is-changed { background: #d97706; }
+
+@media (max-width: 900px) {
+  .aviation-preview-page__header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .aviation-preview-page__header dl {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .aviation-preview-page__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .flightplan-page .fp-no-print {
   display: block;
 }

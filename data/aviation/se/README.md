@@ -41,7 +41,6 @@ If you want to refresh from a fresh LFV offline package as well:
 
 ```bash
 npm run aviation:se:fetch
-npm run aviation:se:extract
 npm run aviation:se:manifest
 npm run aviation:se:airports
 npm run aviation:se:airspaces
@@ -59,7 +58,8 @@ npm run aviation:se:build
   Extracts the offline package into `raw/lfv/AIP_OFFLINE/`.
 
 - `aviation:se:manifest`
-  Creates `normalized/lfv-manifest.json` from the extracted offline package.
+  Creates `normalized/lfv-manifest.json` from the LFV offline zip. It can still fall back to
+  the extracted package if the zip is not present.
 
 - `aviation:se:airports`
   Parses airports from `AD 1.1` and fills missing ARP coordinates from `AD 2`.
@@ -85,7 +85,8 @@ npm run aviation:se:build
   Rebuilds the normalized index file and derived outputs for `navaids`, `airport-frequencies`, `airspace-frequencies` and `acc-sectors`.
 
 - `aviation:se:refresh`
-  Runs the full Swedish aviation data pipeline in one command.
+  Runs the full Swedish aviation data pipeline in one command. It reads the LFV offline zip
+  directly instead of extracting the full package.
 
 - `aviation:se:validate`
   Checks counts, required airports, required airspace kinds and key radio records before the data is accepted.
@@ -211,18 +212,54 @@ Then verify at least:
 
 ## Automation
 
-The repo now contains a scheduled workflow in `.github/workflows/aviation-data-refresh.yml`.
+GitHub Actions is no longer the approval path for aviation data. The nightly job should run outside
+GitHub and submit a candidate update to Supabase:
 
-Its intended flow is:
+```bash
+npm run aviation:se:submit-update
+```
+
+Required environment variables:
+
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `RESEND_API_KEY`
+- `AVIATION_DATA_APPROVER_EMAIL`
+- `AVIATION_PUBLIC_APP_URL` or `VITE_PUBLIC_APP_URL`
+
+Optional environment variables:
+
+- `AVIATION_DATA_BUCKET` defaults to `aviation-data`
+- `AVIATION_DATA_FROM_EMAIL` defaults to `VFRplan <noreply@andreasmartensson.com>`
+- `AVIATION_APPROVAL_FUNCTION_URL` defaults to `${SUPABASE_URL}/functions/v1/aviation-data-approval`
+
+First-time setup publishes the current bundled public data to Supabase Storage:
+
+```bash
+npm run aviation:se:publish-current
+```
+
+The intended flow is:
 
 1. refresh the Swedish aviation datasets
 2. validate the normalized outputs
-3. generate a markdown diff report
-4. open or update a PR with only the generated app-facing datasets
+3. upload a complete candidate dataset to Supabase Storage
+4. create a pending `aviation_data_updates` row with approve/reject token hashes
+5. send an approval email with a markdown diff, map preview link and approve/reject links
+6. copy the candidate files to `current/` in Supabase Storage only after approval
 
-This keeps automated source refresh separate from production deployment.
+Set `VITE_AVIATION_DATA_BASE_URL` in the deployed app to the public Storage URL for approved data,
+for example:
 
-The scheduled workflow intentionally excludes `aviation:se:places`. Place-name data changes infrequently and is treated as a manual refresh path rather than nightly operational data.
+```bash
+VITE_AVIATION_DATA_BASE_URL=https://PROJECT_REF.supabase.co/storage/v1/object/public/aviation-data/current
+```
+
+This keeps automated source refresh separate from production deployment and from GitHub pull
+requests.
+
+The submit script runs the full refresh path, including `aviation:se:places`, so preview data is a
+complete replacement dataset.
 
 ## Parsing Roadmap
 - `AD 2` -> airports, runways, frequencies, elevation

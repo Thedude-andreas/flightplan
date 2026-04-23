@@ -1,7 +1,9 @@
-import { mkdirSync, readdirSync, statSync, writeFileSync } from 'node:fs'
+import { execFileSync } from 'node:child_process'
+import { existsSync, mkdirSync, readdirSync, statSync, writeFileSync } from 'node:fs'
 import { relative, resolve } from 'node:path'
 
 const inputDir = resolve('data/aviation/se/raw/lfv/AIP_OFFLINE')
+const zipPath = resolve('data/aviation/se/raw/lfv/AIP_OFFLINE.zip')
 const outputPath = resolve('data/aviation/se/normalized/lfv-manifest.json')
 
 function walk(dir, collected = []) {
@@ -32,17 +34,46 @@ function classify(relativePath) {
   return 'other'
 }
 
-const files = walk(inputDir).map((absolutePath) => {
-  const relativePath = relative(inputDir, absolutePath)
-  return {
-    path: relativePath.replaceAll('\\', '/'),
-    section: classify(relativePath),
-  }
-})
+function listZipFiles() {
+  const output = execFileSync(
+    'python3',
+    [
+      '-c',
+      `
+import json
+import sys
+import zipfile
+
+with zipfile.ZipFile(sys.argv[1]) as archive:
+    print(json.dumps([name for name in archive.namelist() if not name.endswith('/')], ensure_ascii=False))
+      `,
+      zipPath,
+    ],
+    {
+      encoding: 'utf8',
+      maxBuffer: 10 * 1024 * 1024,
+    },
+  )
+
+  return JSON.parse(output).map((path) => ({
+    path,
+    section: classify(path),
+  }))
+}
+
+const files = existsSync(zipPath)
+  ? listZipFiles()
+  : walk(inputDir).map((absolutePath) => {
+    const relativePath = relative(inputDir, absolutePath)
+    return {
+      path: relativePath.replaceAll('\\', '/'),
+      section: classify(relativePath),
+    }
+  })
 
 const manifest = {
   generatedAt: new Date().toISOString(),
-  source: 'LFV AIP Offline',
+  source: existsSync(zipPath) ? 'LFV AIP Offline zip' : 'LFV AIP Offline extract',
   counts: {
     total: files.length,
     aerodrome: files.filter((file) => file.section === 'aerodrome').length,
