@@ -122,6 +122,8 @@ export type LfvWeatherBriefing = {
   sigmetPublishedAt: string | null
   sigmetText: string | null
   lhpAreas: LfvLhpArea[]
+  usedStaleCache?: boolean
+  refreshError?: string | null
 }
 
 type WeatherBriefingResponse = {
@@ -130,6 +132,8 @@ type WeatherBriefingResponse = {
   sigmetPublishedAt: string | null
   sigmetText: string | null
   lhpAreas: LfvLhpArea[]
+  usedStaleCache?: boolean
+  refreshError?: string | null
 }
 
 function degToRad(value: number) {

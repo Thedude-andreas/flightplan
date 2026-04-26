@@ -26,6 +26,8 @@ export type NotamResponse = {
   warningsText: string | null
   supplementSourceUrl: string | null
   supplements: NotamSupplement[]
+  usedStaleCache?: boolean
+  refreshError?: string | null
   notams: AirportNotam[]
 }
 

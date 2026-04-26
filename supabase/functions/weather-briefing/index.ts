@@ -68,6 +68,10 @@ function jsonResponse(body: unknown, status = 200) {
   })
 }
 
+function errorMessage(error: unknown) {
+  return error instanceof Error ? error.message : String(error)
+}
+
 function normalizeWhitespace(value: string) {
   return value
     .replaceAll('\u0000', '')
@@ -305,6 +309,8 @@ Deno.serve(async (request) => {
     const now = Date.now()
     const cachedAt = cachedRow?.fetched_at ? new Date(cachedRow.fetched_at).getTime() : 0
     const isFresh = !forceRefresh && cachedRow && now - cachedAt < cacheTtlMinutes * 60 * 1000
+    let usedStaleCache = false
+    let refreshError: string | null = null
 
     const effectiveRow = isFresh
       ? cachedRow
@@ -329,6 +335,8 @@ Deno.serve(async (request) => {
           } catch (error) {
             if (cachedRow) {
               console.error('Using stale weather cache after refresh failed.', error)
+              usedStaleCache = true
+              refreshError = errorMessage(error)
               return cachedRow
             }
 
@@ -344,6 +352,8 @@ Deno.serve(async (request) => {
       sigmetPublishedAt: briefing.sigmetPublishedAt ?? null,
       sigmetText: briefing.sigmetText ?? null,
       lhpAreas: briefing.lhpAreas ?? [],
+      usedStaleCache,
+      refreshError,
     })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Okänt fel'

@@ -94,6 +94,8 @@ type WeatherState =
       lhpAreas: LfvLhpArea[]
       error: string | null
       lastUpdatedAt: null
+      usedStaleCache: boolean
+      refreshError: string | null
     }
   | {
       status: 'loading'
@@ -104,6 +106,8 @@ type WeatherState =
       lhpAreas: LfvLhpArea[]
       error: string | null
       lastUpdatedAt: null
+      usedStaleCache: boolean
+      refreshError: string | null
     }
   | {
       status: 'ready'
@@ -114,6 +118,8 @@ type WeatherState =
       lhpAreas: LfvLhpArea[]
       error: string | null
       lastUpdatedAt: string
+      usedStaleCache: boolean
+      refreshError: string | null
     }
   | {
       status: 'error'
@@ -124,6 +130,8 @@ type WeatherState =
       lhpAreas: LfvLhpArea[]
       error: string
       lastUpdatedAt: null
+      usedStaleCache: boolean
+      refreshError: string | null
     }
 type NotamState =
   | {
@@ -137,6 +145,8 @@ type NotamState =
       sourceUrl: null
       supplementSourceUrl: null
       bulletinPublishedAt: null
+      usedStaleCache: boolean
+      refreshError: string | null
     }
   | {
       status: 'loading'
@@ -149,6 +159,8 @@ type NotamState =
       sourceUrl: null
       supplementSourceUrl: null
       bulletinPublishedAt: null
+      usedStaleCache: boolean
+      refreshError: string | null
     }
   | {
       status: 'ready'
@@ -161,6 +173,8 @@ type NotamState =
       sourceUrl: string | null
       supplementSourceUrl: string | null
       bulletinPublishedAt: string | null
+      usedStaleCache: boolean
+      refreshError: string | null
     }
   | {
       status: 'error'
@@ -173,6 +187,8 @@ type NotamState =
       sourceUrl: null
       supplementSourceUrl: null
       bulletinPublishedAt: null
+      usedStaleCache: boolean
+      refreshError: string | null
     }
 
 const printLogoSrc = `${import.meta.env.BASE_URL}lbfk-logo.png`
@@ -582,6 +598,8 @@ export function FlightplanApp({
     lhpAreas: [],
     error: null,
     lastUpdatedAt: null,
+    usedStaleCache: false,
+    refreshError: null,
   })
   const [notamRefreshToken, setNotamRefreshToken] = useState(0)
   const handledNotamRefreshTokenRef = useRef(0)
@@ -596,6 +614,8 @@ export function FlightplanApp({
     sourceUrl: null,
     supplementSourceUrl: null,
     bulletinPublishedAt: null,
+    usedStaleCache: false,
+    refreshError: null,
   })
 
   const routeWindRequestKey = useMemo(
@@ -856,6 +876,8 @@ export function FlightplanApp({
       lhpAreas: [],
       error: null,
       lastUpdatedAt: null,
+      usedStaleCache: false,
+      refreshError: null,
     }))
 
     Promise.all([
@@ -874,6 +896,8 @@ export function FlightplanApp({
           lhpAreas: briefing.lhpAreas ?? [],
           error: null,
           lastUpdatedAt: briefing.fetchedAt ?? new Date().toISOString(),
+          usedStaleCache: Boolean(briefing.usedStaleCache),
+          refreshError: briefing.refreshError ?? null,
         })
       })
       .catch((error: unknown) => {
@@ -891,6 +915,8 @@ export function FlightplanApp({
           lhpAreas: [],
           error: message,
           lastUpdatedAt: null,
+          usedStaleCache: false,
+          refreshError: null,
         })
       })
 
@@ -918,6 +944,8 @@ export function FlightplanApp({
       sourceUrl: null,
       supplementSourceUrl: null,
       bulletinPublishedAt: null,
+      usedStaleCache: false,
+      refreshError: null,
     })
 
     fetchNotamsForAirports(nearbyRouteAirports.map((airport) => airport.icao), forceRefresh)
@@ -937,6 +965,8 @@ export function FlightplanApp({
           sourceUrl: response.sourceUrl,
           supplementSourceUrl: response.supplementSourceUrl ?? null,
           bulletinPublishedAt: response.bulletinPublishedAt,
+          usedStaleCache: Boolean(response.usedStaleCache),
+          refreshError: response.refreshError ?? null,
         })
       })
       .catch((error: unknown) => {
@@ -956,6 +986,8 @@ export function FlightplanApp({
           sourceUrl: null,
           supplementSourceUrl: null,
           bulletinPublishedAt: null,
+          usedStaleCache: false,
+          refreshError: null,
         })
       })
 
@@ -1584,6 +1616,12 @@ export function FlightplanApp({
                   <div><span>Status</span><strong>{weatherState.status === 'loading' ? 'Hämtar' : weatherState.status === 'error' ? 'Fel' : 'Klar'}</strong></div>
                   <div><span>Senast uppdaterad</span><strong>{formatUtcTimestamp(weatherState.lastUpdatedAt) ?? 'Ej hämtad'}</strong></div>
                 </div>
+                {weatherState.usedStaleCache && (
+                  <p className="fp-weather-empty-state">
+                    LFV AROWeb svarar inte just nu. Visar cache från {formatUtcTimestamp(weatherState.lastUpdatedAt) ?? 'okänd tid'}.
+                    {weatherState.refreshError ? ` Senaste fel: ${weatherState.refreshError}` : null}
+                  </p>
+                )}
                 {weatherState.status === 'error' && (
                   <p className="fp-weather-empty-state">
                     Kunde inte hämta väderbriefing: {weatherState.error}
@@ -1748,6 +1786,12 @@ export function FlightplanApp({
                   <div><span>Bulletin publicerad</span><strong>{formatUtcTimestamp(notamState.bulletinPublishedAt) ?? 'Okänd'}</strong></div>
                   <div><span>TTL</span><strong>30 min vid behov</strong></div>
                 </div>
+                {notamState.usedStaleCache && (
+                  <p className="fp-weather-empty-state">
+                    LFV AROWeb svarar inte just nu. Visar cache från {formatUtcTimestamp(notamState.lastUpdatedAt) ?? 'okänd tid'}.
+                    {notamState.refreshError ? ` Senaste fel: ${notamState.refreshError}` : null}
+                  </p>
+                )}
                 <div className="fp-notam-actions">
                   <a href={notamState.sourceUrl ?? lfvNotamSwedenUrl} target="_blank" rel="noreferrer">
                     Öppna LFV NOTAM Sweden
