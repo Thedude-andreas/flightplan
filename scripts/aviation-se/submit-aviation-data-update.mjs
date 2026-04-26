@@ -28,6 +28,10 @@ const normalizedFiles = [
   'data/aviation/se/normalized/navaids.se.json',
   'data/aviation/se/normalized/lfv-manifest.json',
 ]
+const sourceStatePath = 'meta/source-state.json'
+const lfvAipSourceUrl = 'https://aro.lfv.se/Content/eaip/AIP_OFFLINE.zip'
+const geonamesSourceUrl = 'https://download.geonames.org/export/dump/SE.zip'
+const airspaceSourceTypeNames = ['mais:CTR', 'mais:TMAS', 'mais:TIA', 'mais:TIZ', 'mais:RSTA', 'mais:DNGA', 'mais:ATZ', 'mais:TRA']
 
 function parseArgs() {
   return new Set(process.argv.slice(2))
@@ -72,6 +76,10 @@ function sha256(value) {
 
 function makeToken() {
   return randomBytes(32).toString('base64url')
+}
+
+function sourceSignatureHash(sourceSignature) {
+  return sha256(stableStringify(sourceSignature))
 }
 
 function snapshot(paths) {
@@ -144,6 +152,11 @@ function normalizeCollectionItem(fileName, item) {
     }
   }
 
+  if (fileName === 'airspaces.se.json') {
+    const { effectiveFrom: _effectiveFrom, ...airspace } = item
+    return airspace
+  }
+
   return item
 }
 
@@ -174,7 +187,7 @@ function countPayload(fileName, payload) {
 
 function itemKey(fileName, item) {
   if (fileName === 'places.se.json') {
-    return `${item?.name ?? ''}:${item?.kind ?? ''}`
+    return `${item?.name ?? ''}:${item?.kind ?? ''}:${item?.lat ?? ''}:${item?.lon ?? ''}`
   }
 
   return item?.id ??
@@ -195,10 +208,55 @@ function itemLabel(item) {
     return [item.positionIndicator, item.unit ?? item.callSign, item.frequencies?.join(', ')].filter(Boolean).join(' ')
   }
 
-  return String(itemKey(item))
+  return String(item?.id ?? item?.name ?? item?.positionIndicator ?? 'unknown')
+}
+
+function distanceNm(left, right) {
+  const earthRadiusNm = 3440.065
+  const latDelta = ((right.lat - left.lat) * Math.PI) / 180
+  const lonDelta = ((right.lon - left.lon) * Math.PI) / 180
+  const leftLat = (left.lat * Math.PI) / 180
+  const rightLat = (right.lat * Math.PI) / 180
+  const haversine =
+    Math.sin(latDelta / 2) ** 2 +
+    Math.cos(leftLat) * Math.cos(rightLat) * Math.sin(lonDelta / 2) ** 2
+
+  return 2 * earthRadiusNm * Math.asin(Math.sqrt(haversine))
+}
+
+function closestPlace(previousPlaces, nextPlace) {
+  const sameNameAndKind = previousPlaces.filter(
+    (place) => place.name === nextPlace.name && place.kind === nextPlace.kind,
+  )
+  return sameNameAndKind.reduce((best, place) => {
+    const distance = distanceNm(place, nextPlace)
+    return !best || distance < best.distanceNm ? { place, distanceNm: distance } : best
+  }, null)
+}
+
+function summarizePlaces(previousPayload, nextPayload) {
+  const previous = getCollection('places.se.json', previousPayload)
+  const next = getCollection('places.se.json', nextPayload)
+  const added = []
+  const changed = []
+
+  for (const place of next) {
+    const closest = closestPlace(previous, place)
+    if (!closest || closest.distanceNm > 3) {
+      added.push(`- tillagd ${itemLabel(place)}`)
+    } else if (closest.distanceNm > 1) {
+      changed.push(`- ändrad ${itemLabel(place)}`)
+    }
+  }
+
+  return [...added, ...changed].slice(0, 12)
 }
 
 function summarizeCollection(fileName, previousPayload, nextPayload) {
+  if (fileName === 'places.se.json') {
+    return summarizePlaces(previousPayload, nextPayload)
+  }
+
   const previous = new Map(getCollection(fileName, previousPayload).map((item) => [itemKey(fileName, item), item]))
   const next = new Map(getCollection(fileName, nextPayload).map((item) => [itemKey(fileName, item), item]))
   const added = []
@@ -207,37 +265,155 @@ function summarizeCollection(fileName, previousPayload, nextPayload) {
 
   for (const [key, item] of next) {
     if (!previous.has(key)) {
-      added.push(`- added ${itemLabel(item)}`)
+      added.push(`- tillagd ${itemLabel(item)}`)
     } else if (stableStringify(previous.get(key)) !== stableStringify(item)) {
-      changed.push(`- changed ${itemLabel(item)}`)
+      changed.push(`- ändrad ${itemLabel(item)}`)
     }
   }
 
   for (const [key, item] of previous) {
     if (!next.has(key)) {
-      removed.push(`- removed ${itemLabel(item)}`)
+      removed.push(`- borttagen ${itemLabel(item)}`)
     }
   }
 
   return [...added, ...removed, ...changed].slice(0, 12)
 }
 
+function collectionChanged(fileName, previousPayload, nextPayload) {
+  if (fileName === 'places.se.json') {
+    return summarizePlaces(previousPayload, nextPayload).length > 0
+  }
+
+  return stableStringify(getCollection(fileName, previousPayload)) !== stableStringify(getCollection(fileName, nextPayload))
+}
+
+async function fetchHeadMetadata(url) {
+  const response = await fetch(url, {
+    method: 'HEAD',
+    redirect: 'follow',
+    headers: {
+      'User-Agent': 'VFRplan/1.0 (+https://vfrplan.se/)',
+    },
+  })
+
+  if (!response.ok) {
+    throw new Error(`HEAD ${url} returned ${response.status} ${response.statusText}`)
+  }
+
+  return {
+    sourceUrl: response.url || url,
+    contentLength: Number(response.headers.get('content-length') ?? 0),
+    lastModified: response.headers.get('last-modified'),
+    etag: response.headers.get('etag'),
+  }
+}
+
+async function fetchAirspaceLayerSignature(typeName) {
+  const url = new URL('https://daim.lfv.se/geoserver/ows')
+  url.searchParams.set('service', 'WFS')
+  url.searchParams.set('version', '1.0.0')
+  url.searchParams.set('request', 'GetFeature')
+  url.searchParams.set('typeName', typeName)
+  url.searchParams.set('outputFormat', 'application/json')
+  url.searchParams.set('srsName', 'EPSG:4326')
+
+  const response = await fetch(url, {
+    headers: {
+      Accept: 'application/json',
+      'User-Agent': 'VFRplan/1.0 (+https://vfrplan.se/)',
+    },
+  })
+
+  if (!response.ok) {
+    throw new Error(`WFS ${typeName} returned ${response.status} ${response.statusText}`)
+  }
+
+  const body = await response.text()
+  return {
+    typeName,
+    bodyHash: sha256(body),
+    bytes: Buffer.byteLength(body),
+  }
+}
+
+async function getSourceSignature() {
+  const [lfvAip, geonames, airspaces] = await Promise.all([
+    fetchHeadMetadata(lfvAipSourceUrl),
+    fetchHeadMetadata(geonamesSourceUrl),
+    Promise.all(airspaceSourceTypeNames.map((typeName) => fetchAirspaceLayerSignature(typeName))),
+  ])
+
+  return {
+    lfvAip,
+    airspaces,
+    geonames,
+  }
+}
+
+async function readSourceState(supabase, bucket) {
+  return await readStorageJson(supabase, bucket, sourceStatePath)
+}
+
+async function writeSourceState(supabase, bucket, sourceSignature) {
+  const state = {
+    sourceSignature,
+    sourceSignatureHash: sourceSignatureHash(sourceSignature),
+    checkedAt: new Date().toISOString(),
+  }
+  const { error } = await supabase.storage
+    .from(bucket)
+    .upload(sourceStatePath, JSON.stringify(state, null, 2), {
+      cacheControl: '60',
+      contentType: 'application/json',
+      upsert: true,
+    })
+
+  if (error) {
+    throw new Error(`Failed to write ${sourceStatePath}: ${error.message}`)
+  }
+}
+
+async function getPendingUpdate(supabase) {
+  const { data, error } = await supabase
+    .from('aviation_data_updates')
+    .select('*')
+    .eq('status', 'pending')
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (error) {
+    throw error
+  }
+
+  return data
+}
+
+function getUpdateSourceSignature(update) {
+  return update?.source?.sourceSignature ?? null
+}
+
+function sameSourceSignature(left, right) {
+  return Boolean(left && right && sourceSignatureHash(left) === sourceSignatureHash(right))
+}
+
 function buildReport(changedFiles, previousPayloads, nextPayloads) {
-  const lines = ['# Swedish aviation data update', '']
+  const lines = ['# Uppdatering av svensk flygdata', '']
 
   if (changedFiles.length === 0) {
-    lines.push('No public aviation data files changed.')
+    lines.push('Inga publika flygdatafiler har ändrats.')
     return `${lines.join('\n')}\n`
   }
 
-  lines.push('## Changed datasets', '')
+  lines.push('## Ändrade dataset', '')
   for (const fileName of changedFiles) {
     const previousPayload = previousPayloads.get(fileName)
     const nextPayload = nextPayloads.get(fileName)
     lines.push(`- \`${fileName}\`: ${countPayload(fileName, previousPayload) ?? 'n/a'} -> ${countPayload(fileName, nextPayload) ?? 'n/a'}`)
   }
 
-  lines.push('', '## Notable changes', '')
+  lines.push('', '## Viktiga ändringar', '')
   for (const fileName of changedFiles) {
     const details = summarizeCollection(
       fileName,
@@ -363,6 +539,85 @@ async function sendEmailViaFunction({ functionUrl, serviceRoleKey, fromEmail, to
   }
 }
 
+function approvalFunctionUrl(supabaseUrl) {
+  return optionalEnv(
+    'AVIATION_APPROVAL_FUNCTION_URL',
+    `${supabaseUrl}/functions/v1/aviation-data-approval`,
+  )
+}
+
+function approvalLinks({ supabaseUrl, updateId, approveToken, rejectToken }) {
+  const functionUrl = approvalFunctionUrl(supabaseUrl)
+  return {
+    approveUrl: `${functionUrl}?action=approve&id=${updateId}&token=${approveToken}`,
+    rejectUrl: `${functionUrl}?action=reject&id=${updateId}&token=${rejectToken}`,
+  }
+}
+
+function previewUrlForUpdate({ supabaseUrl, bucket, publicAppUrl, candidatePrefix }) {
+  const previewDataBaseUrl = `${supabaseUrl}/storage/v1/object/public/${bucket}/${candidatePrefix}`
+  const currentDataBaseUrl = `${supabaseUrl}/storage/v1/object/public/${bucket}/current`
+  const previewParams = new URLSearchParams({
+    aviationDataBaseUrl: previewDataBaseUrl,
+    aviationDataCurrentBaseUrl: currentDataBaseUrl,
+  })
+
+  return publicAppUrl
+    ? `${publicAppUrl.replace(/\/$/, '')}/app/aviation-data-preview?${previewParams.toString()}`
+    : previewDataBaseUrl
+}
+
+function buildReviewEmailHtml({ previewUrl, approveUrl, rejectUrl, reportMarkdown, intro }) {
+  return `
+    <p>${intro}</p>
+    <p><a href="${previewUrl}">Öppna kartpreview med markerade ändringar</a></p>
+    <p><a href="${approveUrl}">Godkänn uppdateringen</a> eller <a href="${rejectUrl}">avvisa uppdateringen</a>.</p>
+    <p>Om du har flera mail för samma datauppdatering är det senaste mailet det som gäller.</p>
+    ${markdownToHtml(reportMarkdown)}
+  `.trim()
+}
+
+async function sendReviewEmail({ supabaseUrl, serviceRoleKey, fromEmail, toEmail, subject, html }) {
+  const resendApiKey = process.env.RESEND_API_KEY?.trim()
+  if (resendApiKey) {
+    await sendEmail({
+      apiKey: resendApiKey,
+      fromEmail,
+      toEmail,
+      subject,
+      html,
+    })
+    return
+  }
+
+  await sendEmailViaFunction({
+    functionUrl: optionalEnv('APP_EMAIL_FUNCTION_URL', `${supabaseUrl}/functions/v1/send-email`),
+    serviceRoleKey,
+    fromEmail,
+    toEmail,
+    subject,
+    html,
+  })
+}
+
+async function refreshApprovalLinks(supabase, updateId) {
+  const approveToken = makeToken()
+  const rejectToken = makeToken()
+  const { error } = await supabase
+    .from('aviation_data_updates')
+    .update({
+      approve_token_hash: sha256(approveToken),
+      reject_token_hash: sha256(rejectToken),
+    })
+    .eq('id', updateId)
+
+  if (error) {
+    throw error
+  }
+
+  return { approveToken, rejectToken }
+}
+
 function run(command, args) {
   console.log(`\n> ${command} ${args.join(' ')}`)
   execFileSync(command, args, { stdio: 'inherit' })
@@ -386,6 +641,61 @@ const outputSnapshot = args.has('--keep-generated-output')
   : snapshot([...normalizedFiles, ...generatedFiles])
 
 try {
+  const fromEmail = optionalEnv('AVIATION_DATA_FROM_EMAIL', optionalEnv('APP_FROM_EMAIL', 'VFRplan <noreply@andreasmartensson.com>'))
+  const approverEmail = requireEnv('AVIATION_DATA_APPROVER_EMAIL')
+  const forceRefresh = args.has('--force-refresh')
+  const sourceSignature = await getSourceSignature()
+  const sourceState = await readSourceState(supabase, bucket)
+  const pendingUpdate = await getPendingUpdate(supabase)
+
+  if (pendingUpdate && sameSourceSignature(getUpdateSourceSignature(pendingUpdate), sourceSignature) && !forceRefresh) {
+    const { approveToken, rejectToken } = await refreshApprovalLinks(supabase, pendingUpdate.id)
+    const { approveUrl, rejectUrl } = approvalLinks({
+      supabaseUrl,
+      updateId: pendingUpdate.id,
+      approveToken,
+      rejectToken,
+    })
+    const reminderCount = Number(pendingUpdate.source?.reminderCount ?? 0) + 1
+    const { error: reminderError } = await supabase
+      .from('aviation_data_updates')
+      .update({
+        source: {
+          ...(pendingUpdate.source ?? {}),
+          reminderCount,
+          remindedAt: new Date().toISOString(),
+        },
+      })
+      .eq('id', pendingUpdate.id)
+
+    if (reminderError) {
+      throw reminderError
+    }
+
+    await sendReviewEmail({
+      supabaseUrl,
+      serviceRoleKey,
+      fromEmail,
+      toEmail: approverEmail,
+      subject: `Påminnelse: VFRplan datauppdatering väntar`,
+      html: buildReviewEmailHtml({
+        previewUrl: pendingUpdate.preview_url,
+        approveUrl,
+        rejectUrl,
+        reportMarkdown: pendingUpdate.report_markdown,
+        intro: 'En statisk flygdatauppdatering väntar fortfarande på granskning.',
+      }),
+    })
+
+    console.log(`Sent reminder for pending aviation data update ${pendingUpdate.id}.`)
+    process.exit(0)
+  }
+
+  if (!pendingUpdate && sameSourceSignature(sourceState?.sourceSignature, sourceSignature) && !forceRefresh) {
+    console.log('Aviation source signatures are unchanged. No refresh needed.')
+    process.exit(0)
+  }
+
   run('npm', ['run', 'aviation:se:refresh'])
   run('npm', ['run', 'aviation:se:validate'])
 
@@ -394,88 +704,124 @@ try {
   const changedFiles = dataFiles.filter((fileName) => {
     const previousPayload = currentPayloads.get(fileName)
     const nextPayload = candidatePayloads.get(fileName)
-    return stableStringify(getCollection(fileName, previousPayload)) !== stableStringify(getCollection(fileName, nextPayload))
+    return collectionChanged(fileName, previousPayload, nextPayload)
   })
 
+  await writeSourceState(supabase, bucket, sourceSignature)
+
   if (changedFiles.length === 0) {
+    if (pendingUpdate) {
+      const { error: supersedeError } = await supabase
+        .from('aviation_data_updates')
+        .update({
+          status: 'failed',
+          error_message: 'Superseded by a newer source check with no remaining public data changes.',
+          source: {
+            ...(pendingUpdate.source ?? {}),
+            sourceSignature,
+            sourceSignatureHash: sourceSignatureHash(sourceSignature),
+            supersededAt: new Date().toISOString(),
+          },
+        })
+        .eq('id', pendingUpdate.id)
+
+      if (supersedeError) {
+        throw supersedeError
+      }
+    }
     console.log('No public aviation data files changed. Nothing to submit.')
   } else {
-    const updateId = randomUUID()
+    const updateId = pendingUpdate?.id ?? randomUUID()
     const candidatePrefix = `candidates/${updateId}`
-    const previewDataBaseUrl = `${supabaseUrl}/storage/v1/object/public/${bucket}/${candidatePrefix}`
-    const currentDataBaseUrl = `${supabaseUrl}/storage/v1/object/public/${bucket}/current`
-    const previewParams = new URLSearchParams({
-      aviationDataBaseUrl: previewDataBaseUrl,
-      aviationDataCurrentBaseUrl: currentDataBaseUrl,
+    const previewUrl = previewUrlForUpdate({
+      supabaseUrl,
+      bucket,
+      publicAppUrl,
+      candidatePrefix,
     })
-    const previewUrl = publicAppUrl
-      ? `${publicAppUrl.replace(/\/$/, '')}/app/aviation-data-preview?${previewParams.toString()}`
-      : previewDataBaseUrl
     const approveToken = makeToken()
     const rejectToken = makeToken()
-    const approvalFunctionUrl = optionalEnv(
-      'AVIATION_APPROVAL_FUNCTION_URL',
-      `${supabaseUrl}/functions/v1/aviation-data-approval`,
-    )
-    const approveUrl = `${approvalFunctionUrl}?action=approve&id=${updateId}&token=${approveToken}`
-    const rejectUrl = `${approvalFunctionUrl}?action=reject&id=${updateId}&token=${rejectToken}`
+    const { approveUrl, rejectUrl } = approvalLinks({
+      supabaseUrl,
+      updateId,
+      approveToken,
+      rejectToken,
+    })
     const reportMarkdown = buildReport(changedFiles, currentPayloads, candidatePayloads)
 
     await uploadJsonFiles(supabase, bucket, candidatePrefix, 'data/aviation/se/normalized')
 
-    const { error: insertError } = await supabase.from('aviation_data_updates').insert({
-      id: updateId,
-      status: 'pending',
-      storage_bucket: bucket,
-      candidate_prefix: candidatePrefix,
-      current_prefix: 'current',
-      files: dataFiles,
-      changed_files: changedFiles,
-      report_markdown: reportMarkdown,
-      preview_url: previewUrl,
-      approve_token_hash: sha256(approveToken),
-      reject_token_hash: sha256(rejectToken),
-      source: {
-        runner: basename(process.argv[1]),
-        changedFiles,
-        generatedAt: new Date().toISOString(),
-      },
-    })
-
-    if (insertError) {
-      throw insertError
+    const source = {
+      ...(pendingUpdate?.source ?? {}),
+      runner: basename(process.argv[1]),
+      changedFiles,
+      sourceSignature,
+      sourceSignatureHash: sourceSignatureHash(sourceSignature),
+      generatedAt: new Date().toISOString(),
+      candidateUpdatedAt: pendingUpdate ? new Date().toISOString() : undefined,
     }
 
-    const fromEmail = optionalEnv('AVIATION_DATA_FROM_EMAIL', optionalEnv('APP_FROM_EMAIL', 'VFRplan <noreply@andreasmartensson.com>'))
-    const approverEmail = requireEnv('AVIATION_DATA_APPROVER_EMAIL')
-    const html = `
-      <p>Ny statisk flygdata finns att granska.</p>
-      <p><a href="${previewUrl}">Oppna kartpreview med markerade andringar</a></p>
-      <p><a href="${approveUrl}">Godkann uppdateringen</a> eller <a href="${rejectUrl}">avvisa uppdateringen</a>.</p>
-      ${markdownToHtml(reportMarkdown)}
-    `.trim()
+    if (pendingUpdate) {
+      const { error: updateError } = await supabase
+        .from('aviation_data_updates')
+        .update({
+          storage_bucket: bucket,
+          candidate_prefix: candidatePrefix,
+          current_prefix: 'current',
+          files: dataFiles,
+          changed_files: changedFiles,
+          report_markdown: reportMarkdown,
+          preview_url: previewUrl,
+          approve_token_hash: sha256(approveToken),
+          reject_token_hash: sha256(rejectToken),
+          error_message: null,
+          source,
+        })
+        .eq('id', updateId)
+
+      if (updateError) {
+        throw updateError
+      }
+    } else {
+      const { error: insertError } = await supabase.from('aviation_data_updates').insert({
+        id: updateId,
+        status: 'pending',
+        storage_bucket: bucket,
+        candidate_prefix: candidatePrefix,
+        current_prefix: 'current',
+        files: dataFiles,
+        changed_files: changedFiles,
+        report_markdown: reportMarkdown,
+        preview_url: previewUrl,
+        approve_token_hash: sha256(approveToken),
+        reject_token_hash: sha256(rejectToken),
+        source,
+      })
+
+      if (insertError) {
+        throw insertError
+      }
+    }
 
     try {
-      const subject = `VFRplan aviation data update: ${changedFiles.join(', ')}`
-      const resendApiKey = process.env.RESEND_API_KEY?.trim()
-      if (resendApiKey) {
-        await sendEmail({
-          apiKey: resendApiKey,
-          fromEmail,
-          toEmail: approverEmail,
-          subject,
-          html,
-        })
-      } else {
-        await sendEmailViaFunction({
-          functionUrl: optionalEnv('APP_EMAIL_FUNCTION_URL', `${supabaseUrl}/functions/v1/send-email`),
-          serviceRoleKey,
-          fromEmail,
-          toEmail: approverEmail,
-          subject,
-          html,
-        })
-      }
+      await sendReviewEmail({
+        supabaseUrl,
+        serviceRoleKey,
+        fromEmail,
+        toEmail: approverEmail,
+        subject: pendingUpdate
+          ? `VFRplan datauppdatering uppdaterad: ${changedFiles.join(', ')}`
+          : `VFRplan datauppdatering: ${changedFiles.join(', ')}`,
+        html: buildReviewEmailHtml({
+          previewUrl,
+          approveUrl,
+          rejectUrl,
+          reportMarkdown,
+          intro: pendingUpdate
+            ? 'En ny källändring har hittats och den väntande datauppdateringen har uppdaterats.'
+            : 'Ny statisk flygdata finns att granska.',
+        }),
+      })
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
       await supabase
@@ -485,7 +831,7 @@ try {
       throw error
     }
 
-    console.log(`Submitted aviation data update ${updateId}.`)
+    console.log(`${pendingUpdate ? 'Updated' : 'Submitted'} aviation data update ${updateId}.`)
     console.log(`Preview: ${previewUrl}`)
   }
 } finally {

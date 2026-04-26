@@ -210,7 +210,7 @@ function navaidKey(navaid: SwedishNavaid) {
 }
 
 function placeKey(place: PlaceEntry) {
-  return `${place.name}:${place.kind}`
+  return `${place.name}:${place.kind}:${roundPlaceCoordinate(place.lat)}:${roundPlaceCoordinate(place.lon)}`
 }
 
 function pointChanged(left: { lat: number; lon: number }, right: { lat: number; lon: number }) {
@@ -248,6 +248,49 @@ function diffPointItems<T extends { lat: number; lon: number }>(
   return changes
 }
 
+function distanceNm(left: { lat: number; lon: number }, right: { lat: number; lon: number }) {
+  const earthRadiusNm = 3440.065
+  const latDelta = ((right.lat - left.lat) * Math.PI) / 180
+  const lonDelta = ((right.lon - left.lon) * Math.PI) / 180
+  const leftLat = (left.lat * Math.PI) / 180
+  const rightLat = (right.lat * Math.PI) / 180
+  const haversine =
+    Math.sin(latDelta / 2) ** 2 +
+    Math.cos(leftLat) * Math.cos(rightLat) * Math.sin(lonDelta / 2) ** 2
+
+  return 2 * earthRadiusNm * Math.asin(Math.sqrt(haversine))
+}
+
+function closestPlace(previousPlaces: PlaceEntry[], nextPlace: PlaceEntry) {
+  return previousPlaces
+    .filter((place) => place.name === nextPlace.name && place.kind === nextPlace.kind)
+    .reduce<{ place: PlaceEntry; distanceNm: number } | null>((best, place) => {
+      const distance = distanceNm(place, nextPlace)
+      return !best || distance < best.distanceNm ? { place, distanceNm: distance } : best
+    }, null)
+}
+
+function diffPlaces(previousPlaces: PlaceEntry[], nextPlaces: PlaceEntry[]): Array<PointChange<PlaceEntry>> {
+  const changes: Array<PointChange<PlaceEntry>> = []
+
+  for (const next of nextPlaces) {
+    const closest = closestPlace(previousPlaces, next)
+    if (!closest || closest.distanceNm > 3) {
+      changes.push({ state: 'added', previous: null, next })
+    } else if (closest.distanceNm > 1) {
+      changes.push({ state: 'changed', previous: closest.place, next })
+    }
+  }
+
+  return changes
+}
+
+function comparableAirspace(airspace: SwedishAirspace) {
+  const { effectiveFrom, ...comparable } = airspace
+  void effectiveFrom
+  return comparable
+}
+
 function buildDiff(previous: DataSet, next: DataSet): PreviewDiff {
   const previousAirspaces = new Map(previous.airspaces.map((airspace) => [airspaceKey(airspace), airspace]))
   const airspaces: ChangedAirspace[] = []
@@ -264,7 +307,7 @@ function buildDiff(previous: DataSet, next: DataSet): PreviewDiff {
       continue
     }
 
-    if (stableStringify(previousAirspace) !== stableStringify(nextAirspace)) {
+    if (stableStringify(comparableAirspace(previousAirspace)) !== stableStringify(comparableAirspace(nextAirspace))) {
       airspaces.push({
         state: 'changed',
         previous: previousAirspace,
@@ -278,7 +321,7 @@ function buildDiff(previous: DataSet, next: DataSet): PreviewDiff {
     airspaces,
     airports: diffPointItems(previous.airports, next.airports, airportKey),
     navaids: diffPointItems(previous.navaids, next.navaids, navaidKey),
-    places: diffPointItems(previous.places, next.places, placeKey, 'place').filter((change) => (change.next.importance ?? 0) >= 0.8),
+    places: diffPlaces(previous.places, next.places).filter((change) => (change.next.importance ?? 0) >= 0.8),
   }
 }
 
@@ -365,7 +408,7 @@ export function AviationDataPreviewPage() {
       <div className="aviation-preview-page__header">
         <div>
           <h1>Granska datauppdatering</h1>
-          <p>Fargade objekt visar tillkommen eller andrad kartdata. Gra luftrum ar tidigare geometri.</p>
+          <p>Färgade objekt visar tillkommen eller ändrad kartdata. Grå luftrum är tidigare geometri.</p>
         </div>
         {state.diff ? (
           <dl>
@@ -377,7 +420,7 @@ export function AviationDataPreviewPage() {
         ) : null}
       </div>
 
-      {!hasPreviewUrls ? <div className="auth-notice auth-notice--error">Previewlanken saknar kandidatdata.</div> : null}
+      {!hasPreviewUrls ? <div className="auth-notice auth-notice--error">Previewlänken saknar kandidatdata.</div> : null}
       {state.loading ? <div className="auth-status-card">Laddar preview...</div> : null}
       {state.error ? <div className="auth-notice auth-notice--error">{state.error}</div> : null}
 
@@ -464,22 +507,22 @@ export function AviationDataPreviewPage() {
           </div>
 
           <aside className="aviation-preview-panel">
-            <h2>Text- och metadataandringar</h2>
+            <h2>Text- och metadataändringar</h2>
             {textOnlyAirspaces.length === 0 ? (
-              <p>Inga luftrum med enbart metadataandring.</p>
+              <p>Inga luftrum med enbart metadataändring.</p>
             ) : (
               <ul>
                 {textOnlyAirspaces.slice(0, 24).map((change) => (
-                  <li key={change.next.id}>{change.state === 'added' ? 'Tillkommet' : 'Andrat'}: {airspaceLabel(change.next)}</li>
+                  <li key={change.next.id}>{change.state === 'added' ? 'Tillkommet' : 'Ändrat'}: {airspaceLabel(change.next)}</li>
                 ))}
               </ul>
             )}
             <h2>Legend</h2>
             <ul>
               <li><span className="aviation-preview-panel__swatch is-old" /> Gammalt luftrum</li>
-              <li><span className="aviation-preview-panel__swatch is-new" /> Nytt eller andrat luftrum</li>
+              <li><span className="aviation-preview-panel__swatch is-new" /> Nytt eller ändrat luftrum</li>
               <li><span className="aviation-preview-panel__swatch is-added" /> Tillkomna punkter</li>
-              <li><span className="aviation-preview-panel__swatch is-changed" /> Andrade punkter</li>
+              <li><span className="aviation-preview-panel__swatch is-changed" /> Ändrade punkter</li>
             </ul>
           </aside>
         </div>

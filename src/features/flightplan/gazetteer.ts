@@ -40,6 +40,15 @@ type SwedishPlace = {
 }
 
 type CompactSwedishPlace = [string, number, number, 's' | 'l' | 'w' | 'i' | 'm', number]
+type SwedishPlacesPayload = CompactSwedishPlace[] | {
+  places?: Array<{
+    name: string
+    lat: number
+    lon: number
+    kind: SwedishPlaceKind | CompactSwedishPlace[3]
+    importance?: number
+  }>
+}
 
 let swedishPlaces: SwedishPlace[] = []
 let placesVersion = 0
@@ -100,6 +109,43 @@ function expandPlaceKind(kindCode: CompactSwedishPlace[3]): SwedishPlaceKind {
   }
 }
 
+function normalizePlaceKind(kind: SwedishPlaceKind | CompactSwedishPlace[3]): SwedishPlaceKind {
+  if (kind === 'settlement' || kind === 'lake' || kind === 'water' || kind === 'island' || kind === 'mountain') {
+    return kind
+  }
+
+  return expandPlaceKind(kind)
+}
+
+function normalizeSwedishPlaces(payload: SwedishPlacesPayload): SwedishPlace[] {
+  if (Array.isArray(payload)) {
+    return payload.map((place) => {
+      const [name, lat, lon, kindCode, importance] = place
+      return {
+        name,
+        lat,
+        lon,
+        kind: expandPlaceKind(kindCode),
+        importance,
+      }
+    })
+  }
+
+  if (!Array.isArray(payload.places)) {
+    throw new Error('Invalid place gazetteer payload')
+  }
+
+  return payload.places
+    .map((place) => ({
+      name: place.name,
+      lat: place.lat,
+      lon: place.lon,
+      kind: normalizePlaceKind(place.kind),
+      importance: place.importance ?? 0,
+    }))
+    .filter((place) => Number.isFinite(place.lat) && Number.isFinite(place.lon))
+}
+
 export function preloadSwedishPlaces() {
   if (swedishPlaces.length > 0 || placesLoadPromise) {
     return placesLoadPromise ?? Promise.resolve()
@@ -111,21 +157,8 @@ export function preloadSwedishPlaces() {
         throw new Error(`Unable to load place gazetteer (${response.status})`)
       }
 
-      const nextPlaces = await response.json()
-      if (!Array.isArray(nextPlaces)) {
-        throw new Error('Invalid place gazetteer payload')
-      }
-
-      swedishPlaces = nextPlaces.map((place) => {
-        const [name, lat, lon, kindCode, importance] = place as CompactSwedishPlace
-        return {
-          name,
-          lat,
-          lon,
-          kind: expandPlaceKind(kindCode),
-          importance,
-        }
-      })
+      const nextPlaces = await response.json() as SwedishPlacesPayload
+      swedishPlaces = normalizeSwedishPlaces(nextPlaces)
       notifyPlacesUpdated()
     })
     .catch((error) => {
