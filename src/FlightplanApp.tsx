@@ -565,6 +565,7 @@ export function FlightplanApp({
   const [suppressNextAltitudeMenuClick, setSuppressNextAltitudeMenuClick] = useState(false)
   const altitudeMenuRootRef = useRef<HTMLDivElement | null>(null)
   const [weatherRefreshToken, setWeatherRefreshToken] = useState(0)
+  const handledWeatherRefreshTokenRef = useRef(0)
   const [aloftWindAutoFetchEnabled, setAloftWindAutoFetchEnabled] = useState(readStoredAloftWindAutoFetchEnabled)
   const [aloftWindState, setAloftWindState] = useState<AloftWindState>({
     status: 'idle',
@@ -583,6 +584,7 @@ export function FlightplanApp({
     lastUpdatedAt: null,
   })
   const [notamRefreshToken, setNotamRefreshToken] = useState(0)
+  const handledNotamRefreshTokenRef = useRef(0)
   const [notamState, setNotamState] = useState<NotamState>({
     status: 'idle',
     results: [],
@@ -841,6 +843,10 @@ export function FlightplanApp({
     }
 
     const controller = new AbortController()
+    const forceRefresh = weatherRefreshToken > handledWeatherRefreshTokenRef.current
+    if (forceRefresh) {
+      handledWeatherRefreshTokenRef.current = weatherRefreshToken
+    }
     setWeatherState(() => ({
       status: 'loading',
       results: [],
@@ -856,7 +862,7 @@ export function FlightplanApp({
       activePanel === 'weather' && nearbyRouteAirports.length > 0
         ? fetchWeatherForAirports(nearbyRouteAirports, controller.signal)
         : Promise.resolve([]),
-      fetchLfvWeatherBriefing(),
+      fetchLfvWeatherBriefing(forceRefresh),
     ])
       .then(([results, briefing]) => {
         setWeatherState({
@@ -897,6 +903,10 @@ export function FlightplanApp({
     }
 
     let cancelled = false
+    const forceRefresh = notamRefreshToken > handledNotamRefreshTokenRef.current
+    if (forceRefresh) {
+      handledNotamRefreshTokenRef.current = notamRefreshToken
+    }
     setNotamState({
       status: 'loading',
       results: [],
@@ -910,7 +920,7 @@ export function FlightplanApp({
       bulletinPublishedAt: null,
     })
 
-    fetchNotamsForAirports(nearbyRouteAirports.map((airport) => airport.icao))
+    fetchNotamsForAirports(nearbyRouteAirports.map((airport) => airport.icao), forceRefresh)
       .then((response) => {
         if (cancelled) {
           return

@@ -144,6 +144,24 @@ npm run supabase:db:push
 supabase functions deploy notam-briefing
 ```
 
+### LFV weather proxy
+
+Swedish route weather uses a Supabase Edge Function that:
+
+- fetches LFV SIGMET/ARS/AIRMET and LHP area weather on demand
+- parses LFV PDFs server-side
+- caches the parsed result in `public.weather_briefing_cache`
+- reuses the cached briefing until it is older than 20 minutes
+
+Automatic map and weather-panel loads use the cache. The refresh buttons request a forced refresh.
+
+Apply the migration and deploy the function:
+
+```bash
+npm run supabase:db:push
+supabase functions deploy weather-briefing
+```
+
 ## Swedish aviation data
 
 The repository contains scripts for fetching and processing Swedish LFV AIP reference data for airports and map airspaces.

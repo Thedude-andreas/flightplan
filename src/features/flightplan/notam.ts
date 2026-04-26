@@ -29,7 +29,7 @@ export type NotamResponse = {
   notams: AirportNotam[]
 }
 
-export async function fetchNotamsForAirports(icaos: string[]) {
+export async function fetchNotamsForAirports(icaos: string[], forceRefresh = false) {
   const supabase = getSupabaseClient()
 
   if (!supabase) {
@@ -37,7 +37,7 @@ export async function fetchNotamsForAirports(icaos: string[]) {
   }
 
   const { data, error } = await supabase.functions.invoke('notam-briefing', {
-    body: { icaos },
+    body: { icaos, forceRefresh },
   })
 
   if (error) {

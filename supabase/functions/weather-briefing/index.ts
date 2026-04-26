@@ -1,3 +1,4 @@
+import { createClient } from 'jsr:@supabase/supabase-js@2'
 import { extractText, getDocumentProxy } from './vendor/unpdf.mjs'
 
 const corsHeaders = {
@@ -7,6 +8,8 @@ const corsHeaders = {
 }
 
 const sigmetListingUrl = 'https://www.aro.lfv.se/Links/Link/ShowFileList?type=MET&path=%5CAREA%5CSIGMET%5C&torlinkName=SIGMET%2FARS%2FAIRMET'
+const cacheTtlMinutes = 20
+const briefingKey = 'lfv-weather-briefing-v1'
 const lhpAreas = [
   {
     id: 'se1',
@@ -46,6 +49,13 @@ type CachedLhpArea = {
   validFrom: string | null
   validTo: string | null
   windLevels: CachedWindLevel[]
+}
+
+type CachedPayload = {
+  sigmetSourceUrl: string | null
+  sigmetPublishedAt: string | null
+  sigmetText: string | null
+  lhpAreas: CachedLhpArea[]
 }
 
 function jsonResponse(body: unknown, status = 200) {
@@ -255,18 +265,11 @@ async function buildFreshCacheEntry() {
   const areas = await Promise.all(lhpAreas.map((area) => extractLhpArea(area)))
 
   return {
-    fetchedAt: new Date().toISOString(),
     sigmetSourceUrl,
     sigmetPublishedAt: parsePublishedAtFromFileUrl(sigmetSourceUrl),
     sigmetText,
     lhpAreas: areas,
-  } satisfies {
-    fetchedAt: string
-    sigmetSourceUrl: string | null
-    sigmetPublishedAt: string | null
-    sigmetText: string | null
-    lhpAreas: CachedLhpArea[]
-  }
+  } satisfies CachedPayload
 }
 
 Deno.serve(async (request) => {
@@ -279,11 +282,55 @@ Deno.serve(async (request) => {
   }
 
   try {
-    await request.json().catch(() => ({}))
-    const briefing = await buildFreshCacheEntry()
+    const { forceRefresh } = await request.json().catch(() => ({})) as { forceRefresh?: boolean }
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+
+    if (!supabaseUrl || !serviceRoleKey) {
+      throw new Error('Supabase function saknar service role-konfiguration.')
+    }
+
+    const supabase = createClient(supabaseUrl, serviceRoleKey)
+    const { data: cachedRow, error: cachedError } = await supabase
+      .from('weather_briefing_cache')
+      .select('fetched_at, sections')
+      .eq('briefing_key', briefingKey)
+      .maybeSingle()
+
+    if (cachedError) {
+      throw cachedError
+    }
+
+    const now = Date.now()
+    const cachedAt = cachedRow?.fetched_at ? new Date(cachedRow.fetched_at).getTime() : 0
+    const isFresh = !forceRefresh && cachedRow && now - cachedAt < cacheTtlMinutes * 60 * 1000
+
+    const effectiveRow = isFresh
+      ? cachedRow
+      : await (async () => {
+          const freshSections = await buildFreshCacheEntry()
+          const { data, error } = await supabase
+            .from('weather_briefing_cache')
+            .upsert({
+              briefing_key: briefingKey,
+              fetched_at: new Date().toISOString(),
+              sections: freshSections,
+            }, { onConflict: 'briefing_key' })
+            .select('fetched_at, sections')
+            .single()
+
+          if (error) {
+            throw error
+          }
+
+          return data
+        })()
+
+    const briefing = (effectiveRow.sections ?? {}) as Partial<CachedPayload>
 
     return jsonResponse({
-      fetchedAt: briefing.fetchedAt,
+      fetchedAt: effectiveRow.fetched_at,
       sigmetSourceUrl: briefing.sigmetSourceUrl ?? null,
       sigmetPublishedAt: briefing.sigmetPublishedAt ?? null,
       sigmetText: briefing.sigmetText ?? null,

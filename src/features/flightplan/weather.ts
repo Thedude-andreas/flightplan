@@ -32,11 +32,11 @@ export type AirportMapWeather = {
   metarObservedAt: string | null
   tafRawText: string | null
   tafIssuedAt: string | null
-  /** Sätts i klientcache när rapporttid saknas; används för TTL. */
+  /** Sätts i klientcache för negativa svar utan rapporttid, t.ex. saknad METAR/TAF. */
   cachedAtMs?: number
 }
 
-/** Minsta ålder innan kartväder hämtas om (baserat på rapporttid eller cachetid). */
+/** Maximal ålder innan kartväder hämtas om. Rapporter med tid mäts från publicerings-/observationstid. */
 export const WEATHER_MAP_CACHE_MAX_AGE_MS = 20 * 60 * 1000
 
 function parseReportTimestampToMs(timestamp: string | null): number | null {
@@ -60,18 +60,27 @@ function parseReportTimestampToMs(timestamp: string | null): number | null {
   return Number.isNaN(parsed) ? null : parsed
 }
 
-/** Sant om kartväder saknas, är för gammalt, eller saknar tidsstämpel som överskrider TTL. */
+function isReportStale(publishedAt: string | null, hasRawReport: boolean): boolean {
+  const publishedMs = parseReportTimestampToMs(publishedAt)
+  if (publishedMs != null) {
+    return Date.now() - publishedMs > WEATHER_MAP_CACHE_MAX_AGE_MS
+  }
+
+  return hasRawReport
+}
+
+/** Sant om kartväder saknas eller någon befintlig rapport är för gammal. */
 export function needsAirportWeatherRefetchForMap(cached: AirportMapWeather | undefined): boolean {
   if (!cached) {
     return true
   }
 
-  const reportMs = Math.max(
-    parseReportTimestampToMs(cached.metarObservedAt) ?? 0,
-    parseReportTimestampToMs(cached.tafIssuedAt) ?? 0,
-  )
-  if (reportMs > 0) {
-    return Date.now() - reportMs > WEATHER_MAP_CACHE_MAX_AGE_MS
+  if (isReportStale(cached.metarObservedAt, Boolean(cached.metarRawText))) {
+    return true
+  }
+
+  if (isReportStale(cached.tafIssuedAt, Boolean(cached.tafRawText))) {
+    return true
   }
 
   if (cached.cachedAtMs != null) {
@@ -537,7 +546,7 @@ export async function fetchWeatherForAirports(
   )
 }
 
-export async function fetchLfvWeatherBriefing() {
+export async function fetchLfvWeatherBriefing(forceRefresh = false) {
   const supabase = getSupabaseClient()
 
   if (!supabase) {
@@ -545,7 +554,7 @@ export async function fetchLfvWeatherBriefing() {
   }
 
   const { data, error } = await supabase.functions.invoke('weather-briefing', {
-    body: {},
+    body: { forceRefresh },
   })
 
   if (error) {
