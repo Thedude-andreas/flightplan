@@ -444,18 +444,27 @@ Deno.serve(async (request) => {
     const effectiveRow = isFresh
       ? cachedRow
       : await (async () => {
-          const freshEntry = await buildFreshCacheEntry()
-          const { data, error } = await supabase
-            .from('notam_briefing_cache')
-            .upsert(freshEntry, { onConflict: 'briefing_key' })
-            .select('source_url, fetched_at, bulletin_published_at, sections')
-            .single()
+          try {
+            const freshEntry = await buildFreshCacheEntry()
+            const { data, error } = await supabase
+              .from('notam_briefing_cache')
+              .upsert(freshEntry, { onConflict: 'briefing_key' })
+              .select('source_url, fetched_at, bulletin_published_at, sections')
+              .single()
 
-          if (error) {
+            if (error) {
+              throw error
+            }
+
+            return data
+          } catch (error) {
+            if (cachedRow) {
+              console.error('Using stale NOTAM cache after refresh failed.', error)
+              return cachedRow
+            }
+
             throw error
           }
-
-          return data
         })()
 
     const sections = (effectiveRow.sections ?? {}) as Partial<CachedPayload>

@@ -309,22 +309,31 @@ Deno.serve(async (request) => {
     const effectiveRow = isFresh
       ? cachedRow
       : await (async () => {
-          const freshSections = await buildFreshCacheEntry()
-          const { data, error } = await supabase
-            .from('weather_briefing_cache')
-            .upsert({
-              briefing_key: briefingKey,
-              fetched_at: new Date().toISOString(),
-              sections: freshSections,
-            }, { onConflict: 'briefing_key' })
-            .select('fetched_at, sections')
-            .single()
+          try {
+            const freshSections = await buildFreshCacheEntry()
+            const { data, error } = await supabase
+              .from('weather_briefing_cache')
+              .upsert({
+                briefing_key: briefingKey,
+                fetched_at: new Date().toISOString(),
+                sections: freshSections,
+              }, { onConflict: 'briefing_key' })
+              .select('fetched_at, sections')
+              .single()
 
-          if (error) {
+            if (error) {
+              throw error
+            }
+
+            return data
+          } catch (error) {
+            if (cachedRow) {
+              console.error('Using stale weather cache after refresh failed.', error)
+              return cachedRow
+            }
+
             throw error
           }
-
-          return data
         })()
 
     const briefing = (effectiveRow.sections ?? {}) as Partial<CachedPayload>
