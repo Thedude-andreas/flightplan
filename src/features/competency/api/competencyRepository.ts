@@ -288,10 +288,19 @@ export async function upsertCompetencyPermission(input: CompetencyPermission) {
   const { error } = await supabase.from('competency_user_permissions').upsert({
     user_id: input.userId,
     module_access: input.moduleAccess,
-    manage_catalog: input.manageCatalog,
-    view_reports: input.viewReports,
-    manage_permissions: input.managePermissions,
+    manage_catalog: input.moduleAccess ? input.manageCatalog : false,
+    view_reports: input.moduleAccess ? input.viewReports : false,
+    manage_permissions: input.moduleAccess ? input.managePermissions : false,
   })
+
+  if (error) {
+    throw error
+  }
+}
+
+export async function deleteCompetencyPermission(userId: string) {
+  const supabase = requireClient()
+  const { error } = await supabase.from('competency_user_permissions').delete().eq('user_id', userId)
 
   if (error) {
     throw error

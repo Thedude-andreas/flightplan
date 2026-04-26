@@ -1,14 +1,16 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { getErrorMessage } from '../../../lib/supabase/errors'
 import {
   createCompetencyDepartment,
   createCompetencyGroup,
+  deleteCompetencyPermission,
   loadCompetencyWorkspace,
   replaceCompetencyDepartmentLeaders,
   replaceCompetencyGroupManagers,
   saveCompetencyCourse,
   upsertCompetencyPermission,
 } from '../api/competencyRepository'
+import { useAuth } from '../../auth/hooks/useAuth'
 import type {
   CompetencyCourse,
   CompetencyDepartment,
@@ -29,6 +31,7 @@ type Workspace = {
 }
 
 export function CompetencyAdminPage() {
+  const { user } = useAuth()
   const [workspace, setWorkspace] = useState<Workspace>({
     permission: null,
     departments: [],
@@ -54,6 +57,38 @@ export function CompetencyAdminPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [saving, setSaving] = useState('')
+  const moduleAccessUserIds = useMemo(
+    () => new Set(workspace.permissionEntries.filter((entry) => entry.moduleAccess).map((entry) => entry.userId)),
+    [workspace.permissionEntries],
+  )
+  const departmentLeaderOptions = useMemo(
+    () => workspace.profiles.filter((profile) => moduleAccessUserIds.has(profile.id) || departmentLeaderUserIds.includes(profile.id)),
+    [departmentLeaderUserIds, moduleAccessUserIds, workspace.profiles],
+  )
+  const groupManagerOptions = useMemo(
+    () => workspace.profiles.filter((profile) => moduleAccessUserIds.has(profile.id) || groupManagerUserIds.includes(profile.id)),
+    [groupManagerUserIds, moduleAccessUserIds, workspace.profiles],
+  )
+
+  function updatePermissionDraft(next: Partial<typeof permissionDraft>) {
+    setPermissionDraft((current) => {
+      const merged = { ...current, ...next }
+      if (!merged.moduleAccess) {
+        return { ...merged, manageCatalog: false, managePermissions: false }
+      }
+
+      return merged
+    })
+  }
+
+  function editPermission(entry: CompetencyPermissionEntry) {
+    setPermissionDraft({
+      userId: entry.userId,
+      moduleAccess: entry.moduleAccess,
+      manageCatalog: entry.manageCatalog,
+      managePermissions: entry.managePermissions,
+    })
+  }
 
   async function loadData() {
     setLoading(true)
@@ -160,10 +195,41 @@ export function CompetencyAdminPage() {
         ...permissionDraft,
         viewReports: false,
       })
-      setPermissionDraft((current) => ({ ...current, userId: '' }))
+      setPermissionDraft({
+        userId: '',
+        moduleAccess: true,
+        manageCatalog: false,
+        managePermissions: false,
+      })
       await loadData()
     } catch (nextError) {
       setError(getErrorMessage(nextError, 'Kunde inte spara behörigheten.'))
+    } finally {
+      setSaving('')
+    }
+  }
+
+  async function handleDeletePermission(userId: string) {
+    if (userId === user?.id) {
+      setError('Du kan inte återkalla din egen behörighet här.')
+      return
+    }
+
+    setSaving(`delete-permission-${userId}`)
+    setError('')
+    try {
+      await deleteCompetencyPermission(userId)
+      if (permissionDraft.userId === userId) {
+        setPermissionDraft({
+          userId: '',
+          moduleAccess: true,
+          manageCatalog: false,
+          managePermissions: false,
+        })
+      }
+      await loadData()
+    } catch (nextError) {
+      setError(getErrorMessage(nextError, 'Kunde inte återkalla behörigheten.'))
     } finally {
       setSaving('')
     }
@@ -256,7 +322,7 @@ export function CompetencyAdminPage() {
                     value={departmentLeaderUserIds}
                     onChange={(event) => setDepartmentLeaderUserIds(Array.from(event.target.selectedOptions, (option) => option.value))}
                   >
-                    {workspace.profiles.map((profile) => (
+                    {departmentLeaderOptions.map((profile) => (
                       <option key={profile.id} value={profile.id}>{formatDisplayName(profile.displayName, profile.email)}</option>
                     ))}
                   </select>
@@ -283,7 +349,7 @@ export function CompetencyAdminPage() {
                     value={groupManagerUserIds}
                     onChange={(event) => setGroupManagerUserIds(Array.from(event.target.selectedOptions, (option) => option.value))}
                   >
-                    {workspace.profiles.map((profile) => (
+                    {groupManagerOptions.map((profile) => (
                       <option key={profile.id} value={profile.id}>{formatDisplayName(profile.displayName, profile.email)}</option>
                     ))}
                   </select>
@@ -304,7 +370,7 @@ export function CompetencyAdminPage() {
             <div className="competency-form-grid">
               <label className="competency-form-grid__wide">
                 <span>Användare</span>
-                <select required value={permissionDraft.userId} onChange={(event) => setPermissionDraft((current) => ({ ...current, userId: event.target.value }))}>
+                <select required value={permissionDraft.userId} onChange={(event) => updatePermissionDraft({ userId: event.target.value })}>
                   <option value="">Välj användare</option>
                   {workspace.profiles.map((profile) => (
                     <option key={profile.id} value={profile.id}>{formatDisplayName(profile.displayName, profile.email)}</option>
@@ -312,15 +378,25 @@ export function CompetencyAdminPage() {
                 </select>
               </label>
               <label className="competency-checkbox">
-                <input type="checkbox" checked={permissionDraft.moduleAccess} onChange={(event) => setPermissionDraft((current) => ({ ...current, moduleAccess: event.target.checked }))} />
+                <input type="checkbox" checked={permissionDraft.moduleAccess} onChange={(event) => updatePermissionDraft({ moduleAccess: event.target.checked })} />
                 <span>Modulåtkomst</span>
               </label>
               <label className="competency-checkbox">
-                <input type="checkbox" checked={permissionDraft.manageCatalog} onChange={(event) => setPermissionDraft((current) => ({ ...current, manageCatalog: event.target.checked }))} />
+                <input
+                  type="checkbox"
+                  checked={permissionDraft.manageCatalog}
+                  disabled={!permissionDraft.moduleAccess}
+                  onChange={(event) => updatePermissionDraft({ manageCatalog: event.target.checked })}
+                />
                 <span>Hantera kursregister</span>
               </label>
               <label className="competency-checkbox">
-                <input type="checkbox" checked={permissionDraft.managePermissions} onChange={(event) => setPermissionDraft((current) => ({ ...current, managePermissions: event.target.checked }))} />
+                <input
+                  type="checkbox"
+                  checked={permissionDraft.managePermissions}
+                  disabled={!permissionDraft.moduleAccess}
+                  onChange={(event) => updatePermissionDraft({ managePermissions: event.target.checked })}
+                />
                 <span>Hantera behörigheter</span>
               </label>
             </div>
@@ -402,6 +478,7 @@ export function CompetencyAdminPage() {
                   <th>Modul</th>
                   <th>Kursregister</th>
                   <th>Behörigheter</th>
+                  <th>Åtgärd</th>
                 </tr>
               </thead>
               <tbody>
@@ -411,6 +488,20 @@ export function CompetencyAdminPage() {
                     <td>{entry.moduleAccess ? 'Ja' : 'Nej'}</td>
                     <td>{entry.manageCatalog ? 'Ja' : 'Nej'}</td>
                     <td>{entry.managePermissions ? 'Ja' : 'Nej'}</td>
+                    <td>
+                      <div className="competency-table-actions">
+                        <button type="button" onClick={() => editPermission(entry)}>
+                          Ändra
+                        </button>
+                        <button
+                          type="button"
+                          disabled={entry.userId === user?.id || saving === `delete-permission-${entry.userId}`}
+                          onClick={() => void handleDeletePermission(entry.userId)}
+                        >
+                          {saving === `delete-permission-${entry.userId}` ? 'Återkallar...' : 'Återkalla'}
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>

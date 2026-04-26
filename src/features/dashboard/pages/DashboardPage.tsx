@@ -1,6 +1,30 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { getCurrentCompetencyPermission } from '../../competency/api/competencyRepository'
 
 export function DashboardPage() {
+  const [canAccessCompetency, setCanAccessCompetency] = useState(false)
+
+  useEffect(() => {
+    let isMounted = true
+
+    void getCurrentCompetencyPermission()
+      .then((permission) => {
+        if (isMounted) {
+          setCanAccessCompetency(Boolean(permission?.moduleAccess))
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setCanAccessCompetency(false)
+        }
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
   return (
     <section className="app-panel">
       <div className="app-panel__header">
@@ -28,13 +52,15 @@ export function DashboardPage() {
           </Link>
         </article>
 
-        <article className="app-card">
-          <h2>Kompetens</h2>
-          <p>Följ upp GU/RU per kurs, hantera gruppmedlemmar och bygg sammanställningar över kommande utbildningsbehov.</p>
-          <Link to="/app/competency" className="button-link">
-            Visa kompetensmodul
-          </Link>
-        </article>
+        {canAccessCompetency ? (
+          <article className="app-card">
+            <h2>Kompetens</h2>
+            <p>Följ upp GU/RU per kurs, hantera gruppmedlemmar och bygg sammanställningar över kommande utbildningsbehov.</p>
+            <Link to="/app/competency" className="button-link">
+              Visa kompetensmodul
+            </Link>
+          </article>
+        ) : null}
       </div>
     </section>
   )

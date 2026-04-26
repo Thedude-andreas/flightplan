@@ -197,6 +197,17 @@
   letter-spacing: 0.08em;
 }
 
+.competency-table-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.competency-table-actions button {
+  min-height: 36px;
+  padding: 8px 10px;
+}
+
 @media (max-width: 640px) {
   .competency-form-grid {
     grid-template-columns: 1fr;
