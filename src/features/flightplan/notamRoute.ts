@@ -940,6 +940,7 @@ function splitSupplementGeometrySections(rawText: string) {
   const normalized = rawText.replace(/\u00a0/g, ' ').trim()
   const sectionStarts = new Map<number, string>()
   const codedHeadingPattern = /\b([A-Z]{2,4}\d{3,4}[A-Z]?\s+[A-ZÅÄÖ0-9][A-ZÅÄÖ0-9 /-]*?(?:UAS|TRA|TSA|CTR|TMA|RMZ|TMZ))\b/g
+  const verticalLimitsHeadingPattern = /\b((?:ES[DR]\d{2,4}[A-Z]?)\s+[A-ZÅÄÖ0-9][A-ZÅÄÖ0-9 /'’()-]{1,80}?)(?=\s+GRÄNS\s+I\s+HÖJDLED\s*\/?\s*VERTICAL\s+LIMITS|\s+GRÄNS\s+I\s+HÖJDLED|\s+VERTICAL\s+LIMITS)/gi
   const plainHeadingPattern = /(?:^|\n)\s*([A-ZÅÄÖ][A-ZÅÄÖ0-9 /-]{2,})(?=\s*\n\s*\d+\.\s*OBST)/g
   const obstacleHeadingPattern = /\b([A-ZÅÄÖ][A-ZÅÄÖ0-9 /-]{2,})\s+(?=\d+\.\s*OBST\b)/g
 
@@ -948,6 +949,19 @@ function splitSupplementGeometrySections(rawText: string) {
     const preview = normalized.slice(start, Math.min(normalized.length, start + 260))
     if (/(?:VERTICAL\s+LIMITS|GRÄNS\s+I\s+HÖJDLED|PSN|INOM\s+EN\s+RADIE)/i.test(preview)) {
       sectionStarts.set(start, match[1])
+    }
+  }
+
+  for (const match of normalized.matchAll(verticalLimitsHeadingPattern)) {
+    const start = match.index ?? 0
+    const heading = match[1]?.trim() ?? ''
+    if (heading.length < 3 || heading.length > 100) {
+      continue
+    }
+
+    const preview = normalized.slice(start, Math.min(normalized.length, start + 260))
+    if (/(?:VERTICAL\s+LIMITS|GRÄNS\s+I\s+HÖJDLED)/i.test(preview)) {
+      sectionStarts.set(start, heading)
     }
   }
 
