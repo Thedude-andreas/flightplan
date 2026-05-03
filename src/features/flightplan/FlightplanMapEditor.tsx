@@ -44,7 +44,13 @@ import {
   type MetarFlightRules,
   type NearbyAirport,
 } from './weather'
-import { formatNotamText, type NotamMapOverlayFeature } from './notamRoute'
+import {
+  createEmptyNotamMapCoverageCheck,
+  formatNotamMapCoverageLabel,
+  formatNotamText,
+  type NotamMapCoverageCheck,
+  type NotamMapOverlayFeature,
+} from './notamRoute'
 import { getAllWeatherOverlays, type RouteWeatherOverlay } from './weatherSigmet'
 import type { RouteLegAloftWind } from './openMeteoAloft'
 import type { FlightPlanInput, FlightPlanDerived } from './types'
@@ -63,6 +69,10 @@ type MapLayerPreferences = {
 }
 
 type MapLayerPreferenceKey = keyof MapLayerPreferences
+type NotamMapNoticeLink = {
+  label: string
+  href: string
+}
 
 const mapLayerPreferencesStorageKey = 'flightplan.mapLayerPreferences.v1'
 
@@ -990,7 +1000,9 @@ export function FlightplanMapEditor({
   aloftWindStatus = 'idle',
   sigmetText = null,
   notamMapFeatures = [],
+  notamMapCoverage = createEmptyNotamMapCoverageCheck(),
   notamMapNotice = null,
+  notamMapNoticeLinks = [],
   notamMapStatus = 'idle',
   hudSlot,
   hudStatusSlot,
@@ -1006,7 +1018,9 @@ export function FlightplanMapEditor({
   aloftWindStatus?: 'idle' | 'loading' | 'error' | 'ready'
   sigmetText?: string | null
   notamMapFeatures?: NotamMapOverlayFeature[]
+  notamMapCoverage?: NotamMapCoverageCheck
   notamMapNotice?: string | null
+  notamMapNoticeLinks?: NotamMapNoticeLink[]
   notamMapStatus?: 'idle' | 'loading' | 'error' | 'ready'
   hudSlot?: ReactNode
   hudStatusSlot?: ReactNode
@@ -1027,6 +1041,7 @@ export function FlightplanMapEditor({
   const [dragPreviewWaypoints, setDragPreviewWaypoints] = useState<ReturnType<typeof legsToWaypoints> | null>(null)
   const [activeSegmentInsertIndex, setActiveSegmentInsertIndex] = useState<number | null>(null)
   const [hoveredNotamFeature, setHoveredNotamFeature] = useState<NotamMapOverlayFeature | null>(null)
+  const [openNotamMapNoticeKey, setOpenNotamMapNoticeKey] = useState<string | null>(null)
   const [waypointMarkerLayerVersion, setWaypointMarkerLayerVersion] = useState(0)
   const [airportWeatherByIcao, setAirportWeatherByIcao] = useState<Record<string, AirportMapWeather>>({})
   const [metarStaleCheckTick, setMetarStaleCheckTick] = useState(0)
@@ -1046,6 +1061,14 @@ export function FlightplanMapEditor({
   const showAirportWeather = showMetar || showTaf
   const showAirportMarkers = showAirports || showAirportWeather
   const enabledLayerCount = Object.values(mapLayerPreferences).filter(Boolean).length
+  const notamLayerMeta = notamMapStatus === 'ready'
+    ? formatNotamMapCoverageLabel(notamMapCoverage)
+    : 'En-route och NAV-varningar'
+  const hasNotamMapNotice = Boolean(notamMapNotice)
+  const notamMapNoticeKey = notamMapNotice
+    ? `${notamMapNotice}|${notamMapNoticeLinks.map((link) => `${link.label}:${link.href}`).join('|')}`
+    : null
+  const isNotamMapNoticeOpen = notamMapNoticeKey != null && openNotamMapNoticeKey === notamMapNoticeKey
   const hasPendingStartPoint = useMemo(() => isPlaceholderLeg(plan.routeLegs), [plan.routeLegs])
   const waypoints = useMemo(() => {
     if (hasPendingStartPoint) {
@@ -1505,6 +1528,22 @@ export function FlightplanMapEditor({
       <div className="fp-map-canvas">
         <div className="fp-map-hud fp-map-hud--top-right">
           <div className="fp-map-controls">
+            {hasNotamMapNotice ? (
+              <button
+                type="button"
+                className={`fp-notam-map-warning-button ${isNotamMapNoticeOpen ? 'is-open' : ''}`}
+                aria-label={isNotamMapNoticeOpen ? 'Dölj NOTAM/AIP SUP-varning' : 'Visa NOTAM/AIP SUP-varning'}
+                aria-expanded={isNotamMapNoticeOpen}
+                onClick={() => {
+                  setIsMapLayerMenuOpen(false)
+                  setOpenNotamMapNoticeKey((current) => (
+                    current === notamMapNoticeKey ? null : notamMapNoticeKey
+                  ))
+                }}
+              >
+                <span className="fp-notam-map-warning-button__triangle" aria-hidden="true" />
+              </button>
+            ) : null}
             <div className="fp-map-layer-menu" ref={mapLayerMenuRef}>
               <button
                 type="button"
@@ -1566,7 +1605,7 @@ export function FlightplanMapEditor({
                     checked={showNotamOverlays}
                     disabled={notamMapStatus === 'loading'}
                     label="NOTAM / AIP SUP"
-                    meta={notamMapStatus === 'ready' ? `${notamMapFeatures.length} kartobjekt` : 'En-route och NAV-varningar'}
+                    meta={notamLayerMeta}
                     onToggle={() => toggleMapLayerPreference('notamOverlays')}
                   />
                   <MapLayerSwitch
@@ -1609,14 +1648,23 @@ export function FlightplanMapEditor({
               ) : null}
             </div>
           </div>
+          {notamMapNotice && isNotamMapNoticeOpen ? (
+            <div className="fp-notam-map-banner" role="status">
+              <span>{notamMapNotice}</span>
+              {notamMapNoticeLinks.length > 0 ? (
+                <span className="fp-notam-map-banner__links">
+                  {notamMapNoticeLinks.map((link) => (
+                    <a key={`${link.label}-${link.href}`} href={link.href} target="_blank" rel="noreferrer">
+                      {link.label}
+                    </a>
+                  ))}
+                </span>
+              ) : null}
+            </div>
+          ) : null}
         </div>
         {hudSlot ? <div className="fp-map-hud fp-map-hud--top-left fp-map-hud--editor">{hudSlot}</div> : null}
         {hudStatusSlot ? <div className="fp-map-hud fp-map-hud--bottom-center fp-map-hud--status">{hudStatusSlot}</div> : null}
-        {notamMapNotice ? (
-          <div className="fp-notam-map-banner" role="status">
-            {notamMapNotice}
-          </div>
-        ) : null}
         {hoveredNotamFeature ? (
           <aside
             className="fp-notam-map-panel"

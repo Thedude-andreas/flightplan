@@ -12,7 +12,8 @@ import {
 import { fetchNotamsForAirports, type AirportNotam, type NotamSupplement } from './features/flightplan/notam'
 import { isSupabaseConfigured } from './lib/supabase/client'
 import {
-  buildNotamMapOverlayFeatures,
+  buildNotamMapOverlayResult,
+  createEmptyNotamMapCoverageCheck,
   formatNotamText,
   getRelevantSupplements,
   getRouteNotamMatches,
@@ -29,6 +30,7 @@ import type { AircraftProfile, FlightPlanInput, RadioNavEntry } from './features
 type EditorPanel = 'fuel' | 'weightBalance' | 'performance' | 'aircraft' | 'weather' | 'notam'
 type WorkspaceTab = 'flightplan' | 'map' | 'print'
 const aloftWindAutoFetchStorageKey = 'flightplan.aloftWindAutoFetch.v1'
+const debugNotamMapNoticeParam = 'debugNotamMapNotice'
 
 type RouteRow = {
   index: number
@@ -472,6 +474,14 @@ function readStoredAloftWindAutoFetchEnabled() {
   return raw !== 'false'
 }
 
+function isDebugNotamMapNoticeEnabled() {
+  if (!import.meta.env.DEV || typeof window === 'undefined') {
+    return false
+  }
+
+  return new URLSearchParams(window.location.search).get(debugNotamMapNoticeParam) === '1'
+}
+
 const selectableAltitudesFt = Array.from({ length: 19 }, (_, index) => 500 + index * 500)
 
 function formatAltitudeOption(altitudeFt: number) {
@@ -808,16 +818,19 @@ export function FlightplanApp({
     [nearbyRouteAirports, notamState.supplements, plan.header.date, plan.routeLegs, routeEnRouteMatches, routeWarningMatches],
   )
 
-  const notamMapFeatures = useMemo(
+  const notamMapOverlay = useMemo(
     () =>
       notamState.status === 'ready'
-        ? buildNotamMapOverlayFeatures(
+        ? buildNotamMapOverlayResult(
             notamState.enRouteText,
             notamState.warningsText,
             notamState.supplements,
             plan.header.date,
           )
-        : [],
+        : {
+            features: [],
+            coverage: createEmptyNotamMapCoverageCheck(),
+          },
     [
       notamState.status,
       notamState.enRouteText,
@@ -826,8 +839,15 @@ export function FlightplanApp({
       plan.header.date,
     ],
   )
+  const notamMapFeatures = notamMapOverlay.features
+  const notamMapCoverage = notamMapOverlay.coverage
+  const simulateNotamMapNotice = isDebugNotamMapNoticeEnabled()
 
   const notamMapNotice = useMemo(() => {
+    if (simulateNotamMapNotice) {
+      return 'Simulerad NOTAM/AIP SUP-varning för lokal test av kartans varningstriangel.'
+    }
+
     if (!isSupabaseConfigured()) {
       return 'NOTAM och AIP SUP i kartan kräver Supabase. Sätt VITE_SUPABASE_URL och VITE_SUPABASE_ANON_KEY (edge-funktionen notam-briefing).'
     }
@@ -836,12 +856,81 @@ export function FlightplanApp({
       return notamState.error ?? 'Kunde inte hämta NOTAM-briefing.'
     }
 
+    if (notamState.status === 'ready' && notamMapCoverage.missingEntries.length > 0) {
+      const missingCount = notamMapCoverage.missingEntries.length
+      const missingLabel = missingCount === 1
+        ? '1 NOTAM/AIP SUP-område'
+        : `${missingCount} NOTAM/AIP SUP-områden`
+      const preview = notamMapCoverage.missingEntries
+        .slice(0, 2)
+        .map((entry) => entry.title)
+        .join('; ')
+
+      return `${missingLabel} kunde inte visas i kartan eftersom koordinaterna inte kunde tolkas.${preview ? ` Kontrollera råtext: ${preview}.` : ''}`
+    }
+
     if (notamState.status === 'ready' && notamMapFeatures.length === 0) {
       return 'Briefing är hämtat men inga koordinater kunde tolkas (LFV använder ofta DDMMSS N / DDDMMSS E). Öppna NOTAM-panelen och kontrollera råtext.'
     }
 
     return null
-  }, [notamMapFeatures.length, notamState.error, notamState.status])
+  }, [notamMapCoverage.missingEntries, notamMapFeatures.length, notamState.error, notamState.status, simulateNotamMapNotice])
+  const notamMapNoticeLinks = useMemo(() => {
+    if (!notamMapNotice) {
+      return []
+    }
+
+    const links: Array<{ label: string; href: string }> = []
+    const addLink = (label: string, href: string | null | undefined) => {
+      if (!href || links.some((link) => link.href === href)) {
+        return
+      }
+
+      links.push({ label, href })
+    }
+
+    if (simulateNotamMapNotice) {
+      addLink('Testlänk NOTAM', notamState.sourceUrl ?? lfvNotamSwedenUrl)
+      return links
+    }
+
+    if (notamState.status !== 'ready') {
+      return []
+    }
+
+    if (notamMapCoverage.missingEntries.length > 0) {
+      const hasNotamBriefingIssue = notamMapCoverage.missingEntries.some((entry) => entry.source !== 'aip-sup')
+      if (hasNotamBriefingIssue) {
+        addLink('Aktuell NOTAM', notamState.sourceUrl ?? lfvNotamSwedenUrl)
+      }
+
+      const missingSupplements = notamMapCoverage.missingEntries.filter((entry) => entry.source === 'aip-sup')
+      for (const entry of missingSupplements) {
+        addLink(entry.supplementId ? `AIP SUP ${entry.supplementId}` : 'Aktuell AIP SUP', entry.supplementUrl)
+      }
+
+      if (missingSupplements.some((entry) => !entry.supplementUrl)) {
+        addLink('Aktuell AIP SUP', notamState.supplementSourceUrl)
+      }
+
+      return links
+    }
+
+    if (notamMapFeatures.length === 0) {
+      addLink('Aktuell NOTAM', notamState.sourceUrl ?? lfvNotamSwedenUrl)
+      addLink('Aktuell AIP SUP', notamState.supplementSourceUrl)
+    }
+
+    return links
+  }, [
+    notamMapCoverage.missingEntries,
+    notamMapFeatures.length,
+    notamMapNotice,
+    simulateNotamMapNotice,
+    notamState.sourceUrl,
+    notamState.status,
+    notamState.supplementSourceUrl,
+  ])
 
   useEffect(() => {
     onPlanChange?.(plan)
@@ -1354,7 +1443,9 @@ export function FlightplanApp({
                 aloftWindStatus={aloftWindState.status}
                 sigmetText={weatherState.sigmetText}
                 notamMapFeatures={notamMapFeatures}
+                notamMapCoverage={notamMapCoverage}
                 notamMapNotice={notamMapNotice}
+                notamMapNoticeLinks={notamMapNoticeLinks}
                 notamMapStatus={notamState.status}
                 hudSlot={mapHudSlot}
                 hudStatusSlot={mapHudStatusSlot}

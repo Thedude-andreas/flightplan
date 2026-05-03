@@ -1,4 +1,4 @@
-import { getSwedishNavaids } from './aviationData'
+import { getSwedishAirports, getSwedishNavaids, type SwedishAirport } from './aviationData'
 import type { NearbyAirport } from './weather'
 import type { FlightPlanInput } from './types'
 import type { NotamSupplement } from './notam'
@@ -41,15 +41,23 @@ function normalizeDisplayText(value: string) {
     .trim()
 }
 
+function stripNotamPdfPageArtifacts(value: string) {
+  return value
+    .replace(/\bPage\s+\d+\s+of\s+\d+(?:\s+[A-Z]\d{4}\/\d{2})*/gi, ' ')
+    .replace(/\bPage\s*of\s*\d+\s+\d+(?:\s+[A-Z]\d{4}\/\d{2})*/gi, ' ')
+}
+
 function sanitizeNotamSourceText(value: string) {
-  const withoutHtml = value
-    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
-    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/if\s*\(isIE\(\)\s*\|\|\s*isChrome\(\)\)\s*\{[\s\S]*?\}/gi, ' ')
-    .replace(/setActiveStyleSheet\([^)]*\);?/gi, ' ')
-    .replace(/setRequestedStyleSheet\([^)]*\);?/gi, ' ')
-    .replace(/hide_amdts_ss/gi, ' ')
+  const withoutHtml = stripNotamPdfPageArtifacts(
+    value
+      .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+      .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/if\s*\(isIE\(\)\s*\|\|\s*isChrome\(\)\)\s*\{[\s\S]*?\}/gi, ' ')
+      .replace(/setActiveStyleSheet\([^)]*\);?/gi, ' ')
+      .replace(/setRequestedStyleSheet\([^)]*\);?/gi, ' ')
+      .replace(/hide_amdts_ss/gi, ' '),
+  )
     .replace(/\s+/g, ' ')
     .trim()
 
@@ -197,7 +205,7 @@ function parseCoordinateComponent(value: string, degreeDigits: number) {
 }
 
 function extractCoordinates(rawText: string) {
-  const normalized = rawText.replace(/\u00a0/g, ' ')
+  const normalized = stripNotamPdfPageArtifacts(rawText).replace(/\u00a0/g, ' ')
 
   const pairs: RoutePoint[] = []
   const pushPair = (latValue: string, lonValue: string) => {
@@ -252,25 +260,72 @@ function dedupeCoordinates(points: RoutePoint[]) {
   return deduped
 }
 
+function getMentionedSwedishAirports(rawText: string) {
+  const normalized = stripNotamPdfPageArtifacts(rawText).toUpperCase()
+
+  return getSwedishAirports()
+    .filter((airport): airport is SwedishAirport & { icao: string } => {
+      if (!airport.icao) {
+        return false
+      }
+
+      return new RegExp(`\\b${escapeRegExp(airport.icao.toUpperCase())}\\b`).test(normalized)
+    })
+    .sort((left, right) => {
+      const leftIndex = normalized.indexOf(left.icao.toUpperCase())
+      const rightIndex = normalized.indexOf(right.icao.toUpperCase())
+      return leftIndex - rightIndex || left.icao.localeCompare(right.icao, 'sv')
+    })
+}
+
+function normalizeSplitEntry(entry: string) {
+  return stripNotamPdfPageArtifacts(entry)
+    .replace(/^\+\s*/, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function isDanglingPageBreakEntry(entry: string) {
+  const normalized = normalizeSplitEntry(entry)
+  if (!normalized) {
+    return true
+  }
+
+  if (extractCoordinates(normalized).length > 0) {
+    return false
+  }
+
+  if (/\bFROM:|\bTO:|\bPERM\b/i.test(normalized)) {
+    return false
+  }
+
+  return /(?:\bWI\s+A\s+CIRCLE\s+WITH|\bCIRCLE\s+WITH|\bRADIUS|\bRADIE|\bWITHIN\s+A\s+RADIUS\s+OF|\bAREA\s+BOUNDED\s+BY:?)$/i.test(normalized)
+}
+
+function cleanSplitEntries(entries: string[]) {
+  return entries
+    .map(normalizeSplitEntry)
+    .filter(Boolean)
+    .filter((entry) => !isDanglingPageBreakEntry(entry))
+}
+
 function splitSectionEntries(sectionText: string | null) {
   if (!sectionText) {
     return []
   }
 
-  const normalized = sectionText.replace(/\u00a0/g, ' ')
-  const bySpacedPlus = normalized
+  const normalized = stripNotamPdfPageArtifacts(sectionText).replace(/\u00a0/g, ' ')
+  const bySpacedPlus = cleanSplitEntries(normalized
     .split(/\s+\+\s+/g)
-    .map((entry) => entry.replace(/^\+\s*/, '').trim())
-    .filter(Boolean)
+  )
 
   if (bySpacedPlus.length > 1) {
     return bySpacedPlus
   }
 
-  const byLinePlus = normalized
+  const byLinePlus = cleanSplitEntries(normalized
     .split(/\n\s*\+\s*/g)
-    .map((entry) => entry.replace(/^\+\s*/, '').trim())
-    .filter(Boolean)
+  )
 
   if (byLinePlus.length > 1) {
     return byLinePlus
@@ -304,7 +359,7 @@ function centroid(points: RoutePoint[]) {
 }
 
 function hasCoordinateChain(rawText: string) {
-  const normalized = rawText
+  const normalized = stripNotamPdfPageArtifacts(rawText)
     .replace(/\u2013|\u2014/g, '-')
     .replace(/\u00a0/g, ' ')
     .replace(/\s+/g, ' ')
@@ -654,6 +709,7 @@ export type NotamMapGeometryKind = 'point' | 'polyline' | 'polygon' | 'circle'
 export type NotamMapOverlayFeature = {
   id: string
   source: 'notam-enroute' | 'notam-warning' | 'aip-sup'
+  sourceEntryId: string
   label: string
   title: string
   rawText: string
@@ -664,8 +720,83 @@ export type NotamMapOverlayFeature = {
   supplementUrl?: string | null
 }
 
+export type NotamMapCoverageIssue = {
+  id: string
+  source: NotamMapOverlayFeature['source']
+  label: string
+  title: string
+  rawText: string
+  reason: string
+  supplementId?: string
+  supplementUrl?: string | null
+}
+
+export type NotamMapCoverageSourceStats = {
+  expectedEntries: number
+  renderedEntries: number
+  missingEntries: number
+}
+
+export type NotamMapCoverageCheck = {
+  expectedEntries: number
+  renderedEntries: number
+  missingEntries: NotamMapCoverageIssue[]
+  bySource: Record<NotamMapOverlayFeature['source'], NotamMapCoverageSourceStats>
+}
+
+export type NotamMapOverlayResult = {
+  features: NotamMapOverlayFeature[]
+  coverage: NotamMapCoverageCheck
+}
+
+function createEmptyCoverage(): NotamMapCoverageCheck {
+  return {
+    expectedEntries: 0,
+    renderedEntries: 0,
+    missingEntries: [],
+    bySource: {
+      'notam-enroute': {
+        expectedEntries: 0,
+        renderedEntries: 0,
+        missingEntries: 0,
+      },
+      'notam-warning': {
+        expectedEntries: 0,
+        renderedEntries: 0,
+        missingEntries: 0,
+      },
+      'aip-sup': {
+        expectedEntries: 0,
+        renderedEntries: 0,
+        missingEntries: 0,
+      },
+    },
+  }
+}
+
+function updateCoverage(
+  coverage: NotamMapCoverageCheck,
+  source: NotamMapOverlayFeature['source'],
+  didRender: boolean,
+  issue: NotamMapCoverageIssue | null,
+) {
+  coverage.expectedEntries += 1
+  coverage.bySource[source].expectedEntries += 1
+
+  if (didRender) {
+    coverage.renderedEntries += 1
+    coverage.bySource[source].renderedEntries += 1
+    return
+  }
+
+  coverage.bySource[source].missingEntries += 1
+  if (issue) {
+    coverage.missingEntries.push(issue)
+  }
+}
+
 function extractCircleRadiusNm(rawText: string): number | null {
-  const normalized = rawText.replace(/\s+/g, ' ')
+  const normalized = stripNotamPdfPageArtifacts(rawText).replace(/\s+/g, ' ')
   const patterns: Array<{ pattern: RegExp; unit: 'nm' | 'm' }> = [
     { pattern: /(?:WI\s+A\s+)?CIRCLE\s+WITH\s+RADIUS\s+(\d+(?:\.\d+)?)\s*NM/i, unit: 'nm' },
     { pattern: /(?:WI\s+A\s+)?CIRCLE\s+WITH\s+RADIUS\s+(\d+(?:\.\d+)?)\s*M(?:ETERS?|ETRES?)?\b/i, unit: 'm' },
@@ -715,7 +846,7 @@ function shouldRenderAsPolyline(rawText: string, points: RoutePoint[]) {
     return false
   }
 
-  const normalized = rawText.replace(/\s+/g, ' ').toUpperCase()
+  const normalized = stripNotamPdfPageArtifacts(rawText).replace(/\s+/g, ' ').toUpperCase()
 
   if (/AREA\s+BOUNDED\s+BY|POLYGON|CIRCLE\s+WITH\s+RADIUS/.test(normalized)) {
     return false
@@ -736,6 +867,27 @@ function shouldRenderAsPolyline(rawText: string, points: RoutePoint[]) {
   return false
 }
 
+function getGeometryExpectationReason(rawText: string) {
+  const normalized = stripNotamPdfPageArtifacts(rawText)
+    .replace(/\u00a0/g, ' ')
+    .replace(/\s+/g, ' ')
+    .toUpperCase()
+
+  if (/AREA\s+BOUNDED\s+BY|POLYGON/.test(normalized)) {
+    return 'Area/polygon nämns men koordinaterna kunde inte tolkas.'
+  }
+
+  if (/(?:CIRCLE|CIRKEL|RADIUS|RADIE|CENTERED\s+ON|CENTRED\s+ON|CENTRE[D]?\s+ON)/.test(normalized)) {
+    return 'Cirkel/radie nämns men mittpunkt eller radie kunde inte tolkas.'
+  }
+
+  if (/\bPSN\b|INOM\s+EN\s+RADIE/.test(normalized)) {
+    return 'Position eller radie nämns men koordinaterna kunde inte tolkas.'
+  }
+
+  return null
+}
+
 function pushPointFeatures(
   features: NotamMapOverlayFeature[],
   coords: RoutePoint[],
@@ -748,11 +900,36 @@ function pushPointFeatures(
     features.push({
       id: `${idPrefix}-pt-${index}`,
       source,
+      sourceEntryId: idPrefix,
       label: notamMapSourceLabel(source),
       title: deriveTitle(rawText),
       rawText,
       kind: 'point',
       positions: [[point.lat, point.lon]],
+      supplementId: supplementMeta?.id,
+      supplementUrl: supplementMeta?.url,
+    })
+  }
+}
+
+function pushAirportPointFeatures(
+  features: NotamMapOverlayFeature[],
+  airports: Array<SwedishAirport & { icao: string }>,
+  rawText: string,
+  source: NotamMapOverlayFeature['source'],
+  idPrefix: string,
+  supplementMeta?: { id: string; url: string | null },
+) {
+  for (const airport of airports) {
+    features.push({
+      id: `${idPrefix}-airport-${airport.icao}`,
+      source,
+      sourceEntryId: idPrefix,
+      label: `${notamMapSourceLabel(source)} · ${airport.icao}`,
+      title: deriveTitle(rawText),
+      rawText,
+      kind: 'point',
+      positions: [[airport.lat, airport.lon]],
       supplementId: supplementMeta?.id,
       supplementUrl: supplementMeta?.url,
     })
@@ -862,6 +1039,7 @@ function notamMapSourceLabel(source: NotamMapOverlayFeature['source']) {
 
 function pushGeometryFromCoordinateText(
   features: NotamMapOverlayFeature[],
+  coverage: NotamMapCoverageCheck,
   rawText: string,
   source: NotamMapOverlayFeature['source'],
   idPrefix: string,
@@ -869,8 +1047,30 @@ function pushGeometryFromCoordinateText(
 ) {
   const coords = extractCoordinates(rawText)
   if (coords.length === 0) {
+    const mentionedAirports = source === 'aip-sup' ? getMentionedSwedishAirports(rawText) : []
+    if (mentionedAirports.length > 0) {
+      updateCoverage(coverage, source, true, null)
+      pushAirportPointFeatures(features, mentionedAirports, rawText, source, idPrefix, supplementMeta)
+      return
+    }
+
+    const reason = getGeometryExpectationReason(rawText)
+    if (reason) {
+      updateCoverage(coverage, source, false, {
+        id: idPrefix,
+        source,
+        label: notamMapSourceLabel(source),
+        title: deriveTitle(rawText),
+        rawText,
+        reason,
+        supplementId: supplementMeta?.id,
+        supplementUrl: supplementMeta?.url,
+      })
+    }
     return
   }
+
+  updateCoverage(coverage, source, true, null)
 
   const circleRadiusNm = extractCircleRadiusNm(rawText)
   const uniqueCoords = circleRadiusNm != null ? dedupeCoordinates(coords) : coords
@@ -879,6 +1079,7 @@ function pushGeometryFromCoordinateText(
     features.push({
       id: `${idPrefix}-circle`,
       source,
+      sourceEntryId: idPrefix,
       label: notamMapSourceLabel(source),
       title: deriveTitle(rawText),
       rawText,
@@ -896,6 +1097,7 @@ function pushGeometryFromCoordinateText(
     features.push({
       id: `${idPrefix}-poly`,
       source,
+      sourceEntryId: idPrefix,
       label: notamMapSourceLabel(source),
       title: deriveTitle(rawText),
       rawText,
@@ -912,6 +1114,7 @@ function pushGeometryFromCoordinateText(
     features.push({
       id: `${idPrefix}-pt`,
       source,
+      sourceEntryId: idPrefix,
       label: notamMapSourceLabel(source),
       title: deriveTitle(rawText),
       rawText,
@@ -931,6 +1134,7 @@ function pushGeometryFromCoordinateText(
   features.push({
     id: `${idPrefix}-line`,
     source,
+    sourceEntryId: idPrefix,
     label: notamMapSourceLabel(source),
     title: deriveTitle(rawText),
     rawText,
@@ -942,22 +1146,24 @@ function pushGeometryFromCoordinateText(
 }
 
 /**
- * Extraherar alla koordinatbaserade geometrier från LFV-briefing (en-route, NAV-varningar, giltiga AIP SUP).
+ * Extraherar alla koordinatbaserade geometrier från LFV-briefing och kontrollerar att
+ * varje koordinat-/area-liknande NOTAM-del gav minst ett kartobjekt.
  */
-export function buildNotamMapOverlayFeatures(
+export function buildNotamMapOverlayResult(
   enRouteText: string | null,
   warningsText: string | null,
   supplements: NotamSupplement[],
   flightDate: string,
-): NotamMapOverlayFeature[] {
+): NotamMapOverlayResult {
   const features: NotamMapOverlayFeature[] = []
+  const coverage = createEmptyCoverage()
 
   for (const [index, entry] of splitSectionEntries(enRouteText).entries()) {
-    pushGeometryFromCoordinateText(features, entry, 'notam-enroute', `enr-${index}`)
+    pushGeometryFromCoordinateText(features, coverage, entry, 'notam-enroute', `enr-${index}`)
   }
 
   for (const [index, entry] of splitSectionEntries(warningsText).entries()) {
-    pushGeometryFromCoordinateText(features, entry, 'notam-warning', `nav-${index}`)
+    pushGeometryFromCoordinateText(features, coverage, entry, 'notam-warning', `nav-${index}`)
   }
 
   for (const supplement of supplements) {
@@ -968,7 +1174,7 @@ export function buildNotamMapOverlayFeatures(
     const rawText = supplement.rawText ?? supplement.title
     for (const [index, section] of splitSupplementGeometrySections(rawText).entries()) {
       for (const [entryIndex, entry] of splitIndependentObstacleEntries(section).entries()) {
-        pushGeometryFromCoordinateText(features, entry, 'aip-sup', `sup-${supplement.id}-${index}-${entryIndex}`, {
+        pushGeometryFromCoordinateText(features, coverage, entry, 'aip-sup', `sup-${supplement.id}-${index}-${entryIndex}`, {
           id: supplement.id,
           url: supplement.url,
         })
@@ -976,5 +1182,33 @@ export function buildNotamMapOverlayFeatures(
     }
   }
 
-  return features
+  return {
+    features,
+    coverage,
+  }
+}
+
+export function buildNotamMapOverlayFeatures(
+  enRouteText: string | null,
+  warningsText: string | null,
+  supplements: NotamSupplement[],
+  flightDate: string,
+): NotamMapOverlayFeature[] {
+  return buildNotamMapOverlayResult(enRouteText, warningsText, supplements, flightDate).features
+}
+
+export function createEmptyNotamMapCoverageCheck(): NotamMapCoverageCheck {
+  return createEmptyCoverage()
+}
+
+export function formatNotamMapCoverageLabel(coverage: NotamMapCoverageCheck) {
+  if (coverage.expectedEntries === 0) {
+    return 'Inga NOTAM/AIP SUP-kartobjekt'
+  }
+
+  if (coverage.missingEntries.length > 0) {
+    return `${coverage.renderedEntries}/${coverage.expectedEntries} NOTAM/AIP SUP-kartobjekt visas`
+  }
+
+  return `Alla ${coverage.renderedEntries} NOTAM/AIP SUP-kartobjekt visas`
 }

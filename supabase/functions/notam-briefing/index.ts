@@ -65,8 +65,52 @@ function normalizeWhitespace(value: string) {
 
 function stripPageArtifacts(value: string) {
   return value
-    .replace(/Page of\s+\d+\s+\d+(?:\s+[A-Z]\d{4}\/\d{2})+/gi, ' ')
-    .replace(/Page of\s+\d+\s+\d+/gi, ' ')
+    .replace(/\bPage\s+\d+\s+of\s+\d+(?:\s+[A-Z]\d{4}\/\d{2})*/gi, ' ')
+    .replace(/\bPage\s*of\s*\d+\s+\d+(?:\s+[A-Z]\d{4}\/\d{2})*/gi, ' ')
+}
+
+function hasNotamCoordinates(value: string) {
+  const normalized = stripPageArtifacts(value).replace(/\u00a0/g, ' ')
+
+  return (
+    /(\d{6}(?:\.\d+)?[NS])\s+(\d{7}(?:\.\d+)?[EW])/i.test(normalized) ||
+    /(\d{6}(?:\.\d+)?[NS])(\d{7}(?:\.\d+)?[EW])/i.test(normalized) ||
+    /(\d{4}(?:\.\d+)?[NS])\s+(\d{5}(?:\.\d+)?[EW])/i.test(normalized)
+  )
+}
+
+function normalizeNotamEntry(value: string) {
+  return stripPageArtifacts(value)
+    .replace(/^\+\s*/, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function isDanglingPageBreakEntry(value: string) {
+  const normalized = normalizeNotamEntry(value)
+  if (!normalized || hasNotamCoordinates(normalized)) {
+    return false
+  }
+
+  if (/\bFROM:|\bTO:|\bPERM\b/i.test(normalized)) {
+    return false
+  }
+
+  return /(?:\bWI\s+A\s+CIRCLE\s+WITH|\bCIRCLE\s+WITH|\bRADIUS|\bRADIE|\bWITHIN\s+A\s+RADIUS\s+OF|\bAREA\s+BOUNDED\s+BY:?)$/i.test(normalized)
+}
+
+function removeDanglingPageBreakEntries(value: string) {
+  const normalized = stripPageArtifacts(value)
+  const parts = normalized
+    .split(/\s+\+\s+/g)
+    .map(normalizeNotamEntry)
+    .filter(Boolean)
+
+  if (parts.length <= 1) {
+    return normalized
+  }
+
+  return parts.filter((entry) => !isDanglingPageBreakEntry(entry)).join(' + ')
 }
 
 function decodeHtmlEntities(value: string) {
@@ -120,7 +164,7 @@ function extractSectionText(pdfText: string, sectionLabel: string, nextLabels: s
     .filter((index) => index >= 0)
     .sort((left, right) => left - right)[0] ?? pdfText.length
 
-  return normalizeWhitespace(pdfText.slice(contentStart, contentEnd)) || null
+  return normalizeWhitespace(removeDanglingPageBreakEntries(pdfText.slice(contentStart, contentEnd))) || null
 }
 
 function extractAirportSections(aerodromesText: string | null): CachedSections {
