@@ -2,21 +2,50 @@ import type { AircraftProfile, FlightPlanInput } from './types'
 
 export const DEFAULT_ROUTE_TAS_KT = 110
 
-function getLocalDateParts() {
-  const formatter = new Intl.DateTimeFormat('sv-SE', {
-    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  })
-  const parts = formatter.formatToParts(new Date())
-  const get = (type: Intl.DateTimeFormatPartTypes) => parts.find((part) => part.type === type)?.value ?? ''
+function pad2(value: number) {
+  return String(value).padStart(2, '0')
+}
+
+export function getUtcDateParts(date = new Date()) {
   return {
-    date: `${get('year')}-${get('month')}-${get('day')}`,
-    time: `${get('hour')}:${get('minute')}`,
+    date: `${date.getUTCFullYear()}-${pad2(date.getUTCMonth() + 1)}-${pad2(date.getUTCDate())}`,
+    time: `${pad2(date.getUTCHours())}:${pad2(date.getUTCMinutes())}`,
+  }
+}
+
+export function getFlightPlanStartDateTimeUtc(plan: Pick<FlightPlanInput, 'header'>) {
+  if (!plan.header.date || !plan.header.plannedStartTime) {
+    return null
+  }
+
+  const time = plan.header.plannedStartTime.length === 5
+    ? `${plan.header.plannedStartTime}:00`
+    : plan.header.plannedStartTime
+  const value = new Date(`${plan.header.date}T${time}Z`)
+
+  return Number.isNaN(value.getTime()) ? null : value
+}
+
+export function ensureFlightPlanStartTimeIsCurrentUtc(plan: FlightPlanInput, now = new Date()) {
+  const startTime = getFlightPlanStartDateTimeUtc(plan)
+  if (!startTime || startTime.getTime() >= now.getTime()) {
+    return {
+      plan,
+      adjusted: false,
+    }
+  }
+
+  const currentUtc = getUtcDateParts(now)
+  return {
+    plan: {
+      ...plan,
+      header: {
+        ...plan.header,
+        date: currentUtc.date,
+        plannedStartTime: currentUtc.time,
+      },
+    },
+    adjusted: true,
   }
 }
 
@@ -90,8 +119,8 @@ export const aircraftProfiles: AircraftProfile[] = [
 const initialFlightPlanTemplate: FlightPlanInput = {
   aircraftRegistration: 'SE-MDE',
   header: {
-    date: getLocalDateParts().date,
-    plannedStartTime: getLocalDateParts().time,
+    date: getUtcDateParts().date,
+    plannedStartTime: getUtcDateParts().time,
     departureAerodrome: 'ESSB',
     destinationAerodrome: 'ESNQ',
     captain: '',
@@ -172,7 +201,7 @@ const initialFlightPlanTemplate: FlightPlanInput = {
 }
 
 export function createInitialFlightPlan(): FlightPlanInput {
-  const now = getLocalDateParts()
+  const now = getUtcDateParts()
   return {
     ...initialFlightPlanTemplate,
     header: {

@@ -9,9 +9,15 @@ import { getErrorMessage } from '../../../lib/supabase/errors'
 import type { DraftEnvelope, SaveState } from '../../../shared/types/persistence'
 import { listAircraftProfiles } from '../../aircraft/api/aircraftProfilesRepository'
 import { toLegacyAircraftProfile } from '../../aircraft/profileUtils'
+import { getCurrentCompetencyPermission } from '../../competency/api/competencyRepository'
 import { createFlightPlan, getFlightPlanById, updateFlightPlan } from '../api/flightPlansRepository'
 import { preloadSwedishAviationData } from '../aviationData'
-import { aircraftProfiles as staticAircraftProfiles, createEmptyFlightPlan, createInitialFlightPlan } from '../data'
+import {
+  aircraftProfiles as staticAircraftProfiles,
+  createEmptyFlightPlan,
+  createInitialFlightPlan,
+  ensureFlightPlanStartTimeIsCurrentUtc,
+} from '../data'
 import type { AircraftProfile, FlightPlanInput } from '../types'
 
 type FlightPlanDraftValue = {
@@ -25,6 +31,7 @@ type PersistedSnapshot = {
 }
 
 type EditorWorkspaceTab = 'flightplan' | 'map' | 'print'
+const timeAdjustedNotice = 'Planens tid låg i det förflutna. Kartan visas med aktuell UTC-tid.'
 
 function createDefaultPlanName() {
   const date = new Intl.DateTimeFormat('sv-SE', { dateStyle: 'medium' }).format(new Date())
@@ -126,9 +133,11 @@ export function FlightPlanEditorPage() {
   const [isCopyDialogOpen, setIsCopyDialogOpen] = useState(false)
   const [isClearRouteDialogOpen, setIsClearRouteDialogOpen] = useState(false)
   const [editorRevision, setEditorRevision] = useState(0)
-  const [editorActiveTab, setEditorActiveTab] = useState<EditorWorkspaceTab>('flightplan')
+  const [editorActiveTab, setEditorActiveTab] = useState<EditorWorkspaceTab>('map')
   const [editorMapViewport, setEditorMapViewport] = useState<FlightplanMapViewport | null>(null)
   const [aircraftOptions, setAircraftOptions] = useState<AircraftProfile[]>(staticAircraftProfiles)
+  const [canAccessCompetency, setCanAccessCompetency] = useState(false)
+  const [timeNotice, setTimeNotice] = useState('')
 
   const draftKey = useMemo(() => {
     if (!user) {
@@ -163,6 +172,7 @@ export function FlightPlanEditorPage() {
 
       setLoading(true)
       setError('')
+      setTimeNotice('')
       didHydrateRef.current = false
 
       try {
@@ -198,7 +208,9 @@ export function FlightPlanEditorPage() {
             ?? loadDraft<FlightPlanDraftValue>(createLegacyDraftKey(user.id, record.id))
           const matchingDraft = storedDraft?.baseUpdatedAt === record.updatedAt ? storedDraft : null
 
-          const nextPlan = matchingDraft?.value.plan ?? record.payload
+          const loadedPlan = matchingDraft?.value.plan ?? record.payload
+          const adjusted = ensureFlightPlanStartTimeIsCurrentUtc(loadedPlan)
+          const nextPlan = adjusted.plan
           setInitialPlan(nextPlan)
           setCurrentPlan(nextPlan)
           setName(matchingDraft?.value.name ?? record.name)
@@ -208,12 +220,15 @@ export function FlightPlanEditorPage() {
             name: record.name,
             plan: record.payload,
           })
-          setSaveState(matchingDraft?.hasUnsavedChanges ? 'dirty' : 'saved')
+          setSaveState(adjusted.adjusted || matchingDraft?.hasUnsavedChanges ? 'dirty' : 'saved')
+          setTimeNotice(adjusted.adjusted ? timeAdjustedNotice : '')
         } else {
           const storedDraft = loadDraft<FlightPlanDraftValue>(createDraftKey(user.id, null))
             ?? loadDraft<FlightPlanDraftValue>(createLegacyDraftKey(user.id, null))
 
-          const nextPlan = storedDraft?.value.plan ?? createEmptyFlightPlan()
+          const loadedPlan = storedDraft?.value.plan ?? createEmptyFlightPlan()
+          const adjusted = ensureFlightPlanStartTimeIsCurrentUtc(loadedPlan)
+          const nextPlan = adjusted.plan
           const nextName = storedDraft?.value.name ?? createDefaultPlanName()
           setInitialPlan(nextPlan)
           setCurrentPlan(nextPlan)
@@ -222,9 +237,10 @@ export function FlightPlanEditorPage() {
           setBaseUpdatedAt(storedDraft?.baseUpdatedAt ?? null)
           setPersistedSnapshot({
             name: nextName,
-            plan: nextPlan,
+            plan: loadedPlan,
           })
-          setSaveState(storedDraft?.hasUnsavedChanges ? 'dirty' : 'idle')
+          setSaveState(adjusted.adjusted || storedDraft?.hasUnsavedChanges ? 'dirty' : 'idle')
+          setTimeNotice(adjusted.adjusted ? timeAdjustedNotice : '')
         }
       } catch (nextError) {
         if (!isActive) {
@@ -249,6 +265,26 @@ export function FlightPlanEditorPage() {
       isActive = false
     }
   }, [id, user])
+
+  useEffect(() => {
+    let isMounted = true
+
+    void getCurrentCompetencyPermission()
+      .then((permission) => {
+        if (isMounted) {
+          setCanAccessCompetency(Boolean(permission?.moduleAccess))
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setCanAccessCompetency(false)
+        }
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
 
   useEffect(() => {
     let isActive = true
@@ -457,17 +493,25 @@ export function FlightPlanEditorPage() {
           </summary>
           <div className="fp-map-action-menu__panel">
             <Link to="/app/flightplans" className="fp-map-action-menu__item">
-              Stäng
+              Färdplaner
             </Link>
-            {editorActiveTab === 'flightplan' ? (
-              <button type="button" className="fp-map-action-menu__item" onClick={() => setEditorActiveTab('map')}>
-                Karta
-              </button>
-            ) : (
-              <button type="button" className="fp-map-action-menu__item" onClick={() => setEditorActiveTab('flightplan')}>
-                Driftplan
-              </button>
-            )}
+            <Link to="/app/flightplans/new" className="fp-map-action-menu__item">
+              Ny driftplan
+            </Link>
+            <Link to="/app/aircraft" className="fp-map-action-menu__item">
+              Flygplan
+            </Link>
+            {canAccessCompetency ? (
+              <Link to="/app/competency" className="fp-map-action-menu__item">
+                Kompetens
+              </Link>
+            ) : null}
+            <Link to="/app/account" className="fp-map-action-menu__item">
+              Konto
+            </Link>
+            <button type="button" className="fp-map-action-menu__item" onClick={() => setEditorActiveTab('flightplan')}>
+              Öppna driftplan
+            </button>
             {editorActiveTab === 'print' ? (
               <button type="button" className="fp-map-action-menu__item" onClick={() => window.print()}>
                 Skriv ut formulär
@@ -555,6 +599,7 @@ export function FlightPlanEditorPage() {
   return (
     <section className="editor-page">
       {error && <p className="account-error editor-toolbar__error">{error}</p>}
+      {timeNotice ? <p className="auth-notice editor-toolbar__error">{timeNotice}</p> : null}
 
       <FlightplanApp
         key={`${recordId ?? 'new'}:${baseUpdatedAt ?? 'draft'}:${editorRevision}`}

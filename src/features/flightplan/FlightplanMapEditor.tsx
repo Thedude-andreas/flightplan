@@ -73,6 +73,37 @@ type NotamMapNoticeLink = {
   label: string
   href: string
 }
+type PointInfoAirspace = {
+  id: string
+  kind: string
+  name: string | null
+  positionIndicator: string | null
+  lower: string | null
+  upper: string | null
+}
+type PointInfoAirport = {
+  id: string
+  label: string
+  name: string
+  distanceNm: number
+  weatherLines: string[]
+}
+type PointInfoNavaid = {
+  id: string
+  label: string
+  kind: SwedishNavaid['kind']
+  frequency: string | null
+  channel: string | null
+  distanceNm: number
+}
+type MapPointInfo = {
+  lat: number
+  lon: number
+  coordinateLabel: string
+  airspaces: PointInfoAirspace[]
+  airports: PointInfoAirport[]
+  navaids: PointInfoNavaid[]
+}
 
 const mapLayerPreferencesStorageKey = 'flightplan.mapLayerPreferences.v1'
 
@@ -193,6 +224,14 @@ function createMapLabelIcon(className: string, label: string) {
 function normalizeDegrees(value: number) {
   const result = value % 360
   return result < 0 ? result + 360 : result
+}
+
+function distanceNmBetween(lat: number, lon: number, toLat: number, toLon: number) {
+  return L.latLng(lat, lon).distanceTo([toLat, toLon]) / 1852
+}
+
+function formatDistanceNm(value: number) {
+  return `${value < 10 ? value.toFixed(1) : Math.round(value)} NM`
 }
 
 const routeLineWeight = 6
@@ -799,9 +838,13 @@ function isPlaceholderLeg(legs: FlightPlanInput['routeLegs']) {
 
 function MapClickHandler({
   onAddPoint,
+  onInspectPoint,
+  routeEditingEnabled,
   shouldSuppressClick,
 }: {
   onAddPoint: (lat: number, lon: number) => void
+  onInspectPoint: (lat: number, lon: number) => void
+  routeEditingEnabled: boolean
   shouldSuppressClick: () => boolean
 }) {
   useMapEvents({
@@ -809,7 +852,11 @@ function MapClickHandler({
       if (shouldSuppressClick()) {
         return
       }
-      onAddPoint(event.latlng.lat, event.latlng.lng)
+      if (routeEditingEnabled) {
+        onAddPoint(event.latlng.lat, event.latlng.lng)
+      } else {
+        onInspectPoint(event.latlng.lat, event.latlng.lng)
+      }
     },
   })
 
@@ -1006,6 +1053,7 @@ export function FlightplanMapEditor({
   notamMapStatus = 'idle',
   hudSlot,
   hudStatusSlot,
+  routeEditingEnabled = true,
   onRouteLegsChange,
   focusedLegIndex = null,
   initialViewport = null,
@@ -1024,6 +1072,7 @@ export function FlightplanMapEditor({
   notamMapStatus?: 'idle' | 'loading' | 'error' | 'ready'
   hudSlot?: ReactNode
   hudStatusSlot?: ReactNode
+  routeEditingEnabled?: boolean
   onRouteLegsChange: (legs: FlightPlanInput['routeLegs']) => void
   focusedLegIndex?: number | null
   initialViewport?: FlightplanMapViewport | null
@@ -1038,6 +1087,7 @@ export function FlightplanMapEditor({
   const [mapZoom, setMapZoom] = useState(7)
   const [mapInstance, setMapInstance] = useState<L.Map | null>(null)
   const [mapBounds, setMapBounds] = useState<L.LatLngBounds | null>(null)
+  const [selectedPointInfo, setSelectedPointInfo] = useState<MapPointInfo | null>(null)
   const [dragPreviewWaypoints, setDragPreviewWaypoints] = useState<ReturnType<typeof legsToWaypoints> | null>(null)
   const [activeSegmentInsertIndex, setActiveSegmentInsertIndex] = useState<number | null>(null)
   const [hoveredNotamFeature, setHoveredNotamFeature] = useState<NotamMapOverlayFeature | null>(null)
@@ -1287,6 +1337,63 @@ export function FlightplanMapEditor({
     return () => controller.abort()
   }, [showAirportWeather, visibleWeatherAirportKey, metarStaleCheckTick])
 
+  const buildPointInfo = (lat: number, lon: number): MapPointInfo => {
+    const matchingAirspaces = visibleAirspaces
+      .filter((airspace) => airspaceContainsPoint(airspace, lat, lon))
+      .map((airspace) => ({
+        id: airspace.id,
+        kind: airspace.kind,
+        name: airspace.name,
+        positionIndicator: airspace.positionIndicator,
+        lower: airspace.lower,
+        upper: airspace.upper,
+      }))
+      .sort((a, b) => compareAirspaceAltitude(b.upper, a.upper) || compareAirspaceAltitude(b.lower, a.lower))
+
+    const nearbyAirports = swedishAirports
+      .map((airport) => {
+        const distanceNm = distanceNmBetween(lat, lon, airport.lat, airport.lon)
+        const weather = airport.icao ? airportWeatherByIcao[airport.icao] : null
+
+        return {
+          id: airport.icao ?? `${airport.name}-${airport.lat}-${airport.lon}`,
+          label: airport.icao ?? airport.name ?? 'Flygplats',
+          name: airport.name ?? '',
+          distanceNm,
+          weatherLines: getAirportTooltipWeatherLines(weather, { showMetar, showTaf }),
+        }
+      })
+      .filter((airport) => airport.distanceNm <= 12)
+      .sort((a, b) => a.distanceNm - b.distanceNm)
+      .slice(0, 6)
+
+    const nearbyNavaids = swedishNavaids
+      .map((navaid) => ({
+        id: navaid.id,
+        label: navaid.ident ?? navaid.name ?? navaid.kind,
+        kind: navaid.kind,
+        frequency: navaid.frequency,
+        channel: navaid.channel,
+        distanceNm: distanceNmBetween(lat, lon, navaid.lat, navaid.lon),
+      }))
+      .filter((navaid) => navaid.distanceNm <= 15)
+      .sort((a, b) => a.distanceNm - b.distanceNm)
+      .slice(0, 6)
+
+    return {
+      lat,
+      lon,
+      coordinateLabel: `${formatCoordinateDms(lat, 'lat')} ${formatCoordinateDms(lon, 'lon')}`,
+      airspaces: matchingAirspaces,
+      airports: nearbyAirports,
+      navaids: nearbyNavaids,
+    }
+  }
+
+  const inspectPoint = (lat: number, lon: number) => {
+    setSelectedPointInfo(buildPointInfo(lat, lon))
+  }
+
   const setWaypoints = (nextWaypoints: typeof waypoints) => {
     setDragPreviewWaypoints(null)
     setActiveSegmentInsertIndex(null)
@@ -1358,6 +1465,12 @@ export function FlightplanMapEditor({
   }
 
   const addPointToEnd = (lat: number, lon: number) => {
+    if (!routeEditingEnabled) {
+      inspectPoint(lat, lon)
+      return
+    }
+
+    setSelectedPointInfo(null)
     const nextPoint = resolveRoutePoint(lat, lon)
     if (waypoints.length === 0) {
       onRouteLegsChange([
@@ -1391,6 +1504,12 @@ export function FlightplanMapEditor({
   }
 
   const addNavaidPointToEnd = (navaid: SwedishNavaid) => {
+    if (!routeEditingEnabled) {
+      inspectPoint(navaid.lat, navaid.lon)
+      return
+    }
+
+    setSelectedPointInfo(null)
     const resolvedPoint = resolveRoutePoint(navaid.lat, navaid.lon)
     const nextLabel = navaid.ident ?? navaid.name ?? navaid.kind
     const nextPoint =
@@ -1461,6 +1580,10 @@ export function FlightplanMapEditor({
   }
 
   const startSegmentInsertDrag = (segmentIndex: number, lat: number, lon: number) => {
+    if (!routeEditingEnabled) {
+      return
+    }
+
     suppressNextMapClick.current = true
     setActiveSegmentInsertIndex(segmentIndex + 1)
 
@@ -1502,6 +1625,10 @@ export function FlightplanMapEditor({
   }
 
   const removeWaypoint = (index: number) => {
+    if (!routeEditingEnabled) {
+      return
+    }
+
     if (waypoints.length <= 2) {
       return
     }
@@ -1680,12 +1807,85 @@ export function FlightplanMapEditor({
             <NotamMapInfoCard feature={hoveredNotamFeature} />
           </aside>
         ) : null}
-        {waypoints.length === 0 && (
+        {selectedPointInfo ? (
+          <aside className="fp-map-point-info-panel" role="status" aria-live="polite">
+            <div className="fp-map-point-info-panel__header">
+              <div>
+                <p>Vad finns här?</p>
+                <strong>{selectedPointInfo.coordinateLabel}</strong>
+              </div>
+              <button type="button" aria-label="Stäng punktinformation" onClick={() => setSelectedPointInfo(null)}>
+                x
+              </button>
+            </div>
+
+            <section>
+              <h3>Luftrum</h3>
+              {selectedPointInfo.airspaces.length > 0 ? (
+                <ul>
+                  {selectedPointInfo.airspaces.map((airspace) => (
+                    <li key={airspace.id}>
+                      <strong>{airspace.kind}{airspace.name ? ` · ${airspace.name}` : ''}</strong>
+                      <span>{airspace.lower ?? '-'} till {airspace.upper ?? '-'}</span>
+                      {airspace.positionIndicator ? <span>{airspace.positionIndicator}</span> : null}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p>Inga visade luftrum över punkten.</p>
+              )}
+            </section>
+
+            <section>
+              <h3>Flygplatser nära punkten</h3>
+              {selectedPointInfo.airports.length > 0 ? (
+                <ul>
+                  {selectedPointInfo.airports.map((airport) => (
+                    <li key={airport.id}>
+                      <strong>{airport.label}</strong>
+                      {airport.name ? <span>{airport.name}</span> : null}
+                      <span>{formatDistanceNm(airport.distanceNm)}</span>
+                      {airport.weatherLines.slice(0, 2).map((line) => (
+                        <small key={line}>{line}</small>
+                      ))}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p>Ingen flygplats inom 12 NM.</p>
+              )}
+            </section>
+
+            <section>
+              <h3>Navhjälpmedel nära punkten</h3>
+              {selectedPointInfo.navaids.length > 0 ? (
+                <ul>
+                  {selectedPointInfo.navaids.map((navaid) => (
+                    <li key={navaid.id}>
+                      <strong>{navaid.label}</strong>
+                      <span>{navaid.kind} · {formatDistanceNm(navaid.distanceNm)}</span>
+                      {navaid.frequency ? <span>{navaid.frequency}</span> : null}
+                      {navaid.channel ? <span>Kanal {navaid.channel}</span> : null}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p>Inget navhjälpmedel inom 15 NM.</p>
+              )}
+            </section>
+          </aside>
+        ) : null}
+        {!routeEditingEnabled && !selectedPointInfo && (
+          <div className="fp-map-empty-hint">
+            Utforska kartan. Klicka för "Vad finns här?" eller välj Skapa rutt.
+          </div>
+        )}
+        {routeEditingEnabled && waypoints.length === 0 && (
           <div className="fp-map-empty-hint">
             Klicka i kartan för att välja startpunkten
           </div>
         )}
-        {hasPendingStartPoint && (
+        {routeEditingEnabled && hasPendingStartPoint && (
           <div className="fp-map-empty-hint">
             Startpunkt vald. Klicka igen i kartan för nästa waypoint.
           </div>
@@ -1703,7 +1903,12 @@ export function FlightplanMapEditor({
             focusedLegIndex={focusedLegIndex}
             initialViewport={initialViewport}
           />
-          <MapClickHandler onAddPoint={addPointToEnd} shouldSuppressClick={shouldSuppressClick} />
+          <MapClickHandler
+            onAddPoint={addPointToEnd}
+            onInspectPoint={inspectPoint}
+            routeEditingEnabled={routeEditingEnabled}
+            shouldSuppressClick={shouldSuppressClick}
+          />
           <MapZoomHandler onZoomChange={setMapZoom} />
           <MapBoundsHandler onBoundsChange={setMapBounds} />
           <MapLeafletTooltipCleanup />
@@ -2118,6 +2323,10 @@ export function FlightplanMapEditor({
                 pathOptions={{ color: '#ff35c4', weight: routeLineWeight }}
                 eventHandlers={{
                   mousedown: (event) => {
+                    if (!routeEditingEnabled) {
+                      return
+                    }
+
                     event.originalEvent.preventDefault()
                     event.originalEvent.stopPropagation()
                     startSegmentInsertDrag(index, event.latlng.lat, event.latlng.lng)
@@ -2156,18 +2365,30 @@ export function FlightplanMapEditor({
               key={`waypoint-${waypointMarkerLayerVersion}-${index}`}
               position={[point.lat, point.lon]}
               icon={waypointIcon}
-              draggable={displayWaypoints.length > 1}
+              draggable={routeEditingEnabled && displayWaypoints.length > 1}
               eventHandlers={{
                 dragstart: () => {
+                  if (!routeEditingEnabled) {
+                    return
+                  }
+
                   suppressNextMapClick.current = true
                   setDragPreviewWaypoints(waypoints)
                 },
                 drag: (event) => {
+                  if (!routeEditingEnabled) {
+                    return
+                  }
+
                   const marker = event.target as L.Marker
                   const latLng = marker.getLatLng()
                   previewMoveWaypoint(index, latLng.lat, latLng.lng)
                 },
                 dragend: (event) => {
+                  if (!routeEditingEnabled) {
+                    return
+                  }
+
                   const marker = event.target as L.Marker
                   const latLng = marker.getLatLng()
                   updateWaypoint(index, latLng.lat, latLng.lng)
@@ -2200,7 +2421,7 @@ export function FlightplanMapEditor({
                       event.preventDefault()
                       event.stopPropagation()
                     }}
-                    disabled={waypoints.length <= 2}
+                    disabled={!routeEditingEnabled || waypoints.length <= 2}
                   >
                     Ta bort waypoint
                   </button>

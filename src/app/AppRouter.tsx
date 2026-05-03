@@ -11,9 +11,6 @@ const AircraftProfilesPage = lazy(async () => ({
 const AircraftProfileEditorPage = lazy(async () => ({
   default: (await import('../features/aircraft/pages/AircraftProfileEditorPage')).AircraftProfileEditorPage,
 }))
-const DashboardPage = lazy(async () => ({
-  default: (await import('../features/dashboard/pages/DashboardPage')).DashboardPage,
-}))
 const CompetencyLayoutPage = lazy(async () => ({
   default: (await import('../features/competency/pages/CompetencyLayoutPage')).CompetencyLayoutPage,
 }))
@@ -75,7 +72,7 @@ export function AppRouter() {
 
         <Route element={<ProtectedRoute />}>
           <Route path="/app" element={<AppLayout />}>
-            <Route index element={<DashboardPage />} />
+            <Route index element={<FlightPlanEditorPage />} />
             <Route path="aviation-data-preview" element={<AviationDataPreviewPage />} />
             <Route path="flightplans" element={<FlightPlansPage />} />
             <Route path="flightplans/new" element={<FlightPlanEditorPage />} />

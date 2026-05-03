@@ -7,7 +7,9 @@ import { AppVersionBadge } from '../shared/components/AppVersionBadge'
 export function AppLayout() {
   const { user } = useAuth()
   const location = useLocation()
+  const isMapWorkspace = location.pathname === '/app'
   const isFlightPlanEditor = /^\/app\/flightplans(?:\/new|\/[^/]+)$/.test(location.pathname)
+  const isImmersiveWorkspace = isMapWorkspace || isFlightPlanEditor
   const [canAccessCompetency, setCanAccessCompetency] = useState(false)
 
   useEffect(() => {
@@ -31,8 +33,8 @@ export function AppLayout() {
   }, [])
 
   return (
-    <div className={`app-layout ${isFlightPlanEditor ? 'app-layout--editor' : ''}`}>
-      {!isFlightPlanEditor && (
+    <div className={`app-layout ${isImmersiveWorkspace ? 'app-layout--editor' : ''}`}>
+      {!isImmersiveWorkspace && (
         <aside className="app-sidebar">
           <div className="app-sidebar__brand">
             <p className="app-eyebrow">VFRplan.se</p>

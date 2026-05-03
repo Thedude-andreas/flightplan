@@ -3,18 +3,12 @@ import { Link } from 'react-router-dom'
 import { getErrorMessage } from '../../../lib/supabase/errors'
 import { createFlightPlan, deleteFlightPlan, listFlightPlans, updateFlightPlan } from '../api/flightPlansRepository'
 import type { FlightPlanRecord } from '../persistenceTypes'
-import { createEmptyFlightPlan } from '../data'
 
 function formatDateTime(value: string) {
   return new Intl.DateTimeFormat('sv-SE', {
     dateStyle: 'medium',
     timeStyle: 'short',
   }).format(new Date(value))
-}
-
-function createDefaultPlanName() {
-  const date = new Intl.DateTimeFormat('sv-SE', { dateStyle: 'medium' }).format(new Date())
-  return `Ny färdplan ${date}`
 }
 
 function createCopyName(name: string) {
@@ -29,7 +23,6 @@ function createCopyName(name: string) {
 export function FlightPlansPage() {
   const [plans, setPlans] = useState<FlightPlanRecord[]>([])
   const [loading, setLoading] = useState(true)
-  const [creating, setCreating] = useState(false)
   const [error, setError] = useState('')
   const [copySource, setCopySource] = useState<FlightPlanRecord | null>(null)
   const [copyName, setCopyName] = useState('')
@@ -52,24 +45,6 @@ export function FlightPlansPage() {
   useEffect(() => {
     void loadPlans()
   }, [])
-
-  async function handleCreateDraftPlan() {
-    setCreating(true)
-    setError('')
-
-    try {
-      const created = await createFlightPlan({
-        name: createDefaultPlanName(),
-        payload: createEmptyFlightPlan(),
-      })
-
-      setPlans((current) => [created, ...current])
-    } catch (nextError) {
-      setError(getErrorMessage(nextError, 'Kunde inte skapa färdplan.'))
-    } finally {
-      setCreating(false)
-    }
-  }
 
   function openSaveCopyDialog(plan: FlightPlanRecord) {
     setCopySource(plan)
@@ -156,9 +131,9 @@ export function FlightPlansPage() {
           <h1>Mina färdplaner</h1>
         </div>
         <div className="resource-list__actions">
-          <button type="button" onClick={handleCreateDraftPlan} disabled={creating}>
-            {creating ? 'Skapar...' : 'Skapa ny'}
-          </button>
+          <Link to="/app/flightplans/new" className="button-link button-link--primary">
+            Skapa ny
+          </Link>
         </div>
       </div>
 

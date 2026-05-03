@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent, ReactNode } from 'react'
 import './features/flightplan/flightplan.css'
-import { aircraftProfiles, createInitialFlightPlan, DEFAULT_ROUTE_TAS_KT } from './features/flightplan/data'
+import { aircraftProfiles, createInitialFlightPlan, DEFAULT_ROUTE_TAS_KT, getUtcDateParts } from './features/flightplan/data'
 import { calculateFlightPlan, formatNumber, formatTimeFromMinutes } from './features/flightplan/calculations'
 import { getRoutePointLabel, legsToWaypoints, useGazetteerVersion, waypointsToLegs } from './features/flightplan/gazetteer'
 import { FlightplanMapEditor, type FlightplanMapViewport } from './features/flightplan/FlightplanMapEditor'
@@ -583,6 +583,7 @@ export function FlightplanApp({
   )
   const [activePanel, setActivePanel] = useState<EditorPanel | null>(null)
   const [activeTab, setActiveTab] = useState<WorkspaceTab>(initialActiveTab)
+  const [isRouteCreationMode, setIsRouteCreationMode] = useState(false)
   const [rowContextMenu, setRowContextMenu] = useState<RowContextMenuState>(null)
   const [focusedLegIndex, setFocusedLegIndex] = useState<number | null>(null)
   const [activeAltitudeLegIndex, setActiveAltitudeLegIndex] = useState<number | null>(null)
@@ -1099,6 +1100,18 @@ export function FlightplanApp({
     }))
   }
 
+  const setMapTimeToCurrentUtc = () => {
+    const currentUtc = getUtcDateParts()
+    updatePlan((current) => ({
+      ...current,
+      header: {
+        ...current.header,
+        date: currentUtc.date,
+        plannedStartTime: currentUtc.time,
+      },
+    }))
+  }
+
   const updatePerformance = (
     key: keyof FlightPlanInput['performance'],
     value: string | number,
@@ -1365,6 +1378,34 @@ export function FlightplanApp({
     nearbyRouteAirports.length > 0
       ? `NOTAM-briefing + ${nearbyRouteAirports.length} flygplatser`
       : 'NOTAM-briefing'
+  const mapHudContent = (
+    <div className="fp-map-primary-controls">
+      {mapHudSlot}
+      <button
+        type="button"
+        className={`fp-map-route-mode-button ${isRouteCreationMode ? 'is-active' : ''}`}
+        aria-pressed={isRouteCreationMode}
+        onClick={() => setIsRouteCreationMode((current) => !current)}
+      >
+        {isRouteCreationMode ? 'Ruttläge aktivt' : 'Skapa rutt'}
+      </button>
+      <button type="button" className="fp-map-flightplan-button" onClick={() => setActiveTab('flightplan')}>
+        Driftplan
+      </button>
+      <div className="fp-map-utc-control" aria-label="Karttid UTC">
+        <strong>UTC</strong>
+        <input type="date" value={plan.header.date} onChange={(event) => updateHeader('date', event.target.value)} />
+        <input
+          type="time"
+          value={plan.header.plannedStartTime}
+          onChange={(event) => updateHeader('plannedStartTime', event.target.value)}
+        />
+        <button type="button" onClick={setMapTimeToCurrentUtc}>
+          Nu
+        </button>
+      </div>
+    </div>
+  )
 
   return (
     <div className={`flightplan-page ${activeTab === 'map' ? 'is-map-view' : ''}`}>
@@ -1447,8 +1488,9 @@ export function FlightplanApp({
                 notamMapNotice={notamMapNotice}
                 notamMapNoticeLinks={notamMapNoticeLinks}
                 notamMapStatus={notamState.status}
-                hudSlot={mapHudSlot}
+                hudSlot={mapHudContent}
                 hudStatusSlot={mapHudStatusSlot}
+                routeEditingEnabled={isRouteCreationMode}
                 onRouteLegsChange={replaceRouteLegs}
                 focusedLegIndex={focusedLegIndex}
                 initialViewport={initialMapViewport}
@@ -2425,7 +2467,7 @@ function FlightPlanDocument({
           </div>
         </div>
         <div className="fp-header-meta-grid">
-          <HeaderField label="Planerad start" className="fp-meta-date">
+          <HeaderField label="Planerad start UTC" className="fp-meta-date">
             <div className="fp-header-datetime">
               <input type="date" value={plan.header.date} onChange={(event) => onHeaderChange('date', event.target.value)} />
               <input type="time" value={plan.header.plannedStartTime} onChange={(event) => onHeaderChange('plannedStartTime', event.target.value)} />
