@@ -1052,6 +1052,7 @@ export function FlightplanMapEditor({
   notamMapNoticeLinks = [],
   notamMapStatus = 'idle',
   hudSlot,
+  hudTopCenterSlot,
   hudStatusSlot,
   routeEditingEnabled = true,
   onRouteLegsChange,
@@ -1071,6 +1072,7 @@ export function FlightplanMapEditor({
   notamMapNoticeLinks?: NotamMapNoticeLink[]
   notamMapStatus?: 'idle' | 'loading' | 'error' | 'ready'
   hudSlot?: ReactNode
+  hudTopCenterSlot?: ReactNode
   hudStatusSlot?: ReactNode
   routeEditingEnabled?: boolean
   onRouteLegsChange: (legs: FlightPlanInput['routeLegs']) => void
@@ -1791,6 +1793,7 @@ export function FlightplanMapEditor({
           ) : null}
         </div>
         {hudSlot ? <div className="fp-map-hud fp-map-hud--top-left fp-map-hud--editor">{hudSlot}</div> : null}
+        {hudTopCenterSlot ? <div className="fp-map-hud fp-map-hud--top-center">{hudTopCenterSlot}</div> : null}
         {hudStatusSlot ? <div className="fp-map-hud fp-map-hud--bottom-center fp-map-hud--status">{hudStatusSlot}</div> : null}
         {hoveredNotamFeature ? (
           <aside

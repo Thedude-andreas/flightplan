@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { getErrorMessage } from '../../../lib/supabase/errors'
 import { createFlightPlan, deleteFlightPlan, listFlightPlans, updateFlightPlan } from '../api/flightPlansRepository'
 import type { FlightPlanRecord } from '../persistenceTypes'
@@ -21,6 +21,8 @@ function createCopyName(name: string) {
 }
 
 export function FlightPlansPage() {
+  const location = useLocation()
+  const mapPanelSearch = new URLSearchParams(location.search).get('from') === 'map' ? location.search : ''
   const [plans, setPlans] = useState<FlightPlanRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -131,7 +133,7 @@ export function FlightPlansPage() {
           <h1>Mina färdplaner</h1>
         </div>
         <div className="resource-list__actions">
-          <Link to="/app/flightplans/new" className="button-link button-link--primary">
+          <Link to={`/app/flightplans/new${mapPanelSearch}`} className="button-link button-link--primary">
             Skapa ny
           </Link>
         </div>
@@ -161,7 +163,7 @@ export function FlightPlansPage() {
               </div>
               <p>Senast uppdaterad {formatDateTime(plan.updatedAt)}</p>
               <div className="resource-list__actions">
-                <Link to={`/app/flightplans/${plan.id}`} className="button-link">
+                <Link to={`/app/flightplans/${plan.id}${mapPanelSearch}`} className="button-link">
                   Öppna
                 </Link>
                 <button type="button" onClick={() => openRenameDialog(plan)}>

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { FlightplanApp } from '../../../FlightplanApp'
 import type { FlightplanMapViewport } from '../FlightplanMapEditor'
 import { useAuth } from '../../auth/hooks/useAuth'
@@ -45,6 +45,14 @@ function createCopyName(name: string) {
   return trimmed.toLowerCase().includes('kopia') ? trimmed : `${trimmed} kopia`
 }
 
+function createSuggestedPlanName(plan: FlightPlanInput | null) {
+  const departure = plan?.header.departureAerodrome.trim() || 'Startplats'
+  const destination = plan?.header.destinationAerodrome.trim() || 'Landningsplats'
+  const date = plan?.header.date.trim() || new Date().toISOString().slice(0, 10)
+
+  return `${departure} till ${destination} ${date}`
+}
+
 function createDraftKey(userId: string, resourceId: string | null) {
   return `vfrplan:draft:${userId}:${resourceId ?? 'new'}`
 }
@@ -66,23 +74,6 @@ function createDraftEnvelope(
     value: { name, plan },
     lastLocalSaveAt: new Date().toISOString(),
     hasUnsavedChanges,
-  }
-}
-
-function getSaveLabel(state: SaveState) {
-  switch (state) {
-    case 'dirty':
-      return 'Osparade ändringar'
-    case 'saving':
-      return 'Sparar...'
-    case 'saved':
-      return 'Sparad'
-    case 'error':
-      return 'Kunde inte spara'
-    case 'conflict':
-      return 'Konflikt upptäckt'
-    default:
-      return 'Ny färdplan'
   }
 }
 
@@ -113,6 +104,8 @@ function createAircraftOptions(records: Awaited<ReturnType<typeof listAircraftPr
 export function FlightPlanEditorPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const location = useLocation()
+  const mapPanelSearch = new URLSearchParams(location.search).get('from') === 'map' ? location.search : ''
   const { user } = useAuth()
   const isOnline = useNetworkStatus()
   const didHydrateRef = useRef(false)
@@ -129,6 +122,8 @@ export function FlightPlanEditorPage() {
   const [error, setError] = useState('')
   const [copyName, setCopyName] = useState('')
   const [isCopyDialogOpen, setIsCopyDialogOpen] = useState(false)
+  const [saveName, setSaveName] = useState('')
+  const [isSaveNameDialogOpen, setIsSaveNameDialogOpen] = useState(false)
   const [isClearRouteDialogOpen, setIsClearRouteDialogOpen] = useState(false)
   const [editorRevision, setEditorRevision] = useState(0)
   const [editorActiveTab, setEditorActiveTab] = useState<EditorWorkspaceTab>('map')
@@ -149,15 +144,6 @@ export function FlightPlanEditorPage() {
   const hasUnsavedChanges = currentPlan && persistedSnapshot
     ? name.trim() !== persistedSnapshot.name.trim() || currentPlanSignature !== persistedPlanSignature
     : false
-
-  const displaySaveState: SaveState =
-    saveState === 'saving' || saveState === 'error' || saveState === 'conflict'
-      ? saveState
-      : hasUnsavedChanges
-        ? 'dirty'
-        : recordId
-          ? 'saved'
-          : 'idle'
 
   useEffect(() => {
     let isActive = true
@@ -306,8 +292,9 @@ export function FlightPlanEditorPage() {
     saveDraft(draftKey, createDraftEnvelope(name, currentPlan, recordId, baseUpdatedAt, shouldPersistDraft))
   }, [baseUpdatedAt, currentPlan, draftKey, hasUnsavedChanges, name, recordId, saveState])
 
-  async function handleSave() {
-    if (!currentPlan || !name.trim()) {
+  async function handleSave(nameOverride = name) {
+    const nextName = nameOverride.trim()
+    if (!currentPlan || !nextName) {
       setError('Ange ett namn innan du sparar färdplanen.')
       setSaveState('error')
       return
@@ -321,7 +308,7 @@ export function FlightPlanEditorPage() {
         const updated = await updateFlightPlan(
           recordId,
           {
-            name: name.trim(),
+            name: nextName,
             payload: currentPlan,
           },
           baseUpdatedAt ?? '',
@@ -343,7 +330,7 @@ export function FlightPlanEditorPage() {
       }
 
       const created = await createFlightPlan({
-        name: name.trim(),
+        name: nextName,
         payload: currentPlan,
       })
 
@@ -361,12 +348,56 @@ export function FlightPlanEditorPage() {
         plan: created.payload,
       })
       setSaveState('saved')
-      navigate(`/app/flightplans/${created.id}`, { replace: true })
+      navigate(`/app/flightplans/${created.id}${mapPanelSearch}`, { replace: true })
     } catch (nextError) {
       const message = getErrorMessage(nextError, 'Kunde inte spara färdplanen.')
       setError(message)
       setSaveState(message.toLowerCase().includes('konflikt') ? 'conflict' : 'error')
     }
+  }
+
+  function openSaveNameDialog() {
+    setSaveName(createSuggestedPlanName(currentPlan))
+    setIsSaveNameDialogOpen(true)
+  }
+
+  async function handleConfirmSaveName() {
+    if (!saveName.trim()) {
+      setError('Ange ett namn innan du sparar färdplanen.')
+      setSaveState('error')
+      return
+    }
+
+    setName(saveName.trim())
+    setIsSaveNameDialogOpen(false)
+    await handleSave(saveName)
+  }
+
+  function handleCloseOpenPlan() {
+    if (draftKey) {
+      clearDraft(draftKey)
+    }
+
+    if (user) {
+      clearDraft(createDraftKey(user.id, null))
+      clearDraft(createLegacyDraftKey(user.id, null))
+    }
+
+    const emptyPlan = createEmptyFlightPlan()
+    setInitialPlan(emptyPlan)
+    setCurrentPlan(emptyPlan)
+    setName('')
+    setRecordId(null)
+    setBaseUpdatedAt(null)
+    setPersistedSnapshot({
+      name: '',
+      plan: emptyPlan,
+    })
+    setSaveState('idle')
+    setError('')
+    setEditorActiveTab('map')
+    setEditorRevision((current) => current + 1)
+    navigate('/app', { replace: true })
   }
 
   function openSaveCopyDialog() {
@@ -401,7 +432,7 @@ export function FlightPlanEditorPage() {
         plan: created.payload,
       })
       setSaveState('saved')
-      navigate(`/app/flightplans/${created.id}`, { replace: true })
+      navigate(`/app/flightplans/${created.id}${mapPanelSearch}`, { replace: true })
     } catch (nextError) {
       const message = getErrorMessage(nextError, 'Kunde inte spara kopian.')
       setError(message)
@@ -449,17 +480,13 @@ export function FlightPlanEditorPage() {
   }
 
   const renderToolbarContent = (mode: 'default' | 'map') => {
-    const driftplanButton =
-      editorActiveTab === 'flightplan' ? (
-        <button type="button" onClick={() => setEditorActiveTab('map')}>
-          Karta
-        </button>
-      ) : (
-        <button type="button" onClick={() => setEditorActiveTab('flightplan')}>
-          Driftplan
-        </button>
-      )
-
+    const mapReturnTo = `${location.pathname}${location.search}`
+    const mapPanelLink = (path: string) => {
+      const params = new URLSearchParams()
+      params.set('from', 'map')
+      params.set('returnTo', mapReturnTo)
+      return `${path}?${params.toString()}`
+    }
     const printButton =
       editorActiveTab === 'print' ? (
         <button type="button" onClick={() => window.print()}>
@@ -482,35 +509,26 @@ export function FlightPlanEditorPage() {
             </span>
           </summary>
           <div className="fp-map-action-menu__panel">
-            <Link to="/app/flightplans" className="fp-map-action-menu__item">
+            <Link to={mapPanelLink('/app/flightplans')} className="fp-map-action-menu__item">
               Färdplaner
             </Link>
-            <Link to="/app/flightplans/new" className="fp-map-action-menu__item">
+            <Link to={mapPanelLink('/app/flightplans/new')} className="fp-map-action-menu__item">
               Ny driftplan
             </Link>
-            <Link to="/app/aircraft" className="fp-map-action-menu__item">
+            <Link to={mapPanelLink('/app/aircraft')} className="fp-map-action-menu__item">
               Flygplan
             </Link>
             {canAccessCompetency ? (
-              <Link to="/app/competency" className="fp-map-action-menu__item">
+              <Link to={mapPanelLink('/app/competency')} className="fp-map-action-menu__item">
                 Kompetens
               </Link>
             ) : null}
-            <Link to="/app/account" className="fp-map-action-menu__item">
+            <Link to={mapPanelLink('/app/account')} className="fp-map-action-menu__item">
               Konto
             </Link>
             <button type="button" className="fp-map-action-menu__item" onClick={() => setEditorActiveTab('flightplan')}>
               Öppna driftplan
             </button>
-            {editorActiveTab === 'print' ? (
-              <button type="button" className="fp-map-action-menu__item" onClick={() => window.print()}>
-                Skriv ut formulär
-              </button>
-            ) : (
-              <button type="button" className="fp-map-action-menu__item" onClick={() => setEditorActiveTab('print')}>
-                Skriv ut
-              </button>
-            )}
             {recordId && (
               <button
                 type="button"
@@ -524,8 +542,8 @@ export function FlightPlanEditorPage() {
             <button
               type="button"
               className="fp-map-action-menu__item"
-              onClick={handleSave}
-              disabled={saveState === 'saving' || !hasUnsavedChanges}
+              onClick={recordId ? () => handleSave() : openSaveNameDialog}
+              disabled={saveState === 'saving' || (recordId ? !hasUnsavedChanges : (currentPlan?.routeLegs.length ?? 0) === 0)}
             >
               {saveState === 'saving' ? 'Sparar...' : 'Spara'}
             </button>
@@ -545,17 +563,13 @@ export function FlightPlanEditorPage() {
     return (
       <>
         <div className="fp-editor-toolbar__actions">
-          <Link to="/app/flightplans" className="button-link">
-            Stäng
-          </Link>
-          {driftplanButton}
           {printButton}
           {recordId && (
             <button type="button" onClick={openSaveCopyDialog} disabled={saveState === 'saving'}>
               Spara kopia
             </button>
           )}
-          <button type="button" onClick={handleSave} disabled={saveState === 'saving' || !hasUnsavedChanges}>
+          <button type="button" onClick={() => handleSave()} disabled={saveState === 'saving' || !hasUnsavedChanges}>
             {saveState === 'saving' ? 'Sparar...' : 'Spara'}
           </button>
           <button
@@ -568,7 +582,6 @@ export function FlightPlanEditorPage() {
           </button>
         </div>
         <div className="fp-editor-toolbar__status">
-          <span className={`resource-pill resource-pill--${displaySaveState}`}>{getSaveLabel(displaySaveState)}</span>
           <span className={`resource-pill ${isOnline ? '' : 'resource-pill--warning'}`}>
             {isOnline ? 'Online' : 'Offline'}
           </span>
@@ -579,7 +592,6 @@ export function FlightPlanEditorPage() {
 
   const renderMapStatusContent = () => (
     <div className="fp-editor-toolbar__status fp-editor-toolbar__status--map-bottom">
-      <span className={`resource-pill resource-pill--${displaySaveState}`}>{getSaveLabel(displaySaveState)}</span>
       <span className={`resource-pill ${isOnline ? '' : 'resource-pill--warning'}`}>
         {isOnline ? 'Online' : 'Offline'}
       </span>
@@ -610,6 +622,11 @@ export function FlightPlanEditorPage() {
         documentToolbarSlot={renderToolbarContent('default')}
         mapHudSlot={renderToolbarContent('map')}
         mapHudStatusSlot={renderMapStatusContent()}
+        mapPlanName={recordId ? name : null}
+        onCloseMapPlan={recordId ? handleCloseOpenPlan : undefined}
+        onSaveNewMapPlan={recordId ? () => handleSave() : openSaveNameDialog}
+        canSaveNewMapPlan={recordId ? Boolean(hasUnsavedChanges) : (currentPlan?.routeLegs.length ?? 0) > 0}
+        saveNewMapPlanDisabled={saveState === 'saving'}
         onClearRoute={openClearRouteDialog}
         canClearRoute={(currentPlan?.routeLegs.length ?? 0) > 0}
         clearRouteDisabled={saveState === 'saving'}
@@ -640,6 +657,27 @@ export function FlightPlanEditorPage() {
               </button>
               <button type="button" onClick={handleConfirmSaveCopy} disabled={saveState === 'saving'}>
                 {saveState === 'saving' ? 'Sparar...' : 'Spara kopia'}
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {isSaveNameDialogOpen && (
+        <div className="dialog-backdrop" onClick={() => setIsSaveNameDialogOpen(false)}>
+          <section className="dialog-card" onClick={(event) => event.stopPropagation()}>
+            <h2>Spara färdplan</h2>
+            <p>Ange namnet på färdplanen innan den sparas.</p>
+            <label className="dialog-field">
+              <span>Namn</span>
+              <input value={saveName} onChange={(event) => setSaveName(event.target.value)} autoFocus />
+            </label>
+            <div className="dialog-actions">
+              <button type="button" className="button-link" onClick={() => setIsSaveNameDialogOpen(false)}>
+                Avbryt
+              </button>
+              <button type="button" onClick={handleConfirmSaveName} disabled={saveState === 'saving'}>
+                {saveState === 'saving' ? 'Sparar...' : 'Spara färdplan'}
               </button>
             </div>
           </section>

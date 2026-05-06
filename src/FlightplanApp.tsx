@@ -526,6 +526,11 @@ type FlightplanAppProps = {
   documentToolbarSlot?: ReactNode
   mapHudSlot?: ReactNode
   mapHudStatusSlot?: ReactNode
+  mapPlanName?: string | null
+  onCloseMapPlan?: () => void
+  onSaveNewMapPlan?: () => void
+  canSaveNewMapPlan?: boolean
+  saveNewMapPlanDisabled?: boolean
   onPlanChange?: (plan: FlightPlanInput) => void
   onActiveTabChange?: (tab: WorkspaceTab) => void
   onMapViewportChange?: (viewport: FlightplanMapViewport) => void
@@ -543,6 +548,11 @@ export function FlightplanApp({
   documentToolbarSlot,
   mapHudSlot,
   mapHudStatusSlot,
+  mapPlanName = null,
+  onCloseMapPlan,
+  onSaveNewMapPlan,
+  canSaveNewMapPlan = false,
+  saveNewMapPlanDisabled = false,
   onPlanChange,
   onActiveTabChange,
   onMapViewportChange,
@@ -642,6 +652,11 @@ export function FlightplanApp({
     refreshError: null,
   })
   const [currentTimeMs, setCurrentTimeMs] = useState(() => Date.now())
+
+  const switchActiveTab = (nextTab: WorkspaceTab) => {
+    setActiveTab(nextTab)
+    onActiveTabChange?.(nextTab)
+  }
 
   const routeWindRequestKey = useMemo(
     () =>
@@ -1410,7 +1425,7 @@ export function FlightplanApp({
         aria-pressed={isRouteCreationMode}
         onClick={() => setIsRouteCreationMode((current) => !current)}
       >
-        {isRouteCreationMode ? 'Ruttläge aktivt' : 'Skapa rutt'}
+        {isRouteCreationMode ? 'Ruttläge aktivt' : plan.routeLegs.length > 0 ? 'Ändra rutt' : 'Skapa rutt'}
       </button>
       {canClearRoute && onClearRoute ? (
         <button
@@ -1422,7 +1437,17 @@ export function FlightplanApp({
           Rensa rutt
         </button>
       ) : null}
-      <button type="button" className="fp-map-flightplan-button" onClick={() => setActiveTab('flightplan')}>
+      {canSaveNewMapPlan && onSaveNewMapPlan ? (
+        <button
+          type="button"
+          className="fp-map-save-plan-button"
+          onClick={onSaveNewMapPlan}
+          disabled={saveNewMapPlanDisabled}
+        >
+          Spara
+        </button>
+      ) : null}
+      <button type="button" className="fp-map-flightplan-button" onClick={() => switchActiveTab('flightplan')}>
         Driftfärdplan
       </button>
       <div className="fp-map-time-menu">
@@ -1442,6 +1467,16 @@ export function FlightplanApp({
       </div>
     </div>
   )
+  const mapTopCenterHudContent = mapPlanName ? (
+    <div className="fp-map-open-plan" title={mapPlanName}>
+      <span>{mapPlanName}</span>
+      {onCloseMapPlan ? (
+        <button type="button" onClick={onCloseMapPlan} aria-label="Stäng färdplan">
+          ×
+        </button>
+      ) : null}
+    </div>
+  ) : null
 
   return (
     <div className={`flightplan-page ${activeTab === 'map' ? 'is-map-view' : ''}`}>
@@ -1456,6 +1491,16 @@ export function FlightplanApp({
       </header>
 
       <main className="fp-workspace" onClick={() => setRowContextMenu(null)}>
+        {activeTab !== 'map' ? (
+          <button
+            type="button"
+            className="fp-document-view-close fp-no-print"
+            onClick={() => switchActiveTab(activeTab === 'print' ? 'flightplan' : 'map')}
+            aria-label="Stäng och återgå till kartan"
+          >
+            ×
+          </button>
+        ) : null}
         {documentToolbarSlot && activeTab !== 'map' ? <div className="fp-page-toolbar fp-no-print">{documentToolbarSlot}</div> : null}
 
         {activeTab === 'flightplan' && (
@@ -1486,7 +1531,7 @@ export function FlightplanApp({
                 onSectionSelect={setActivePanel}
                 onRouteSegmentSelect={(rowIndex) => {
                   setFocusedLegIndex(rowIndex)
-                  setActiveTab('map')
+                  switchActiveTab('map')
                 }}
                 onOpenAircraftPicker={() => setActivePanel('aircraft')}
                 onRadioNavChange={updateRadioNav}
@@ -1526,6 +1571,7 @@ export function FlightplanApp({
                 notamMapNoticeLinks={notamMapNoticeLinks}
                 notamMapStatus={notamState.status}
                 hudSlot={mapHudContent}
+                hudTopCenterSlot={mapTopCenterHudContent}
                 hudStatusSlot={mapHudStatusSlot}
                 routeEditingEnabled={isRouteCreationMode}
                 onRouteLegsChange={replaceRouteLegs}
@@ -1564,7 +1610,7 @@ export function FlightplanApp({
                 onSectionSelect={setActivePanel}
                 onRouteSegmentSelect={(rowIndex) => {
                   setFocusedLegIndex(rowIndex)
-                  setActiveTab('map')
+                  switchActiveTab('map')
                 }}
                 onOpenAircraftPicker={() => setActivePanel('aircraft')}
                 onRadioNavChange={updateRadioNav}

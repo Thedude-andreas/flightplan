@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { getErrorMessage } from '../../../lib/supabase/errors'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { createAircraftProfile, getAircraftProfileById, updateAircraftProfile } from '../api/aircraftProfilesRepository'
@@ -567,6 +567,8 @@ function MeasurementField({
 export function AircraftProfileEditorPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const location = useLocation()
+  const mapPanelSearch = new URLSearchParams(location.search).get('from') === 'map' ? location.search : ''
   const { user } = useAuth()
   const [profile, setProfile] = useState<AircraftProfile | null>(null)
   const [recordUpdatedAt, setRecordUpdatedAt] = useState<string | null>(null)
@@ -835,7 +837,7 @@ export function AircraftProfileEditorPage() {
         setRecordUpdatedAt(updated.updatedAt)
       } else {
         const created = await createAircraftProfile(input)
-        navigate(`/app/aircraft/${created.id}`, { replace: true })
+        navigate(`/app/aircraft/${created.id}${mapPanelSearch}`, { replace: true })
       }
     } catch (nextError) {
       setError(getErrorMessage(nextError, 'Kunde inte spara flygplansprofilen.'))
@@ -1109,7 +1111,7 @@ export function AircraftProfileEditorPage() {
           <p>Redigera grunddata, import, enheter och vikt & balans i samma profil.</p>
         </div>
         <div className="resource-list__actions">
-          <Link to="/app/aircraft" className="button-link">Till listan</Link>
+          <Link to={`/app/aircraft${mapPanelSearch}`} className="button-link">Till listan</Link>
           <button type="button" onClick={handleSave} disabled={saving}>
             {saving ? 'Sparar...' : 'Spara profil'}
           </button>

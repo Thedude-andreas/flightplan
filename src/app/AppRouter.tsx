@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react'
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { ProtectedRoute } from '../features/auth/components/ProtectedRoute'
 
 const AccountPage = lazy(async () => ({
@@ -57,6 +57,11 @@ const PublicLayout = lazy(async () => ({
   default: (await import('../layouts/PublicLayout')).PublicLayout,
 }))
 
+function CompetencyIndexRedirect() {
+  const location = useLocation()
+  return <Navigate to={`needs${location.search}`} replace />
+}
+
 export function AppRouter() {
   return (
     <Suspense fallback={<div className="auth-status-card">Laddar...</div>}>
@@ -81,7 +86,7 @@ export function AppRouter() {
             <Route path="aircraft/new" element={<AircraftProfileEditorPage />} />
             <Route path="aircraft/:id" element={<AircraftProfileEditorPage />} />
             <Route path="competency" element={<CompetencyLayoutPage />}>
-              <Route index element={<Navigate to="needs" replace />} />
+              <Route index element={<CompetencyIndexRedirect />} />
               <Route path="admin" element={<CompetencyAdminPage />} />
               <Route path="manager" element={<CompetencyManagerPage />} />
               <Route path="needs" element={<CompetencyNeedsPage />} />

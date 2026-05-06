@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { getErrorMessage } from '../../../lib/supabase/errors'
 import { deleteAircraftProfile, listAircraftProfiles } from '../api/aircraftProfilesRepository'
 import type { AircraftProfileRecord } from '../types'
@@ -13,6 +13,8 @@ function formatDateTime(value: string) {
 }
 
 export function AircraftProfilesPage() {
+  const location = useLocation()
+  const mapPanelSearch = new URLSearchParams(location.search).get('from') === 'map' ? location.search : ''
   const [profiles, setProfiles] = useState<AircraftProfileRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -53,7 +55,7 @@ export function AircraftProfilesPage() {
           <h1>Mina flygplan</h1>
           <p>Bygg profiler från registerlookup, SkyDemon-import eller manuell inmatning.</p>
         </div>
-        <Link to="/app/aircraft/new" className="button-link">Ny profil</Link>
+        <Link to={`/app/aircraft/new${mapPanelSearch}`} className="button-link">Ny profil</Link>
       </div>
 
       {error && <p className="account-error">{error}</p>}
@@ -83,8 +85,8 @@ export function AircraftProfilesPage() {
                 {profile.payload.registrySnapshot?.registeredOwners[0] ? ` · ${profile.payload.registrySnapshot.registeredOwners[0]}` : ''}
               </p>
               <div className="resource-list__actions">
-                <Link to={`/app/aircraft/${profile.id}`} className="button-link">Öppna</Link>
-                <Link to="/app/flightplans/new" className="button-link">Använd i ny färdplan</Link>
+                <Link to={`/app/aircraft/${profile.id}${mapPanelSearch}`} className="button-link">Öppna</Link>
+                <Link to={`/app/flightplans/new${mapPanelSearch}`} className="button-link">Använd i ny färdplan</Link>
                 <button type="button" onClick={() => handleDelete(profile.id)}>Ta bort</button>
               </div>
             </article>

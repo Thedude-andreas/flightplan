@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { NavLink, Outlet } from 'react-router-dom'
+import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { getErrorMessage } from '../../../lib/supabase/errors'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { loadCompetencyWorkspace } from '../api/competencyRepository'
@@ -8,6 +8,8 @@ import './competency.css'
 
 export function CompetencyLayoutPage() {
   const { user } = useAuth()
+  const location = useLocation()
+  const mapPanelSearch = new URLSearchParams(location.search).get('from') === 'map' ? location.search : ''
   const [permission, setPermission] = useState<CompetencyPermission | null>(null)
   const [departmentLeaderCount, setDepartmentLeaderCount] = useState(0)
   const [managerGroupCount, setManagerGroupCount] = useState(0)
@@ -94,9 +96,9 @@ export function CompetencyLayoutPage() {
       {error ? <p className="account-error">{error}</p> : null}
 
       <nav className="competency-tabs">
-        {access.admin ? <NavLink to="/app/competency/admin">Admin</NavLink> : null}
-        {access.manager ? <NavLink to="/app/competency/manager">Gruppchef</NavLink> : null}
-        {access.needs ? <NavLink to="/app/competency/needs">Utbildningsbehov</NavLink> : null}
+        {access.admin ? <NavLink to={`/app/competency/admin${mapPanelSearch}`}>Admin</NavLink> : null}
+        {access.manager ? <NavLink to={`/app/competency/manager${mapPanelSearch}`}>Gruppchef</NavLink> : null}
+        {access.needs ? <NavLink to={`/app/competency/needs${mapPanelSearch}`}>Utbildningsbehov</NavLink> : null}
       </nav>
 
       <Outlet />
