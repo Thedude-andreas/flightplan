@@ -400,7 +400,7 @@ function mapLegacyStationWeight(
 }
 
 function getAircraftForPlan(plan: FlightPlanInput, aircraftOptions: AircraftProfile[]) {
-  return aircraftOptions.find((aircraft) => aircraft.registration === plan.aircraftRegistration) ?? aircraftOptions[0]
+  return aircraftOptions.find((aircraft) => aircraft.registration === plan.aircraftRegistration)
 }
 
 function normalizeWeightBalanceForAircraft(
@@ -410,9 +410,7 @@ function normalizeWeightBalanceForAircraft(
 ): FlightPlanInput['weightBalance'] {
   if (!aircraft) {
     return {
-      stationLoads: Array.isArray((plan.weightBalance as { stationLoads?: FlightPlanInput['weightBalance']['stationLoads'] }).stationLoads)
-        ? (plan.weightBalance as { stationLoads: FlightPlanInput['weightBalance']['stationLoads'] }).stationLoads.map((load) => ({ ...load }))
-        : [],
+      stationLoads: [],
     }
   }
 
@@ -809,7 +807,8 @@ export function FlightplanApp({
   }, [aloftWindAutoFetchEnabled, plan])
 
   const derived = calculateFlightPlan(effectivePlan, aircraftOptions)
-  const selectedAircraft = derived.aircraft
+  const selectedAircraft = getAircraftForPlan(plan, aircraftOptions)
+  const hasSelectedAircraft = selectedAircraft != null
   const tasInputUnit = derived.aircraft.tasInputUnit ?? 'kt'
   const flightPlanStartTimeUtc = getFlightPlanStartDateTimeUtc(plan)
   const isStartTimePassed =
@@ -1514,6 +1513,7 @@ export function FlightplanApp({
                 radioNavEntries={effectiveRadioNav}
                 titleSlot={documentTitleSlot}
                 isStartTimePassed={isStartTimePassed}
+                hasSelectedAircraft={hasSelectedAircraft}
                 onHeaderChange={updateHeader}
                 weatherStatusLabel={weatherStatusLabel}
                 aloftWindStatus={aloftWindState}
@@ -1593,6 +1593,7 @@ export function FlightplanApp({
                 tasInputUnit={tasInputUnit}
                 radioNavEntries={effectiveRadioNav}
                 isStartTimePassed={isStartTimePassed}
+                hasSelectedAircraft={hasSelectedAircraft}
                 onHeaderChange={updateHeader}
                 weatherStatusLabel={weatherStatusLabel}
                 aloftWindStatus={aloftWindState}
@@ -1723,13 +1724,15 @@ export function FlightplanApp({
                 <div className="fp-input-grid">
                   <EditorNumber label="Reserv minuter" value={plan.fuel.reserveMinutes} onChange={(value) => updateFuel('reserveMinutes', value)} />
                   <EditorNumber label="Extra ombord liter" value={plan.fuel.extraOnBoardLiters} onChange={(value) => updateFuel('extraOnBoardLiters', value)} />
-                  <EditorNumber label="Förbrukning override lit/tim" value={plan.fuel.burnOverrideLph ?? 0} allowBlank placeholder={String(derived.aircraft.fuelBurnLph)} onChangeOptional={(value) => updateFuel('burnOverrideLph', value)} />
+                  <EditorNumber label="Förbrukning override lit/tim" value={plan.fuel.burnOverrideLph ?? 0} allowBlank placeholder={hasSelectedAircraft ? String(derived.aircraft.fuelBurnLph) : ''} onChangeOptional={(value) => updateFuel('burnOverrideLph', value)} />
                 </div>
-                <div className="fp-stat-block">
-                  <div><span>Trip</span><strong>{formatNumber(derived.fuel.tripLiters, 1)} l</strong></div>
-                  <div><span>Reserv</span><strong>{formatNumber(derived.fuel.reserveLiters, 1)} l</strong></div>
-                  <div><span>Total ombord</span><strong>{formatNumber(derived.fuel.totalOnBoardLiters, 1)} l</strong></div>
-                </div>
+                {hasSelectedAircraft ? (
+                  <div className="fp-stat-block">
+                    <div><span>Trip</span><strong>{formatNumber(derived.fuel.tripLiters, 1)} l</strong></div>
+                    <div><span>Reserv</span><strong>{formatNumber(derived.fuel.reserveLiters, 1)} l</strong></div>
+                    <div><span>Total ombord</span><strong>{formatNumber(derived.fuel.totalOnBoardLiters, 1)} l</strong></div>
+                  </div>
+                ) : null}
               </section>
             )}
 
@@ -1744,8 +1747,9 @@ export function FlightplanApp({
                     Stäng
                   </button>
                 </div>
-                <div className="fp-seat-map">
-                  {selectedAircraft.stations.map((station) => {
+                {selectedAircraft ? (
+                  <div className="fp-seat-map">
+                    {selectedAircraft.stations.map((station) => {
                     const stationLoad = plan.weightBalance.stationLoads.find((load) => load.stationId === station.id)
                     return (
                       <SeatBox
@@ -1756,13 +1760,16 @@ export function FlightplanApp({
                         baggage={station.kind === 'baggage'}
                       />
                     )
-                  })}
-                </div>
-                <div className="fp-stat-block">
-                  <div><span>TOW</span><strong>{formatNumber(derived.weightBalance.towKg, 1)} kg</strong></div>
-                  <div><span>Arm</span><strong>{formatNumber(derived.weightBalance.armMm)} mm</strong></div>
-                  <div><span>Status</span><strong className={derived.weightBalance.withinLimits ? 'fp-status-ok' : 'fp-status-warn'}>{derived.weightBalance.withinLimits ? 'Inom gräns' : 'Utanför gräns'}</strong></div>
-                </div>
+                    })}
+                  </div>
+                ) : null}
+                {hasSelectedAircraft ? (
+                  <div className="fp-stat-block">
+                    <div><span>TOW</span><strong>{formatNumber(derived.weightBalance.towKg, 1)} kg</strong></div>
+                    <div><span>Arm</span><strong>{formatNumber(derived.weightBalance.armMm)} mm</strong></div>
+                    <div><span>Status</span><strong className={derived.weightBalance.withinLimits ? 'fp-status-ok' : 'fp-status-warn'}>{derived.weightBalance.withinLimits ? 'Inom gräns' : 'Utanför gräns'}</strong></div>
+                  </div>
+                ) : null}
               </section>
             )}
 
@@ -1805,10 +1812,12 @@ export function FlightplanApp({
                     </select>
                   </label>
                 </div>
-                <div className="fp-stat-block">
-                  <div><span>Startmarginal</span><strong className={derived.performance.takeoffMarginM >= 0 ? 'fp-status-ok' : 'fp-status-warn'}>{formatNumber(derived.performance.takeoffMarginM)} m</strong></div>
-                  <div><span>Landningsmarginal</span><strong className={derived.performance.landingMarginM >= 0 ? 'fp-status-ok' : 'fp-status-warn'}>{formatNumber(derived.performance.landingMarginM)} m</strong></div>
-                </div>
+                {hasSelectedAircraft ? (
+                  <div className="fp-stat-block">
+                    <div><span>Startmarginal</span><strong className={derived.performance.takeoffMarginM >= 0 ? 'fp-status-ok' : 'fp-status-warn'}>{formatNumber(derived.performance.takeoffMarginM)} m</strong></div>
+                    <div><span>Landningsmarginal</span><strong className={derived.performance.landingMarginM >= 0 ? 'fp-status-ok' : 'fp-status-warn'}>{formatNumber(derived.performance.landingMarginM)} m</strong></div>
+                  </div>
+                ) : null}
               </section>
             )}
 
@@ -2462,6 +2471,7 @@ function FlightPlanDocument({
   radioNavEntries,
   titleSlot,
   isStartTimePassed,
+  hasSelectedAircraft,
   onHeaderChange,
   weatherStatusLabel,
   aloftWindStatus,
@@ -2494,6 +2504,7 @@ function FlightPlanDocument({
   radioNavEntries: RadioNavEntry[]
   titleSlot?: ReactNode
   isStartTimePassed: boolean
+  hasSelectedAircraft: boolean
   onHeaderChange: (key: keyof FlightPlanInput['header'], value: string) => void
   weatherStatusLabel: string
   aloftWindStatus: AloftWindState
@@ -2564,7 +2575,7 @@ function FlightPlanDocument({
               <strong>{plan.aircraftRegistration}</strong>
             </button>
           </HeaderField>
-          <HeaderField label="Typ" className="fp-meta-type"><strong>{derived.aircraft.typeName}</strong></HeaderField>
+          <HeaderField label="Typ" className="fp-meta-type"><strong>{hasSelectedAircraft ? derived.aircraft.typeName : ''}</strong></HeaderField>
           <HeaderField label="Startflygplats" className="fp-meta-departure"><input value={plan.header.departureAerodrome} onChange={(event) => onHeaderChange('departureAerodrome', event.target.value)} /></HeaderField>
           <HeaderField label="Block in" className="fp-meta-block-in"><input value={plan.header.blockIn} onChange={(event) => onHeaderChange('blockIn', event.target.value)} /></HeaderField>
           <HeaderField label="Landning" className="fp-meta-landing"><input value={plan.header.landing} onChange={(event) => onHeaderChange('landing', event.target.value)} /></HeaderField>
@@ -2737,12 +2748,16 @@ function FlightPlanDocument({
       <section className="fp-bottom-grid">
         <div className="fp-subtable fp-performance-panel" onClick={() => onSectionSelect('performance')}>
           <div className="fp-subtable-title">STOL-PRESTANDA/VÄDERINFO</div>
-          <div className="fp-metric-row"><span>T/O TILL 50 FOT ENL POH</span><strong>{formatNumber(derived.performance.takeoffPohM)} m</strong></div>
-          <div className="fp-metric-row"><span>T/O INKL KORREKTIONER</span><strong>{formatNumber(derived.performance.takeoffCorrectedM)} m</strong></div>
-          <div className="fp-metric-row fp-highlight-row"><span>TILLGÄNGLIG STARTSTRÄCKA</span><strong>{formatNumber(plan.performance.availableTakeoffDistanceM)} m</strong></div>
-          <div className="fp-metric-row"><span>LDG FR 50 FOT ENL POH</span><strong>{formatNumber(derived.performance.landingPohM)} m</strong></div>
-          <div className="fp-metric-row"><span>LDG INKL KORREKTIONER</span><strong>{formatNumber(derived.performance.landingCorrectedM)} m</strong></div>
-          <div className="fp-metric-row fp-highlight-row"><span>TILLGÄNGLIG LAND.STRÄCKA</span><strong>{formatNumber(plan.performance.availableLandingDistanceM)} m</strong></div>
+          {hasSelectedAircraft ? (
+            <>
+              <div className="fp-metric-row"><span>T/O TILL 50 FOT ENL POH</span><strong>{formatNumber(derived.performance.takeoffPohM)} m</strong></div>
+              <div className="fp-metric-row"><span>T/O INKL KORREKTIONER</span><strong>{formatNumber(derived.performance.takeoffCorrectedM)} m</strong></div>
+              <div className="fp-metric-row fp-highlight-row"><span>TILLGÄNGLIG STARTSTRÄCKA</span><strong>{formatNumber(plan.performance.availableTakeoffDistanceM)} m</strong></div>
+              <div className="fp-metric-row"><span>LDG FR 50 FOT ENL POH</span><strong>{formatNumber(derived.performance.landingPohM)} m</strong></div>
+              <div className="fp-metric-row"><span>LDG INKL KORREKTIONER</span><strong>{formatNumber(derived.performance.landingCorrectedM)} m</strong></div>
+              <div className="fp-metric-row fp-highlight-row"><span>TILLGÄNGLIG LAND.STRÄCKA</span><strong>{formatNumber(plan.performance.availableLandingDistanceM)} m</strong></div>
+            </>
+          ) : null}
         </div>
 
         <div className="fp-subtable">
@@ -2757,38 +2772,44 @@ function FlightPlanDocument({
 
         <div className="fp-subtable fp-fuel-panel" onClick={() => onSectionSelect('fuel')}>
           <div className="fp-subtable-title">BRÄNSLE</div>
-          <div className="fp-fuel-table">
-            <div className="fp-fuel-table__header"><span></span><strong>Tid</strong><strong>Liter</strong></div>
-            <div><span>Sträcka</span><span>{formatTimeFromMinutes(derived.fuel.tripTimeMinutes)}</span><span>{formatNumber(derived.fuel.tripLiters, 1)}</span></div>
-            <div><span>Extra 10%</span><span>{formatTimeFromMinutes(Math.round(derived.fuel.tripTimeMinutes * 0.1))}</span><span>{formatNumber(derived.fuel.contingencyLiters, 1)}</span></div>
-            <div><span>Reserv</span><span>{formatTimeFromMinutes(plan.fuel.reserveMinutes)}</span><span>{formatNumber(derived.fuel.reserveLiters, 1)}</span></div>
-            <div className="fp-sum-row"><span>Summa</span><span>{formatTimeFromMinutes(derived.fuel.tripTimeMinutes + Math.round(derived.fuel.tripTimeMinutes * 0.1) + plan.fuel.reserveMinutes)}</span><span>{formatNumber(derived.fuel.totalPlannedLiters, 1)}</span></div>
-            <div><span>Extra ombord</span><span></span><span>{formatNumber(plan.fuel.extraOnBoardLiters, 1)}</span></div>
-            <div className="fp-sum-row"><span>TOTALT</span><span></span><span>{formatNumber(derived.fuel.totalOnBoardLiters, 1)}</span></div>
-          </div>
-          <div className="fp-fuel-burn-note">Förbrukning {formatNumber(derived.fuel.burnRateLph, 1)} lit/tim</div>
+          {hasSelectedAircraft ? (
+            <>
+              <div className="fp-fuel-table">
+                <div className="fp-fuel-table__header"><span></span><strong>Tid</strong><strong>Liter</strong></div>
+                <div><span>Sträcka</span><span>{formatTimeFromMinutes(derived.fuel.tripTimeMinutes)}</span><span>{formatNumber(derived.fuel.tripLiters, 1)}</span></div>
+                <div><span>Extra 10%</span><span>{formatTimeFromMinutes(Math.round(derived.fuel.tripTimeMinutes * 0.1))}</span><span>{formatNumber(derived.fuel.contingencyLiters, 1)}</span></div>
+                <div><span>Reserv</span><span>{formatTimeFromMinutes(plan.fuel.reserveMinutes)}</span><span>{formatNumber(derived.fuel.reserveLiters, 1)}</span></div>
+                <div className="fp-sum-row"><span>Summa</span><span>{formatTimeFromMinutes(derived.fuel.tripTimeMinutes + Math.round(derived.fuel.tripTimeMinutes * 0.1) + plan.fuel.reserveMinutes)}</span><span>{formatNumber(derived.fuel.totalPlannedLiters, 1)}</span></div>
+                <div><span>Extra ombord</span><span></span><span>{formatNumber(plan.fuel.extraOnBoardLiters, 1)}</span></div>
+                <div className="fp-sum-row"><span>TOTALT</span><span></span><span>{formatNumber(derived.fuel.totalOnBoardLiters, 1)}</span></div>
+              </div>
+              <div className="fp-fuel-burn-note">Förbrukning {formatNumber(derived.fuel.burnRateLph, 1)} lit/tim</div>
+            </>
+          ) : null}
         </div>
 
         <div
-          className={`fp-subtable fp-weight-panel${derived.weightBalance.withinLimits ? '' : ' is-out-of-limits'}`}
+          className={`fp-subtable fp-weight-panel${hasSelectedAircraft && !derived.weightBalance.withinLimits ? ' is-out-of-limits' : ''}`}
           onClick={() => onSectionSelect('weightBalance')}
         >
           <div className="fp-subtable-title">VIKT & BALANS</div>
-          <div className="fp-wb-grid">
-            <div className="fp-wb-header"><span></span><strong>Vikt</strong><strong>Arm</strong><strong>Moment</strong></div>
-            <div><span>Tomvikt</span><span>{formatNumber(derived.aircraft.emptyWeightKg, 1)}</span><span>{formatNumber(derived.aircraft.emptyArmMm)}</span><span>{formatNumber(derived.weightBalance.emptyMomentKgMm)}</span></div>
-            {derived.weightBalance.stationLoads.map((station) => (
-              <div key={station.stationId}>
-                <span>{station.name}</span>
-                <span>{formatNumber(station.weightKg, 1)}</span>
-                <span>{formatNumber(station.armMm)}</span>
-                <span>{formatNumber(station.momentKgMm)}</span>
-              </div>
-            ))}
-            <div><span>{derived.aircraft.fuelStation.name}</span><span>{formatNumber(derived.weightBalance.fuelWeightKg, 1)}</span><span>{formatNumber(derived.aircraft.fuelStation.armMm)}</span><span>{formatNumber(derived.weightBalance.fuelWeightKg * derived.aircraft.fuelStation.armMm)}</span></div>
-            <div className="fp-sum-row"><span>TOW</span><span>{formatNumber(derived.weightBalance.towKg, 1)}</span><span>{formatNumber(derived.weightBalance.armMm)}</span><span>{formatNumber(derived.weightBalance.totalMomentKgMm)}</span></div>
-            <div className="fp-wb-limits"><span>MAX TOW {formatNumber(derived.aircraft.limits.maxTowKg, 1)} kg</span><span>Arm max {formatNumber(derived.aircraft.limits.maxArmMm)}</span><span>Arm min {formatNumber(derived.aircraft.limits.minArmMm)}</span></div>
-          </div>
+          {hasSelectedAircraft ? (
+            <div className="fp-wb-grid">
+              <div className="fp-wb-header"><span></span><strong>Vikt</strong><strong>Arm</strong><strong>Moment</strong></div>
+              <div><span>Tomvikt</span><span>{formatNumber(derived.aircraft.emptyWeightKg, 1)}</span><span>{formatNumber(derived.aircraft.emptyArmMm)}</span><span>{formatNumber(derived.weightBalance.emptyMomentKgMm)}</span></div>
+              {derived.weightBalance.stationLoads.map((station) => (
+                <div key={station.stationId}>
+                  <span>{station.name}</span>
+                  <span>{formatNumber(station.weightKg, 1)}</span>
+                  <span>{formatNumber(station.armMm)}</span>
+                  <span>{formatNumber(station.momentKgMm)}</span>
+                </div>
+              ))}
+              <div><span>{derived.aircraft.fuelStation.name}</span><span>{formatNumber(derived.weightBalance.fuelWeightKg, 1)}</span><span>{formatNumber(derived.aircraft.fuelStation.armMm)}</span><span>{formatNumber(derived.weightBalance.fuelWeightKg * derived.aircraft.fuelStation.armMm)}</span></div>
+              <div className="fp-sum-row"><span>TOW</span><span>{formatNumber(derived.weightBalance.towKg, 1)}</span><span>{formatNumber(derived.weightBalance.armMm)}</span><span>{formatNumber(derived.weightBalance.totalMomentKgMm)}</span></div>
+              <div className="fp-wb-limits"><span>MAX TOW {formatNumber(derived.aircraft.limits.maxTowKg, 1)} kg</span><span>Arm max {formatNumber(derived.aircraft.limits.maxArmMm)}</span><span>Arm min {formatNumber(derived.aircraft.limits.minArmMm)}</span></div>
+            </div>
+          ) : null}
         </div>
       </section>
     </div>

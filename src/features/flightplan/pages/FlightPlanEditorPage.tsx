@@ -512,9 +512,6 @@ export function FlightPlanEditorPage() {
             <Link to={mapPanelLink('/app/flightplans')} className="fp-map-action-menu__item">
               Färdplaner
             </Link>
-            <Link to={mapPanelLink('/app/flightplans/new')} className="fp-map-action-menu__item">
-              Ny driftplan
-            </Link>
             <Link to={mapPanelLink('/app/aircraft')} className="fp-map-action-menu__item">
               Flygplan
             </Link>
@@ -526,9 +523,6 @@ export function FlightPlanEditorPage() {
             <Link to={mapPanelLink('/app/account')} className="fp-map-action-menu__item">
               Konto
             </Link>
-            <button type="button" className="fp-map-action-menu__item" onClick={() => setEditorActiveTab('flightplan')}>
-              Öppna driftplan
-            </button>
             {recordId && (
               <button
                 type="button"

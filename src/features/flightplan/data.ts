@@ -94,7 +94,7 @@ export const aircraftProfiles: AircraftProfile[] = [
 ]
 
 const initialFlightPlanTemplate: FlightPlanInput = {
-  aircraftRegistration: 'SE-MDE',
+  aircraftRegistration: '',
   header: {
     date: getUtcDateParts().date,
     plannedStartTime: getUtcDateParts().time,
