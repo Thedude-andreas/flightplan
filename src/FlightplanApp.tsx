@@ -1,7 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent, ReactNode } from 'react'
 import './features/flightplan/flightplan.css'
-import { aircraftProfiles, createInitialFlightPlan, DEFAULT_ROUTE_TAS_KT, getUtcDateParts } from './features/flightplan/data'
+import {
+  aircraftProfiles,
+  createInitialFlightPlan,
+  DEFAULT_ROUTE_TAS_KT,
+  getFlightPlanStartDateTimeUtc,
+  getUtcDateParts,
+} from './features/flightplan/data'
 import { calculateFlightPlan, formatNumber, formatTimeFromMinutes } from './features/flightplan/calculations'
 import { getRoutePointLabel, legsToWaypoints, useGazetteerVersion, waypointsToLegs } from './features/flightplan/gazetteer'
 import { FlightplanMapEditor, type FlightplanMapViewport } from './features/flightplan/FlightplanMapEditor'
@@ -31,6 +37,7 @@ type EditorPanel = 'fuel' | 'weightBalance' | 'performance' | 'aircraft' | 'weat
 type WorkspaceTab = 'flightplan' | 'map' | 'print'
 const aloftWindAutoFetchStorageKey = 'flightplan.aloftWindAutoFetch.v1'
 const debugNotamMapNoticeParam = 'debugNotamMapNotice'
+const startTimePassedThresholdMs = 60 * 60 * 1000
 
 type RouteRow = {
   index: number
@@ -522,6 +529,9 @@ type FlightplanAppProps = {
   onPlanChange?: (plan: FlightPlanInput) => void
   onActiveTabChange?: (tab: WorkspaceTab) => void
   onMapViewportChange?: (viewport: FlightplanMapViewport) => void
+  onClearRoute?: () => void
+  canClearRoute?: boolean
+  clearRouteDisabled?: boolean
 }
 
 export function FlightplanApp({
@@ -536,6 +546,9 @@ export function FlightplanApp({
   onPlanChange,
   onActiveTabChange,
   onMapViewportChange,
+  onClearRoute,
+  canClearRoute = false,
+  clearRouteDisabled = false,
 }: FlightplanAppProps = {}) {
   useGazetteerVersion()
   const aircraftOptions = useMemo<AircraftProfile[]>(
@@ -628,6 +641,7 @@ export function FlightplanApp({
     usedStaleCache: false,
     refreshError: null,
   })
+  const [currentTimeMs, setCurrentTimeMs] = useState(() => Date.now())
 
   const routeWindRequestKey = useMemo(
     () =>
@@ -646,6 +660,11 @@ export function FlightplanApp({
   useEffect(() => {
     window.localStorage.setItem(aloftWindAutoFetchStorageKey, String(aloftWindAutoFetchEnabled))
   }, [aloftWindAutoFetchEnabled])
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => setCurrentTimeMs(Date.now()), 60 * 1000)
+    return () => window.clearInterval(intervalId)
+  }, [])
 
   useEffect(() => {
     if (!aloftWindAutoFetchEnabled) {
@@ -777,6 +796,10 @@ export function FlightplanApp({
   const derived = calculateFlightPlan(effectivePlan, aircraftOptions)
   const selectedAircraft = derived.aircraft
   const tasInputUnit = derived.aircraft.tasInputUnit ?? 'kt'
+  const flightPlanStartTimeUtc = getFlightPlanStartDateTimeUtc(plan)
+  const isStartTimePassed =
+    flightPlanStartTimeUtc !== null &&
+    currentTimeMs - flightPlanStartTimeUtc.getTime() > startTimePassedThresholdMs
   const routeRows = useMemo(
     () => createRouteRows(effectivePlan, derived, aloftWindAutoFetchEnabled, tasInputUnit),
     [aloftWindAutoFetchEnabled, effectivePlan, derived, tasInputUnit],
@@ -1389,20 +1412,33 @@ export function FlightplanApp({
       >
         {isRouteCreationMode ? 'Ruttläge aktivt' : 'Skapa rutt'}
       </button>
-      <button type="button" className="fp-map-flightplan-button" onClick={() => setActiveTab('flightplan')}>
-        Driftplan
-      </button>
-      <div className="fp-map-utc-control" aria-label="Karttid UTC">
-        <strong>UTC</strong>
-        <input type="date" value={plan.header.date} onChange={(event) => updateHeader('date', event.target.value)} />
-        <input
-          type="time"
-          value={plan.header.plannedStartTime}
-          onChange={(event) => updateHeader('plannedStartTime', event.target.value)}
-        />
-        <button type="button" onClick={setMapTimeToCurrentUtc}>
-          Nu
+      {canClearRoute && onClearRoute ? (
+        <button
+          type="button"
+          className="fp-map-clear-route-button"
+          onClick={onClearRoute}
+          disabled={clearRouteDisabled}
+        >
+          Rensa rutt
         </button>
+      ) : null}
+      <button type="button" className="fp-map-flightplan-button" onClick={() => setActiveTab('flightplan')}>
+        Driftfärdplan
+      </button>
+      <div className="fp-map-time-menu">
+        <div className="fp-map-utc-control" aria-label="Karttid UTC">
+          <strong>UTC</strong>
+          <input type="date" value={plan.header.date} onChange={(event) => updateHeader('date', event.target.value)} />
+          <input
+            type="time"
+            value={plan.header.plannedStartTime}
+            onChange={(event) => updateHeader('plannedStartTime', event.target.value)}
+          />
+          <button type="button" onClick={setMapTimeToCurrentUtc}>
+            Nu
+          </button>
+        </div>
+        {isStartTimePassed ? <div className="fp-map-start-time-passed">Starttid passerad</div> : null}
       </div>
     </div>
   )
@@ -1432,6 +1468,7 @@ export function FlightplanApp({
                 tasInputUnit={tasInputUnit}
                 radioNavEntries={effectiveRadioNav}
                 titleSlot={documentTitleSlot}
+                isStartTimePassed={isStartTimePassed}
                 onHeaderChange={updateHeader}
                 weatherStatusLabel={weatherStatusLabel}
                 aloftWindStatus={aloftWindState}
@@ -1509,6 +1546,7 @@ export function FlightplanApp({
                 routeRows={printRouteRows}
                 tasInputUnit={tasInputUnit}
                 radioNavEntries={effectiveRadioNav}
+                isStartTimePassed={isStartTimePassed}
                 onHeaderChange={updateHeader}
                 weatherStatusLabel={weatherStatusLabel}
                 aloftWindStatus={aloftWindState}
@@ -2377,6 +2415,7 @@ function FlightPlanDocument({
   tasInputUnit,
   radioNavEntries,
   titleSlot,
+  isStartTimePassed,
   onHeaderChange,
   weatherStatusLabel,
   aloftWindStatus,
@@ -2408,6 +2447,7 @@ function FlightPlanDocument({
   tasInputUnit: 'kt' | 'mph'
   radioNavEntries: RadioNavEntry[]
   titleSlot?: ReactNode
+  isStartTimePassed: boolean
   onHeaderChange: (key: keyof FlightPlanInput['header'], value: string) => void
   weatherStatusLabel: string
   aloftWindStatus: AloftWindState
@@ -2467,7 +2507,7 @@ function FlightPlanDocument({
           </div>
         </div>
         <div className="fp-header-meta-grid">
-          <HeaderField label="Planerad start UTC" className="fp-meta-date">
+          <HeaderField label="Planerad start UTC" className={`fp-meta-date ${isStartTimePassed ? 'is-start-time-passed' : ''}`}>
             <div className="fp-header-datetime">
               <input type="date" value={plan.header.date} onChange={(event) => onHeaderChange('date', event.target.value)} />
               <input type="time" value={plan.header.plannedStartTime} onChange={(event) => onHeaderChange('plannedStartTime', event.target.value)} />

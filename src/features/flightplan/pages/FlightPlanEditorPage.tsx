@@ -16,7 +16,6 @@ import {
   aircraftProfiles as staticAircraftProfiles,
   createEmptyFlightPlan,
   createInitialFlightPlan,
-  ensureFlightPlanStartTimeIsCurrentUtc,
 } from '../data'
 import type { AircraftProfile, FlightPlanInput } from '../types'
 
@@ -31,7 +30,6 @@ type PersistedSnapshot = {
 }
 
 type EditorWorkspaceTab = 'flightplan' | 'map' | 'print'
-const timeAdjustedNotice = 'Planens tid låg i det förflutna. Kartan visas med aktuell UTC-tid.'
 
 function createDefaultPlanName() {
   const date = new Intl.DateTimeFormat('sv-SE', { dateStyle: 'medium' }).format(new Date())
@@ -137,7 +135,6 @@ export function FlightPlanEditorPage() {
   const [editorMapViewport, setEditorMapViewport] = useState<FlightplanMapViewport | null>(null)
   const [aircraftOptions, setAircraftOptions] = useState<AircraftProfile[]>(staticAircraftProfiles)
   const [canAccessCompetency, setCanAccessCompetency] = useState(false)
-  const [timeNotice, setTimeNotice] = useState('')
 
   const draftKey = useMemo(() => {
     if (!user) {
@@ -172,7 +169,6 @@ export function FlightPlanEditorPage() {
 
       setLoading(true)
       setError('')
-      setTimeNotice('')
       didHydrateRef.current = false
 
       try {
@@ -208,9 +204,7 @@ export function FlightPlanEditorPage() {
             ?? loadDraft<FlightPlanDraftValue>(createLegacyDraftKey(user.id, record.id))
           const matchingDraft = storedDraft?.baseUpdatedAt === record.updatedAt ? storedDraft : null
 
-          const loadedPlan = matchingDraft?.value.plan ?? record.payload
-          const adjusted = ensureFlightPlanStartTimeIsCurrentUtc(loadedPlan)
-          const nextPlan = adjusted.plan
+          const nextPlan = matchingDraft?.value.plan ?? record.payload
           setInitialPlan(nextPlan)
           setCurrentPlan(nextPlan)
           setName(matchingDraft?.value.name ?? record.name)
@@ -220,15 +214,12 @@ export function FlightPlanEditorPage() {
             name: record.name,
             plan: record.payload,
           })
-          setSaveState(adjusted.adjusted || matchingDraft?.hasUnsavedChanges ? 'dirty' : 'saved')
-          setTimeNotice(adjusted.adjusted ? timeAdjustedNotice : '')
+          setSaveState(matchingDraft?.hasUnsavedChanges ? 'dirty' : 'saved')
         } else {
           const storedDraft = loadDraft<FlightPlanDraftValue>(createDraftKey(user.id, null))
             ?? loadDraft<FlightPlanDraftValue>(createLegacyDraftKey(user.id, null))
 
-          const loadedPlan = storedDraft?.value.plan ?? createEmptyFlightPlan()
-          const adjusted = ensureFlightPlanStartTimeIsCurrentUtc(loadedPlan)
-          const nextPlan = adjusted.plan
+          const nextPlan = storedDraft?.value.plan ?? createEmptyFlightPlan()
           const nextName = storedDraft?.value.name ?? createDefaultPlanName()
           setInitialPlan(nextPlan)
           setCurrentPlan(nextPlan)
@@ -237,10 +228,9 @@ export function FlightPlanEditorPage() {
           setBaseUpdatedAt(storedDraft?.baseUpdatedAt ?? null)
           setPersistedSnapshot({
             name: nextName,
-            plan: loadedPlan,
+            plan: nextPlan,
           })
-          setSaveState(adjusted.adjusted || storedDraft?.hasUnsavedChanges ? 'dirty' : 'idle')
-          setTimeNotice(adjusted.adjusted ? timeAdjustedNotice : '')
+          setSaveState(storedDraft?.hasUnsavedChanges ? 'dirty' : 'idle')
         }
       } catch (nextError) {
         if (!isActive) {
@@ -599,7 +589,6 @@ export function FlightPlanEditorPage() {
   return (
     <section className="editor-page">
       {error && <p className="account-error editor-toolbar__error">{error}</p>}
-      {timeNotice ? <p className="auth-notice editor-toolbar__error">{timeNotice}</p> : null}
 
       <FlightplanApp
         key={`${recordId ?? 'new'}:${baseUpdatedAt ?? 'draft'}:${editorRevision}`}
@@ -621,6 +610,9 @@ export function FlightPlanEditorPage() {
         documentToolbarSlot={renderToolbarContent('default')}
         mapHudSlot={renderToolbarContent('map')}
         mapHudStatusSlot={renderMapStatusContent()}
+        onClearRoute={openClearRouteDialog}
+        canClearRoute={(currentPlan?.routeLegs.length ?? 0) > 0}
+        clearRouteDisabled={saveState === 'saving'}
         onPlanChange={(nextPlan) => {
           if (!didHydrateRef.current) {
             return

@@ -424,6 +424,17 @@
   grid-template-rows: auto 1fr;
 }
 
+.flightplan-page .fp-header-field.is-start-time-passed {
+  background: rgba(169, 106, 106, 0.92);
+  color: #fff8f7;
+}
+
+.flightplan-page .fp-header-field.is-start-time-passed span,
+.flightplan-page .fp-header-field.is-start-time-passed div,
+.flightplan-page .fp-header-field.is-start-time-passed input {
+  color: #fff8f7;
+}
+
 .flightplan-page .fp-header-field span {
   padding: 0.35rem 0.5rem 0;
   font-size: 0.8rem;
@@ -1343,6 +1354,7 @@
 }
 
 .flightplan-page .fp-map-route-mode-button,
+.flightplan-page .fp-map-clear-route-button,
 .flightplan-page .fp-map-flightplan-button,
 .flightplan-page .fp-map-utc-control,
 .flightplan-page .fp-map-utc-control button {
@@ -1351,6 +1363,7 @@
 }
 
 .flightplan-page .fp-map-route-mode-button,
+.flightplan-page .fp-map-clear-route-button,
 .flightplan-page .fp-map-flightplan-button {
   min-height: 2.3rem;
   border: 1px solid rgba(22, 56, 80, 0.24);
@@ -1364,10 +1377,31 @@
   cursor: pointer;
 }
 
+.flightplan-page .fp-map-clear-route-button {
+  border-color: rgba(143, 87, 87, 0.58);
+  background: rgba(169, 106, 106, 0.92);
+  color: #fff8f7;
+}
+
+.flightplan-page .fp-map-clear-route-button:hover,
+.flightplan-page .fp-map-clear-route-button:focus-visible {
+  background: rgba(143, 87, 87, 0.96);
+}
+
+.flightplan-page .fp-map-clear-route-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
 .flightplan-page .fp-map-route-mode-button.is-active {
   border-color: rgba(17, 89, 60, 0.82);
   background: rgba(26, 111, 76, 0.94);
   color: #f7fffb;
+}
+
+.flightplan-page .fp-map-time-menu {
+  display: grid;
+  gap: 0.32rem;
 }
 
 .flightplan-page .fp-map-utc-control {
@@ -1420,6 +1454,21 @@
   font-size: 0.78rem;
   font-weight: 800;
   cursor: pointer;
+}
+
+.flightplan-page .fp-map-start-time-passed {
+  justify-self: stretch;
+  padding: 0.34rem 0.6rem;
+  border: 1px solid rgba(143, 87, 87, 0.58);
+  border-radius: 8px;
+  background: rgba(169, 106, 106, 0.92);
+  color: #fff8f7;
+  font-family: 'Space Grotesk', 'Inter', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-align: center;
+  box-shadow: var(--fp-map-hud-shadow);
+  backdrop-filter: blur(10px);
 }
 
 .flightplan-page .fp-editor-toolbar__status--map-bottom {
@@ -2400,6 +2449,7 @@
   }
 
   .flightplan-page.is-map-view .fp-map-route-mode-button,
+  .flightplan-page.is-map-view .fp-map-clear-route-button,
   .flightplan-page.is-map-view .fp-map-flightplan-button {
     min-height: 2.05rem;
     padding: 0.36rem 0.52rem;

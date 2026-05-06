@@ -26,29 +26,6 @@ export function getFlightPlanStartDateTimeUtc(plan: Pick<FlightPlanInput, 'heade
   return Number.isNaN(value.getTime()) ? null : value
 }
 
-export function ensureFlightPlanStartTimeIsCurrentUtc(plan: FlightPlanInput, now = new Date()) {
-  const startTime = getFlightPlanStartDateTimeUtc(plan)
-  if (!startTime || startTime.getTime() >= now.getTime()) {
-    return {
-      plan,
-      adjusted: false,
-    }
-  }
-
-  const currentUtc = getUtcDateParts(now)
-  return {
-    plan: {
-      ...plan,
-      header: {
-        ...plan.header,
-        date: currentUtc.date,
-        plannedStartTime: currentUtc.time,
-      },
-    },
-    adjusted: true,
-  }
-}
-
 export const aircraftProfiles: AircraftProfile[] = [
   {
     registration: 'SE-MDE',
