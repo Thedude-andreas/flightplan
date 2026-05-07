@@ -643,12 +643,38 @@ function boundsIntersection(left: L.LatLngBounds, right: L.LatLngBounds) {
   return L.latLngBounds([south, west], [north, east])
 }
 
-function clamp(value: number, min: number, max: number) {
-  return Math.min(max, Math.max(min, value))
-}
-
 function pointInBoundsWithPadding(point: [number, number], bounds: L.LatLngBounds) {
   return bounds.pad(-labelBoundsPaddingRatio).contains(point) || bounds.contains(point)
+}
+
+function polygonLabelCandidateDistance(point: [number, number], target: L.LatLng) {
+  return L.latLng(point).distanceTo(target)
+}
+
+function samplePolygonLabelPosition(
+  polygon: number[][][],
+  searchBounds: L.LatLngBounds,
+  target: L.LatLng,
+) {
+  const steps = 12
+  const candidates: [number, number][] = []
+  const south = searchBounds.getSouth()
+  const west = searchBounds.getWest()
+  const latSpan = searchBounds.getNorth() - south
+  const lonSpan = searchBounds.getEast() - west
+
+  for (let latIndex = 0; latIndex <= steps; latIndex += 1) {
+    for (let lonIndex = 0; lonIndex <= steps; lonIndex += 1) {
+      const lat = south + (latSpan * latIndex) / steps
+      const lon = west + (lonSpan * lonIndex) / steps
+      if (pointInPolygon(lat, lon, polygon)) {
+        candidates.push([lat, lon])
+      }
+    }
+  }
+
+  return candidates
+    .sort((left, right) => polygonLabelCandidateDistance(left, target) - polygonLabelCandidateDistance(right, target))[0] ?? null
 }
 
 function isLargeEnoughForAirspaceLabel(bounds: L.LatLngBounds, map: L.Map | null) {
@@ -703,19 +729,12 @@ function getPolygonLabelPosition(
   )
   if (visibleCandidates.length > 0) {
     return visibleCandidates
-      .map((point) => ({
-        point,
-        distance: L.latLng(point).distanceTo(mapCenter),
-      }))
+      .map((point) => ({ point, distance: polygonLabelCandidateDistance(point, mapCenter) }))
       .sort((left, right) => left.distance - right.distance)[0].point
   }
 
   if (visibleBounds) {
-    const center = visibleBounds.getCenter()
-    return [
-      clamp(center.lat, mapBounds.getSouth(), mapBounds.getNorth()),
-      clamp(center.lng, mapBounds.getWest(), mapBounds.getEast()),
-    ] as [number, number]
+    return samplePolygonLabelPosition(polygon, visibleBounds, mapCenter)
   }
 
   return null
