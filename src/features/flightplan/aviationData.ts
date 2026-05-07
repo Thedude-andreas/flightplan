@@ -1,6 +1,7 @@
 import { swedishAirports as embeddedAirports } from './generated/airports.se'
 import { swedishAirspaces as embeddedAirspaces } from './generated/airspaces.se'
 import { swedishNavaids as embeddedNavaids } from './generated/radio-nav.se'
+import { expandSwedenFirBoundaryGeometry } from './firBoundary'
 
 const previewDataBaseUrlParam = 'aviationDataBaseUrl'
 
@@ -159,6 +160,13 @@ function toSwedishAirports(payload: SwedishAirportsPayload): SwedishAirport[] {
   }))
 }
 
+function toSwedishAirspaces(payload: SwedishAirspacesPayload): SwedishAirspace[] {
+  return payload.airspaces.map((airspace) => ({
+    ...airspace,
+    geometry: expandSwedenFirBoundaryGeometry(airspace.geometry),
+  }))
+}
+
 function requireAviationData() {
   if (!aviationData) {
     throw new Error('Svenska flygdata är inte laddade ännu.')
@@ -199,7 +207,7 @@ export async function preloadSwedishAviationData() {
       .then(([airportsPayload, airspacesPayload, radioNavPayload, airspaceFrequencies, airportFrequencies, accSectors]) => {
         aviationData = {
           airports: toSwedishAirports(airportsPayload),
-          airspaces: airspacesPayload.airspaces,
+          airspaces: toSwedishAirspaces(airspacesPayload),
           navaids: radioNavPayload.navaids,
           airspaceFrequencies,
           airportFrequencies,

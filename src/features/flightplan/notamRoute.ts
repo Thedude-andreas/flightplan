@@ -1,5 +1,6 @@
 import { getSwedishAirports, getSwedishNavaids, type SwedishAirport } from './aviationData'
 import type { NearbyAirport } from './weather'
+import { expandFirBoundaryDmsSegments } from './firBoundary'
 import type { FlightPlanInput } from './types'
 import type { NotamSupplement } from './notam'
 
@@ -240,7 +241,7 @@ function extractCoordinates(rawText: string) {
     }
   }
 
-  return pairs
+  return expandFirBoundaryDmsSegments(normalized, pairs)
 }
 
 function dedupeCoordinates(points: RoutePoint[]) {

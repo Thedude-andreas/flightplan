@@ -1604,6 +1604,13 @@ export function FlightplanMapEditor({
 
     return labels
   }, [mapBounds, mapInstance, mapZoom, notamMapFeatures, showAirspaces, showNotamOverlays, visibleAirspaces])
+  const isAirspaceLabelHighlighted = (label: AirspaceMapLabel) => {
+    if (label.id.startsWith('airspace-')) {
+      return hoveredAirspaceIds.includes(label.id.replace(/^airspace-/, ''))
+    }
+
+    return hoveredNotamFeature != null && label.id === `notam-${hoveredNotamFeature.id}`
+  }
   const visibleWeatherAirportKey = useMemo(
     () => visibleWeatherAirports.map((airport) => airport.icao).sort((left, right) => left.localeCompare(right, 'sv')).join(','),
     [visibleWeatherAirports],
@@ -2750,7 +2757,7 @@ export function FlightplanMapEditor({
               key={label.id}
               position={label.position}
               icon={createMapLabelIcon(
-                `fp-airspace-map-label fp-airspace-map-label--${label.variant} ${hoveredAirspaceIds.includes(label.id.replace(/^airspace-/, '')) ? 'fp-airspace-map-label--is-highlighted' : ''}`,
+                `fp-airspace-map-label fp-airspace-map-label--${label.variant} ${isAirspaceLabelHighlighted(label) ? 'fp-airspace-map-label--is-highlighted' : ''}`,
                 label.label,
               )}
               pane="fp-airspace-label-pane"

@@ -1,4 +1,5 @@
 import type { FlightPlanInput } from './types'
+import { expandFirBoundaryDmsSegments } from './firBoundary'
 
 const earthRadiusNm = 3440.065
 
@@ -275,11 +276,12 @@ function parseCoordinateComponent(value: string, degreeDigits: number) {
 
 function extractCoordinates(rawText: string) {
   const matches = rawText.matchAll(/([NS]\d{2,4})\s*([EW]\d{3,5})/gi)
-
-  return Array.from(matches, ([, latValue, lonValue]) => ({
+  const coordinates = Array.from(matches, ([, latValue, lonValue]) => ({
     lat: parseCoordinateComponent(latValue.toUpperCase(), 2),
     lon: parseCoordinateComponent(lonValue.toUpperCase(), 3),
   }))
+
+  return expandFirBoundaryDmsSegments(rawText, coordinates)
 }
 
 function centroid(points: RoutePoint[]) {
