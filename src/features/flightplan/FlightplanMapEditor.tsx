@@ -23,10 +23,12 @@ import {
   getSwedishAirports,
   getSwedishAirspaces,
   getSwedishNavaids,
+  getSwedishVisualPoints,
   type SwedishAirport,
   type SwedishAirspace,
   type SwedishAirspaceGeometry,
   type SwedishNavaid,
+  type SwedishVisualPoint,
 } from './aviationData'
 import { calculateFlightPlan, formatTimeFromMinutes } from './calculations'
 import { formatCoordinateDms } from './coordinates'
@@ -63,6 +65,7 @@ type MapLayerPreferences = {
   notamOverlays: boolean
   aloftWindArrows: boolean
   navaids: boolean
+  visualPoints: boolean
   airports: boolean
   metar: boolean
   taf: boolean
@@ -103,6 +106,15 @@ type MapPointInfo = {
   airspaces: PointInfoAirspace[]
   airports: PointInfoAirport[]
   navaids: PointInfoNavaid[]
+  visualPoints: PointInfoVisualPoint[]
+}
+type PointInfoVisualPoint = {
+  id: string
+  label: string
+  kind: SwedishVisualPoint['kind']
+  positionIndicator: string | null
+  location: string | null
+  distanceNm: number
 }
 type AirspaceMapLabel = {
   id: string
@@ -119,6 +131,7 @@ const defaultMapLayerPreferences: MapLayerPreferences = {
   notamOverlays: true,
   aloftWindArrows: true,
   navaids: true,
+  visualPoints: true,
   airports: true,
   metar: true,
   taf: true,
@@ -257,6 +270,8 @@ const airportMarkerRadiusPx = 4
 const airportWeatherFetchBatchSize = 12
 const navaidMinZoom = 7
 const navaidLabelMinZoom = 9
+const visualPointMinZoom = 10
+const visualPointLabelMinZoom = 11
 const directionArrowWaypointClearancePx = 22
 const maxVisibleAirspaceLowerFt = 9500
 const notamAreaToPointThresholdPx = 12
@@ -305,6 +320,7 @@ function readStoredMapLayerPreferences(): MapLayerPreferences {
       notamOverlays: typeof parsed.notamOverlays === 'boolean' ? parsed.notamOverlays : defaultMapLayerPreferences.notamOverlays,
       aloftWindArrows: typeof parsed.aloftWindArrows === 'boolean' ? parsed.aloftWindArrows : defaultMapLayerPreferences.aloftWindArrows,
       navaids: typeof parsed.navaids === 'boolean' ? parsed.navaids : defaultMapLayerPreferences.navaids,
+      visualPoints: typeof parsed.visualPoints === 'boolean' ? parsed.visualPoints : defaultMapLayerPreferences.visualPoints,
       airports: typeof parsed.airports === 'boolean' ? parsed.airports : defaultMapLayerPreferences.airports,
       metar: typeof parsed.metar === 'boolean' ? parsed.metar : defaultMapLayerPreferences.metar,
       taf: typeof parsed.taf === 'boolean' ? parsed.taf : defaultMapLayerPreferences.taf,
@@ -531,6 +547,34 @@ function getNavaidPalette(kind: SwedishNavaid['kind']) {
       return { color: '#0f6a41', fillColor: '#d9f6e6', radius: 4.5 }
     default:
       return { color: '#4a5560', fillColor: '#eef2f4', radius: 4.5 }
+  }
+}
+
+function getVisualPointPalette(kind: SwedishVisualPoint['kind']) {
+  if (kind === 'holding') {
+    return { color: '#9a5b00', fillColor: '#ffd36a', radius: 4.8, marker: 'H' }
+  }
+
+  return { color: '#006b78', fillColor: '#8be7ee', radius: 4.4, marker: 'I' }
+}
+
+function getVisualPointKindLabel(kind: SwedishVisualPoint['kind']) {
+  return kind === 'holding' ? 'Väntläge' : 'In-/utpassering'
+}
+
+function getVisualPointDisplayLabel(point: SwedishVisualPoint) {
+  if (point.kind === 'holding') {
+    return point.name ?? point.location ?? point.positionIndicator ?? 'HOLD'
+  }
+
+  return point.location ?? point.name ?? point.positionIndicator ?? 'ENTRY'
+}
+
+function createVisualRoutePoint(point: SwedishVisualPoint) {
+  return {
+    lat: point.lat,
+    lon: point.lon,
+    name: getVisualPointDisplayLabel(point),
   }
 }
 
@@ -1392,6 +1436,7 @@ export function FlightplanMapEditor({
   const swedishAirspaces = getSwedishAirspaces()
   const swedishAirports = getSwedishAirports()
   const swedishNavaids = getSwedishNavaids()
+  const swedishVisualPoints = getSwedishVisualPoints()
   const [basemap, setBasemap] = useState<BasemapKey>('topo')
   const [mapLayerPreferences, setMapLayerPreferences] = useState(readStoredMapLayerPreferences)
   const [isMapLayerMenuOpen, setIsMapLayerMenuOpen] = useState(false)
@@ -1417,6 +1462,7 @@ export function FlightplanMapEditor({
   const showNotamOverlays = mapLayerPreferences.notamOverlays
   const showAloftWindArrows = mapLayerPreferences.aloftWindArrows
   const showNavaids = mapLayerPreferences.navaids
+  const showVisualPoints = mapLayerPreferences.visualPoints
   const showAirports = mapLayerPreferences.airports
   const showMetar = mapLayerPreferences.metar
   const showTaf = mapLayerPreferences.taf
@@ -1541,6 +1587,18 @@ export function FlightplanMapEditor({
         distanceNm: 0,
       }))
   }, [mapBounds, showAirportWeather, swedishAirports])
+  const visibleVisualPoints = useMemo(() => {
+    if (!showVisualPoints || mapZoom < visualPointMinZoom) {
+      return []
+    }
+
+    if (!mapBounds) {
+      return swedishVisualPoints
+    }
+
+    const paddedBounds = mapBounds.pad(0.1)
+    return swedishVisualPoints.filter((point) => paddedBounds.contains([point.lat, point.lon]))
+  }, [mapBounds, mapZoom, showVisualPoints, swedishVisualPoints])
   const airspaceLabels = useMemo<AirspaceMapLabel[]>(() => {
     if (!mapBounds || !mapInstance || mapZoom < airspaceLabelMinZoom) {
       return []
@@ -1794,6 +1852,19 @@ export function FlightplanMapEditor({
       .sort((a, b) => a.distanceNm - b.distanceNm)
       .slice(0, 6)
 
+    const nearbyVisualPoints = swedishVisualPoints
+      .map((point) => ({
+        id: point.id,
+        label: getVisualPointDisplayLabel(point),
+        kind: point.kind,
+        positionIndicator: point.positionIndicator,
+        location: point.location,
+        distanceNm: distanceNmBetween(lat, lon, point.lat, point.lon),
+      }))
+      .filter((point) => point.distanceNm <= 8)
+      .sort((a, b) => a.distanceNm - b.distanceNm)
+      .slice(0, 6)
+
     return {
       lat,
       lon,
@@ -1801,6 +1872,7 @@ export function FlightplanMapEditor({
       airspaces: matchingAirspaces,
       airports: nearbyAirports,
       navaids: nearbyNavaids,
+      visualPoints: nearbyVisualPoints,
     }
   }
 
@@ -1934,6 +2006,46 @@ export function FlightplanMapEditor({
             name: nextLabel,
           }
         : resolvedPoint
+
+    if (waypoints.length === 0) {
+      onRouteLegsChange([
+        {
+          from: nextPoint,
+          to: nextPoint,
+          windDirection: aloftWindAutoFetchEnabled ? 220 : 0,
+          windSpeedKt: aloftWindAutoFetchEnabled ? 15 : 0,
+          tasKt: DEFAULT_ROUTE_TAS_KT,
+          variation: 0,
+          altitude: "3000'",
+          navRef: '',
+          notes: '',
+        },
+      ])
+      return
+    }
+
+    if (isPlaceholderLeg(plan.routeLegs)) {
+      onRouteLegsChange([
+        {
+          ...plan.routeLegs[0],
+          from: { ...plan.routeLegs[0].from },
+          to: nextPoint,
+        },
+      ])
+      return
+    }
+
+    setWaypoints([...waypoints, nextPoint])
+  }
+
+  const addVisualPointToEnd = (point: SwedishVisualPoint) => {
+    if (!routeEditingEnabled) {
+      inspectPoint(point.lat, point.lon)
+      return
+    }
+
+    setSelectedPointInfo(null)
+    const nextPoint = createVisualRoutePoint(point)
 
     if (waypoints.length === 0) {
       onRouteLegsChange([
@@ -2102,7 +2214,7 @@ export function FlightplanMapEditor({
                   </span>
                   <span className="fp-map-layer-menu__label">Visning</span>
                 </span>
-                <span className="fp-map-layer-menu__count">{enabledLayerCount}/8</span>
+                <span className="fp-map-layer-menu__count">{enabledLayerCount}/9</span>
               </button>
               {isMapLayerMenuOpen ? (
                 <div className="fp-map-layer-menu__popover" role="menu" aria-label="Kartdata">
@@ -2166,6 +2278,12 @@ export function FlightplanMapEditor({
                     label="Navhjälpmedel"
                     meta="VOR, DME, NDB, waypoints"
                     onToggle={() => toggleMapLayerPreference('navaids')}
+                  />
+                  <MapLayerSwitch
+                    checked={showVisualPoints}
+                    label="Inpassering & vänt"
+                    meta={`Entry/exit och VFR holdings från zoom ${visualPointMinZoom}`}
+                    onToggle={() => toggleMapLayerPreference('visualPoints')}
                   />
                   <MapLayerSwitch
                     checked={showAirports}
@@ -2272,6 +2390,24 @@ export function FlightplanMapEditor({
             </section>
 
             <section>
+              <h3>Inpassering och väntlägen</h3>
+              {selectedPointInfo.visualPoints.length > 0 ? (
+                <ul>
+                  {selectedPointInfo.visualPoints.map((point) => (
+                    <li key={point.id}>
+                      <strong>{point.label}</strong>
+                      <span>{getVisualPointKindLabel(point.kind)} · {formatDistanceNm(point.distanceNm)}</span>
+                      {point.positionIndicator ? <span>{point.positionIndicator}</span> : null}
+                      {point.location && point.location !== point.label ? <span>{point.location}</span> : null}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p>Ingen inpasseringspunkt eller väntläge inom 8 NM.</p>
+              )}
+            </section>
+
+            <section>
               <h3>Navhjälpmedel nära punkten</h3>
               {selectedPointInfo.navaids.length > 0 ? (
                 <ul>
@@ -2309,6 +2445,7 @@ export function FlightplanMapEditor({
           <ZoomControl position="topright" />
           <Pane name={notamMapPane} style={{ zIndex: 525 }} />
           <Pane name="fp-navaid-pane" style={{ zIndex: 530 }} />
+          <Pane name="fp-visual-point-pane" style={{ zIndex: 535 }} />
           <Pane name="fp-wind-pane" style={{ zIndex: 545 }} />
           <Pane name="fp-airspace-label-pane" style={{ zIndex: 555 }} />
           <Pane name={notamMapHighlightPane} style={{ zIndex: 558 }} />
@@ -2751,6 +2888,54 @@ export function FlightplanMapEditor({
                 )
               })
             : null}
+
+          {visibleVisualPoints.map((point) => {
+            const palette = getVisualPointPalette(point.kind)
+            const label = getVisualPointDisplayLabel(point)
+            return (
+              <FeatureGroup key={point.id}>
+                {mapZoom >= visualPointLabelMinZoom ? (
+                  <Marker
+                    position={[point.lat, point.lon]}
+                    icon={createMapLabelIcon(`fp-visual-point-label-marker fp-visual-point-label-marker--${point.kind}`, label)}
+                    pane="fp-visual-point-pane"
+                    interactive={false}
+                    keyboard={false}
+                    zIndexOffset={105}
+                  />
+                ) : null}
+                <CircleMarker
+                  center={[point.lat, point.lon]}
+                  pane="fp-visual-point-pane"
+                  radius={palette.radius}
+                  pathOptions={{
+                    color: palette.color,
+                    weight: 1.45,
+                    fillColor: palette.fillColor,
+                    fillOpacity: 0.95,
+                  }}
+                  eventHandlers={{
+                    click: (event) => {
+                      event.originalEvent.preventDefault()
+                      event.originalEvent.stopPropagation()
+                      addVisualPointToEnd(point)
+                    },
+                    mouseout: closeLeafletTooltipOnMouseOut,
+                  }}
+                >
+                  <Tooltip direction="top" offset={[0, -6]} opacity={0.95} className="fp-visual-point-tooltip">
+                    <div className="fp-airport-tooltip fp-visual-point-tooltip__content">
+                      <strong>{label}</strong>
+                      <span>{getVisualPointKindLabel(point.kind)}{point.positionIndicator ? ` · ${point.positionIndicator}` : ''}</span>
+                      {point.name && point.name !== label ? <span>{point.name}</span> : null}
+                      {point.comment ? <span>{point.comment}</span> : null}
+                      <span>{formatCoordinateDms(point.lat, 'lat')} {formatCoordinateDms(point.lon, 'lon')}</span>
+                    </div>
+                  </Tooltip>
+                </CircleMarker>
+              </FeatureGroup>
+            )
+          })}
 
           {airspaceLabels.map((label) => (
             <Marker

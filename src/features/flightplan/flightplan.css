@@ -2207,6 +2207,36 @@
   border: 0;
 }
 
+.flightplan-page .fp-visual-point-label-marker {
+  background: transparent;
+  border: 0;
+  pointer-events: none;
+}
+
+.flightplan-page .fp-visual-point-label-marker span {
+  display: inline-block;
+  max-width: 8.5rem;
+  padding: 0.12rem 0.34rem;
+  border-radius: 0.35rem;
+  background: rgba(249, 253, 253, 0.95);
+  border: 1px solid rgba(0, 107, 120, 0.3);
+  color: #005766;
+  font-family: 'Space Grotesk', 'Inter', sans-serif;
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+  transform: translate(8px, -50%);
+  box-shadow: 0 1px 4px rgba(18, 42, 92, 0.14);
+}
+
+.flightplan-page .fp-visual-point-label-marker--holding span {
+  background: rgba(255, 251, 235, 0.96);
+  border-color: rgba(154, 91, 0, 0.32);
+  color: #794600;
+}
+
 .flightplan-page .fp-airspace-map-label {
   background: transparent;
   border: 0;
@@ -2333,6 +2363,10 @@
 
 .flightplan-page .fp-navaid-tooltip__content strong {
   color: #4d248a;
+}
+
+.flightplan-page .fp-visual-point-tooltip__content strong {
+  color: #005766;
 }
 
 .flightplan-page .fp-waypoint-popup__content {

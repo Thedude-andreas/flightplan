@@ -1,6 +1,7 @@
 import { swedishAirports as embeddedAirports } from './generated/airports.se'
 import { swedishAirspaces as embeddedAirspaces } from './generated/airspaces.se'
 import { swedishNavaids as embeddedNavaids } from './generated/radio-nav.se'
+import { swedishVisualPoints as embeddedVisualPoints } from './generated/visual-points.se'
 
 const previewDataBaseUrlParam = 'aviationDataBaseUrl'
 
@@ -70,6 +71,20 @@ export type SwedishNavaid = {
   remarks: string | null
 }
 
+export type SwedishVisualPoint = {
+  id: string
+  kind: 'entry-exit' | 'holding'
+  sourceTypeName: string
+  positionIndicator: string | null
+  name: string | null
+  location: string | null
+  comment: string | null
+  frequency: string | null
+  effectiveFrom: string | null
+  lat: number
+  lon: number
+}
+
 export type SwedishAirspaceFrequency = {
   id: string
   kind: 'FIR' | 'TMA' | 'TIA' | 'TIZ'
@@ -127,6 +142,7 @@ type SwedishAviationData = {
   airports: SwedishAirport[]
   airspaces: SwedishAirspace[]
   navaids: SwedishNavaid[]
+  visualPoints: SwedishVisualPoint[]
   airspaceFrequencies: SwedishAirspaceFrequency[]
   airportFrequencies: SwedishAirportFrequency[]
   accSectors: SwedishAccSector[]
@@ -192,15 +208,17 @@ export async function preloadSwedishAviationData() {
       fetchJson<SwedishRadioNavPayload>('radio-nav.se.json', () => ({
         navaids: embeddedNavaids,
       })),
+      fetchJson<SwedishVisualPoint[]>('visual-points.se.json', () => embeddedVisualPoints),
       fetchJson<SwedishAirspaceFrequency[]>('airspace-frequencies.se.json'),
       fetchJson<SwedishAirportFrequency[]>('airport-frequencies.se.json'),
       fetchJson<SwedishAccSector[]>('acc-sectors.se.json'),
     ])
-      .then(([airportsPayload, airspacesPayload, radioNavPayload, airspaceFrequencies, airportFrequencies, accSectors]) => {
+      .then(([airportsPayload, airspacesPayload, radioNavPayload, visualPoints, airspaceFrequencies, airportFrequencies, accSectors]) => {
         aviationData = {
           airports: toSwedishAirports(airportsPayload),
           airspaces: airspacesPayload.airspaces,
           navaids: radioNavPayload.navaids,
+          visualPoints,
           airspaceFrequencies,
           airportFrequencies,
           accSectors,
@@ -226,6 +244,10 @@ export function getSwedishAirspaces() {
 
 export function getSwedishNavaids() {
   return requireAviationData().navaids
+}
+
+export function getSwedishVisualPoints() {
+  return requireAviationData().visualPoints
 }
 
 export function getSwedishAirspaceFrequencies() {

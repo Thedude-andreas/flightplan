@@ -13,6 +13,7 @@ const trackedFiles = [
   'data/aviation/se/normalized/airport-frequencies.se.json',
   'data/aviation/se/normalized/acc-sectors.se.json',
   'data/aviation/se/normalized/radio-nav.se.json',
+  'data/aviation/se/normalized/visual-points.se.json',
   'data/aviation/se/normalized/aviation.se.index.json',
 ]
 

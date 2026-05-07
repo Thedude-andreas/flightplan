@@ -15,6 +15,7 @@ const airports = readJson('data/aviation/se/normalized/airports.se.json')
 const airspaces = readJson('data/aviation/se/normalized/airspaces.se.json')
 const places = readJson('data/aviation/se/normalized/places.se.json')
 const radioNav = readJson('data/aviation/se/normalized/radio-nav.se.json')
+const visualPoints = readJson('data/aviation/se/normalized/visual-points.se.json')
 const index = readJson('data/aviation/se/normalized/aviation.se.index.json')
 
 assert((airports.airports ?? []).length >= 40, 'Airport count unexpectedly low')
@@ -24,6 +25,15 @@ assert((radioNav.navaids ?? []).length >= 100, 'Navaid count unexpectedly low')
 assert((radioNav.airportFrequencies ?? []).length >= 100, 'Airport frequency count unexpectedly low')
 assert((radioNav.airspaceFrequencies ?? []).length >= 100, 'Airspace frequency count unexpectedly low')
 assert((radioNav.accSectors ?? []).length >= 20, 'ACC sector count unexpectedly low')
+assert((visualPoints.visualPoints ?? []).length >= 250, 'Visual point count unexpectedly low')
+assert(
+  (visualPoints.visualPoints ?? []).some((point) => point.kind === 'entry-exit'),
+  'Missing entry/exit points',
+)
+assert(
+  (visualPoints.visualPoints ?? []).some((point) => point.kind === 'holding'),
+  'Missing VFR holding points',
+)
 
 const requiredAirports = new Set(['ESSA', 'ESSB', 'ESNU', 'ESPA', 'ESNS', 'ESNQ'])
 for (const icao of requiredAirports) {

@@ -7,11 +7,13 @@ const airportsPath = resolve(outputDir, 'airports.se.json')
 const airspacesPath = resolve(outputDir, 'airspaces.se.json')
 const placesPath = resolve(outputDir, 'places.se.json')
 const radioNavPath = resolve(outputDir, 'radio-nav.se.json')
+const visualPointsPath = resolve(outputDir, 'visual-points.se.json')
 const manifest = existsSync(manifestPath) ? JSON.parse(readFileSync(manifestPath, 'utf8')) : null
 const parsedAirports = existsSync(airportsPath) ? JSON.parse(readFileSync(airportsPath, 'utf8')) : null
 const parsedAirspaces = existsSync(airspacesPath) ? JSON.parse(readFileSync(airspacesPath, 'utf8')) : null
 const parsedPlaces = existsSync(placesPath) ? JSON.parse(readFileSync(placesPath, 'utf8')) : null
 const parsedRadioNav = existsSync(radioNavPath) ? JSON.parse(readFileSync(radioNavPath, 'utf8')) : null
+const parsedVisualPoints = existsSync(visualPointsPath) ? JSON.parse(readFileSync(visualPointsPath, 'utf8')) : null
 
 const output = {
   generatedAt: new Date().toISOString(),
@@ -21,6 +23,7 @@ const output = {
   airspaces: parsedAirspaces?.airspaces ?? [],
   places: parsedPlaces?.places ?? [],
   navaids: parsedRadioNav?.navaids ?? [],
+  visualPoints: parsedVisualPoints?.visualPoints ?? [],
   airspaceFrequencies: parsedRadioNav?.airspaceFrequencies ?? [],
   airportFrequencies: parsedRadioNav?.airportFrequencies ?? [],
   accSectors: parsedRadioNav?.accSectors ?? [],
@@ -30,6 +33,7 @@ const output = {
     'Current airport list is parsed from LFV AD 1.1. Airspace polygons are fetched from LFV Digital AIM WFS.',
     'Swedish place labels are currently built from GeoNames Sweden for settlements, lakes, islands and mountains.',
     'Radio/NAV suggestions are derived from LFV eAIP search index plus LFV WFS navaid layers.',
+    'VFR entry/exit points and holdings are fetched from LFV Digital AIM WFS.',
   ],
 }
 
@@ -44,6 +48,9 @@ if (!parsedPlaces) {
   writeFileSync(resolve(outputDir, 'places.se.json'), JSON.stringify(output.places, null, 2))
 }
 writeFileSync(resolve(outputDir, 'navaids.se.json'), JSON.stringify(output.navaids, null, 2))
+if (!parsedVisualPoints) {
+  writeFileSync(resolve(outputDir, 'visual-points.se.json'), JSON.stringify({ visualPoints: output.visualPoints }, null, 2))
+}
 writeFileSync(resolve(outputDir, 'airspace-frequencies.se.json'), JSON.stringify(output.airspaceFrequencies, null, 2))
 writeFileSync(resolve(outputDir, 'airport-frequencies.se.json'), JSON.stringify(output.airportFrequencies, null, 2))
 writeFileSync(resolve(outputDir, 'acc-sectors.se.json'), JSON.stringify(output.accSectors, null, 2))

@@ -12,6 +12,7 @@ const dataFiles = [
   'airspaces.se.json',
   'places.se.json',
   'radio-nav.se.json',
+  'visual-points.se.json',
 ]
 
 const generatedFiles = [
@@ -20,6 +21,7 @@ const generatedFiles = [
   'src/features/flightplan/generated/airspaces.se.ts',
   'src/features/flightplan/generated/places.se.ts',
   'src/features/flightplan/generated/radio-nav.se.ts',
+  'src/features/flightplan/generated/visual-points.se.ts',
 ]
 
 const normalizedFiles = [
