@@ -104,6 +104,12 @@ type MapPointInfo = {
   airports: PointInfoAirport[]
   navaids: PointInfoNavaid[]
 }
+type AirspaceMapLabel = {
+  id: string
+  label: string
+  position: [number, number]
+  variant: string
+}
 
 const mapLayerPreferencesStorageKey = 'flightplan.mapLayerPreferences.v1'
 
@@ -212,10 +218,19 @@ function hasAirportWeatherData(
   )
 }
 
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 function createMapLabelIcon(className: string, label: string) {
   return divIcon({
     className,
-    html: `<span>${label}</span>`,
+    html: `<span>${escapeHtml(label)}</span>`,
     iconSize: [0, 0],
     iconAnchor: [0, 0],
   })
@@ -235,6 +250,8 @@ function formatDistanceNm(value: number) {
 }
 
 const routeLineWeight = 6
+const airspaceLabelMinZoom = 8
+const airspaceLabelMinSizePx = 120
 const airportLabelMinZoom = 8
 const airportMarkerRadiusPx = 4
 const airportWeatherFetchBatchSize = 12
@@ -244,6 +261,7 @@ const directionArrowWaypointClearancePx = 22
 const maxVisibleAirspaceLowerFt = 9500
 const notamAreaToPointThresholdPx = 12
 const notamAreaCollapseMaxZoom = 11
+const labelBoundsPaddingRatio = 0.03
 const sigmetOverlayPalette = {
   color: '#a61e4d',
   fillColor: '#f05d88',
@@ -251,7 +269,23 @@ const sigmetOverlayPalette = {
   lineFill: '#ffd0a6',
 } as const
 
+function getAirspacePalette(kind: string | null | undefined) {
+  const palette = {
+    CTR: { color: '#cc5d00', fillColor: '#ffb46b' },
+    TMA: { color: '#005db5', fillColor: '#82b8ff' },
+    TIA: { color: '#0a6b5d', fillColor: '#7ad8c7' },
+    TIZ: { color: '#0f7a38', fillColor: '#8ae69d' },
+    R: { color: '#b11717', fillColor: '#ff8a8a' },
+    D: { color: '#7b3b00', fillColor: '#f0b16b' },
+    ATZ: { color: '#007a4d', fillColor: '#7adca8' },
+    TRA: { color: '#8f1e8f', fillColor: '#e59cf4' },
+  } as const
+
+  return palette[kind as keyof typeof palette] ?? palette.CTR
+}
+
 const notamMapPane = 'fp-notam-pane'
+const notamMapHighlightPane = 'fp-notam-highlight-pane'
 
 function readStoredMapLayerPreferences(): MapLayerPreferences {
   if (typeof window === 'undefined') {
@@ -578,6 +612,183 @@ function pointInPolygon(lat: number, lon: number, polygon: number[][][]) {
   return true
 }
 
+function polygonRingBounds(ring: number[][]) {
+  return L.latLngBounds(ring.map(([lon, lat]) => [lat, lon] as [number, number]))
+}
+
+function geometryBounds(geometry: SwedishAirspaceGeometry) {
+  if (geometry.type === 'Polygon') {
+    return polygonRingBounds(geometry.coordinates[0] ?? [])
+  }
+
+  return L.latLngBounds(geometry.coordinates.flatMap((polygon) =>
+    (polygon[0] ?? []).map(([lon, lat]) => [lat, lon] as [number, number]),
+  ))
+}
+
+function boundsIntersection(left: L.LatLngBounds, right: L.LatLngBounds) {
+  if (!left.intersects(right)) {
+    return null
+  }
+
+  const south = Math.max(left.getSouth(), right.getSouth())
+  const west = Math.max(left.getWest(), right.getWest())
+  const north = Math.min(left.getNorth(), right.getNorth())
+  const east = Math.min(left.getEast(), right.getEast())
+
+  if (south > north || west > east) {
+    return null
+  }
+
+  return L.latLngBounds([south, west], [north, east])
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value))
+}
+
+function pointInBoundsWithPadding(point: [number, number], bounds: L.LatLngBounds) {
+  return bounds.pad(-labelBoundsPaddingRatio).contains(point) || bounds.contains(point)
+}
+
+function isLargeEnoughForAirspaceLabel(bounds: L.LatLngBounds, map: L.Map | null) {
+  if (!map || !bounds.isValid()) {
+    return false
+  }
+
+  const northWest = map.latLngToContainerPoint(bounds.getNorthWest())
+  const southEast = map.latLngToContainerPoint(bounds.getSouthEast())
+  return Math.max(
+    Math.abs(southEast.x - northWest.x),
+    Math.abs(southEast.y - northWest.y),
+  ) >= airspaceLabelMinSizePx
+}
+
+function getPolygonLabelPosition(
+  polygon: number[][][],
+  mapBounds: L.LatLngBounds,
+) {
+  const outerRing = polygon[0]
+  if (!outerRing || outerRing.length === 0) {
+    return null
+  }
+
+  const polygonBounds = polygonRingBounds(outerRing)
+  if (!polygonBounds.intersects(mapBounds)) {
+    return null
+  }
+
+  const polygonCenter = polygonBounds.getCenter()
+  if (
+    mapBounds.contains(polygonBounds.getSouthWest()) &&
+    mapBounds.contains(polygonBounds.getNorthEast()) &&
+    pointInPolygon(polygonCenter.lat, polygonCenter.lng, polygon)
+  ) {
+    return [polygonCenter.lat, polygonCenter.lng] as [number, number]
+  }
+
+  const visibleBounds = boundsIntersection(polygonBounds, mapBounds)
+  const mapCenter = mapBounds.getCenter()
+  const candidates = [
+    [mapCenter.lat, mapCenter.lng] as [number, number],
+    visibleBounds
+      ? [visibleBounds.getCenter().lat, visibleBounds.getCenter().lng] as [number, number]
+      : null,
+    [polygonCenter.lat, polygonCenter.lng] as [number, number],
+    ...outerRing.map(([lon, lat]) => [lat, lon] as [number, number]),
+  ].filter((point): point is [number, number] => Boolean(point))
+
+  const visibleCandidates = candidates.filter(
+    ([lat, lon]) => mapBounds.contains([lat, lon]) && pointInPolygon(lat, lon, polygon),
+  )
+  if (visibleCandidates.length > 0) {
+    return visibleCandidates
+      .map((point) => ({
+        point,
+        distance: L.latLng(point).distanceTo(mapCenter),
+      }))
+      .sort((left, right) => left.distance - right.distance)[0].point
+  }
+
+  if (visibleBounds) {
+    const center = visibleBounds.getCenter()
+    return [
+      clamp(center.lat, mapBounds.getSouth(), mapBounds.getNorth()),
+      clamp(center.lng, mapBounds.getWest(), mapBounds.getEast()),
+    ] as [number, number]
+  }
+
+  return null
+}
+
+function getAirspaceGeometryLabelPosition(
+  geometry: SwedishAirspaceGeometry,
+  mapBounds: L.LatLngBounds,
+) {
+  const positions = geometry.type === 'Polygon'
+    ? [getPolygonLabelPosition(geometry.coordinates, mapBounds)]
+    : geometry.coordinates.map((polygon) => getPolygonLabelPosition(polygon, mapBounds))
+
+  const mapCenter = mapBounds.getCenter()
+  return positions
+    .filter((position): position is [number, number] => Boolean(position))
+    .sort((left, right) => L.latLng(left).distanceTo(mapCenter) - L.latLng(right).distanceTo(mapCenter))[0] ?? null
+}
+
+function getNotamAreaLabelPosition(
+  feature: NotamMapOverlayFeature,
+  mapBounds: L.LatLngBounds,
+) {
+  if (feature.kind === 'circle' && feature.radiusNm != null) {
+    const [lat, lon] = feature.positions[0] ?? []
+    if (lat == null || lon == null) {
+      return null
+    }
+
+    const center = L.latLng(lat, lon)
+    const circleBounds = center.toBounds(feature.radiusNm * 1852 * 2)
+    if (!circleBounds.intersects(mapBounds)) {
+      return null
+    }
+
+    if (mapBounds.contains(circleBounds.getSouthWest()) && mapBounds.contains(circleBounds.getNorthEast())) {
+      return [lat, lon] as [number, number]
+    }
+
+    const visibleBounds = boundsIntersection(circleBounds, mapBounds)
+    if (!visibleBounds) {
+      return null
+    }
+
+    const visibleCenter = visibleBounds.getCenter()
+    return [visibleCenter.lat, visibleCenter.lng] as [number, number]
+  }
+
+  if (feature.kind !== 'polygon' || feature.positions.length < 3) {
+    return null
+  }
+
+  const polygon = [feature.positions.map(([lat, lon]) => [lon, lat])]
+  return getPolygonLabelPosition(polygon, mapBounds)
+}
+
+function getNotamAreaBounds(feature: NotamMapOverlayFeature) {
+  if (feature.kind === 'circle' && feature.radiusNm != null) {
+    const [lat, lon] = feature.positions[0] ?? []
+    if (lat == null || lon == null) {
+      return null
+    }
+
+    return L.latLng(lat, lon).toBounds(feature.radiusNm * 1852 * 2)
+  }
+
+  if (feature.kind !== 'polygon' || feature.positions.length < 3) {
+    return null
+  }
+
+  return L.latLngBounds(feature.positions)
+}
+
 function airspaceContainsPoint(
   airspace: SwedishAirspace,
   lat: number,
@@ -616,6 +827,50 @@ function formatAirspaceTooltipContent(
     const levels = `<span>${airspace.lower ?? '—'} till ${airspace.upper ?? '—'}</span>`
     return `<div class="fp-airspace-tooltip__row"><strong>${title}</strong>${indicator}${levels}</div>`
   }).join('')}</div>`
+}
+
+function getAirspaceLabelText(airspace: SwedishAirspace) {
+  if (airspace.kind === 'CTR' || airspace.kind === 'TMA' || airspace.kind === 'TIA' || airspace.kind === 'TIZ' || airspace.kind === 'ATZ') {
+    return null
+  }
+
+  const source = airspace.location ?? airspace.name ?? airspace.positionIndicator ?? airspace.id
+  return normalizeAirspaceDesignatorLabel(source)
+}
+
+function normalizeAirspaceDesignatorLabel(value: string) {
+  return value
+    .replace(/\bES\s+([RDP])\s*(\d+[A-Z]?)\b/gi, 'ES$1$2')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function extractAirspaceDesignatorLabel(value: string) {
+  const normalized = value
+    .replace(/\u00a0/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+  const match = normalized.match(/\b(ES\s*[RDP]\s*\d{1,4}[A-Z]?)\s+(.+?)(?=\s+(?:ESTABLISHED|UPPRÄTTAD|AREA\b|GRÄNS|BOUNDARY|BOUNDED|WITHIN|WI\b|LOWER:|UPPER:|FROM:|TO:|\d{6}(?:\.\d+)?[NS]|\d{7}(?:\.\d+)?[EW])|[.,;:]|$)/i)
+  if (!match?.[1]) {
+    return null
+  }
+
+  const name = (match[2] ?? '')
+    .replace(/\b(?:TEMPORARY|TEMPORÄR|RESTRICTED|DANGER|AREA)\b/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+  const designator = normalizeAirspaceDesignatorLabel(match[1])
+  return name ? `${designator} ${name}` : designator
+}
+
+function getNotamAreaLabelText(feature: NotamMapOverlayFeature) {
+  return (
+    extractAirspaceDesignatorLabel(feature.title) ??
+    extractAirspaceDesignatorLabel(feature.rawText) ??
+    normalizeAirspaceDesignatorLabel(feature.title)
+  )
 }
 
 /** Stänger tooltips på alla underlager (GeoJSON, grupper, markörer). Hoppar över permanenta (t.ex. ICAO-etiketter). */
@@ -1127,6 +1382,7 @@ export function FlightplanMapEditor({
   const [selectedPointInfo, setSelectedPointInfo] = useState<MapPointInfo | null>(null)
   const [dragPreviewWaypoints, setDragPreviewWaypoints] = useState<ReturnType<typeof legsToWaypoints> | null>(null)
   const [activeSegmentInsertIndex, setActiveSegmentInsertIndex] = useState<number | null>(null)
+  const [hoveredAirspaceIds, setHoveredAirspaceIds] = useState<string[]>([])
   const [hoveredNotamFeature, setHoveredNotamFeature] = useState<NotamMapOverlayFeature | null>(null)
   const [openNotamMapNoticeKey, setOpenNotamMapNoticeKey] = useState<string | null>(null)
   const [waypointMarkerLayerVersion, setWaypointMarkerLayerVersion] = useState(0)
@@ -1221,6 +1477,13 @@ export function FlightplanMapEditor({
     }),
     [swedishAirspaces],
   )
+  const highlightedAirspaceGeoJson = useMemo(
+    () => ({
+      type: 'FeatureCollection' as const,
+      features: airspaceGeoJson.features.filter((feature) => hoveredAirspaceIds.includes(feature.properties.id)),
+    }),
+    [airspaceGeoJson, hoveredAirspaceIds],
+  )
   const visibleAirspaces = useMemo(
     () =>
       swedishAirspaces
@@ -1259,6 +1522,69 @@ export function FlightplanMapEditor({
         distanceNm: 0,
       }))
   }, [mapBounds, showAirportWeather, swedishAirports])
+  const airspaceLabels = useMemo<AirspaceMapLabel[]>(() => {
+    if (!mapBounds || !mapInstance || mapZoom < airspaceLabelMinZoom) {
+      return []
+    }
+
+    const labels: AirspaceMapLabel[] = []
+
+    if (showAirspaces) {
+      for (const airspace of visibleAirspaces) {
+        const label = getAirspaceLabelText(airspace)
+        if (!label) {
+          continue
+        }
+
+        if (!isLargeEnoughForAirspaceLabel(geometryBounds(airspace.geometry), mapInstance)) {
+          continue
+        }
+
+        const position = getAirspaceGeometryLabelPosition(airspace.geometry, mapBounds)
+        if (!position || !pointInBoundsWithPadding(position, mapBounds)) {
+          continue
+        }
+
+        labels.push({
+          id: `airspace-${airspace.id}`,
+          label,
+          position,
+          variant: `airspace-${airspace.kind.toLowerCase()}`,
+        })
+      }
+    }
+
+    if (showNotamOverlays) {
+      for (const feature of notamMapFeatures) {
+        if (feature.source !== 'aip-sup') {
+          continue
+        }
+
+        if (mapInstance && shouldCollapseNotamAreaToPoint(feature, mapInstance, mapZoom)) {
+          continue
+        }
+
+        const bounds = getNotamAreaBounds(feature)
+        if (!bounds || !isLargeEnoughForAirspaceLabel(bounds, mapInstance)) {
+          continue
+        }
+
+        const position = getNotamAreaLabelPosition(feature, mapBounds)
+        if (!position || !pointInBoundsWithPadding(position, mapBounds)) {
+          continue
+        }
+
+        labels.push({
+          id: `notam-${feature.id}`,
+          label: getNotamAreaLabelText(feature),
+          position,
+          variant: `notam-${feature.source}`,
+        })
+      }
+    }
+
+    return labels
+  }, [mapBounds, mapInstance, mapZoom, notamMapFeatures, showAirspaces, showNotamOverlays, visibleAirspaces])
   const visibleWeatherAirportKey = useMemo(
     () => visibleWeatherAirports.map((airport) => airport.icao).sort((left, right) => left.localeCompare(right, 'sv')).join(','),
     [visibleWeatherAirports],
@@ -1958,6 +2284,8 @@ export function FlightplanMapEditor({
           <Pane name={notamMapPane} style={{ zIndex: 525 }} />
           <Pane name="fp-navaid-pane" style={{ zIndex: 530 }} />
           <Pane name="fp-wind-pane" style={{ zIndex: 545 }} />
+          <Pane name="fp-airspace-label-pane" style={{ zIndex: 555 }} />
+          <Pane name={notamMapHighlightPane} style={{ zIndex: 558 }} />
           <Pane name="fp-airport-pane" style={{ zIndex: 560 }} />
           <TileLayer attribution={basemaps[basemap].attribution} url={basemaps[basemap].url} />
           <MapInstanceHandler onReady={setMapInstance} />
@@ -1987,18 +2315,7 @@ export function FlightplanMapEditor({
             <GeoJSON
               data={airspaceGeoJson}
               style={(feature) => {
-                const kind = feature?.properties?.kind
-                const palette = {
-                  CTR: { color: '#cc5d00', fillColor: '#ffb46b' },
-                  TMA: { color: '#005db5', fillColor: '#82b8ff' },
-                  TIA: { color: '#0a6b5d', fillColor: '#7ad8c7' },
-                  TIZ: { color: '#0f7a38', fillColor: '#8ae69d' },
-                  R: { color: '#b11717', fillColor: '#ff8a8a' },
-                  D: { color: '#7b3b00', fillColor: '#f0b16b' },
-                  ATZ: { color: '#007a4d', fillColor: '#7adca8' },
-                  TRA: { color: '#8f1e8f', fillColor: '#e59cf4' },
-                } as const
-                const current = palette[kind as keyof typeof palette] ?? palette.CTR
+                const current = getAirspacePalette(feature?.properties?.kind)
 
                 return {
                   color: current.color,
@@ -2032,9 +2349,11 @@ export function FlightplanMapEditor({
                     if (layer.isTooltipOpen()) {
                       layer.closeTooltip()
                     }
+                    setHoveredAirspaceIds([])
                     return
                   }
 
+                  setHoveredAirspaceIds(matchingAirspaces.map((airspace) => airspace.id))
                   layer.setTooltipContent(formatAirspaceTooltipContent(matchingAirspaces))
                   if (!layer.isTooltipOpen()) {
                     layer.openTooltip(pointer.latlng)
@@ -2042,6 +2361,7 @@ export function FlightplanMapEditor({
                 })
                 layer.on('mouseout', () => {
                   layer.closeTooltip()
+                  setHoveredAirspaceIds([])
                 })
                 layer.on('click', (event) => {
                   const clicked = event as LeafletMouseEvent
@@ -2049,6 +2369,24 @@ export function FlightplanMapEditor({
                   clicked.originalEvent?.stopPropagation?.()
                   addPointToEnd(clicked.latlng.lat, clicked.latlng.lng)
                 })
+              }}
+            />
+          ) : null}
+
+          {showAirspaces && highlightedAirspaceGeoJson.features.length > 0 ? (
+            <GeoJSON
+              key={hoveredAirspaceIds.join('|')}
+              data={highlightedAirspaceGeoJson}
+              interactive={false}
+              style={(feature) => {
+                const current = getAirspacePalette(feature?.properties?.kind)
+                return {
+                  color: current.color,
+                  weight: 3.2,
+                  opacity: 1,
+                  fillOpacity: 0,
+                  className: 'fp-airspace-highlight-path',
+                }
               }}
             />
           ) : null}
@@ -2245,6 +2583,66 @@ export function FlightplanMapEditor({
               })
             : null}
 
+          {showNotamOverlays && hoveredNotamFeature && !shouldCollapseNotamAreaToPoint(hoveredNotamFeature, mapInstance, mapZoom)
+            ? (() => {
+                const pathOptions = {
+                  ...notamMapPathOptions(
+                    hoveredNotamFeature.source,
+                    hoveredNotamFeature.kind === 'polyline' ? 'line' : 'area',
+                    mapZoom,
+                  ),
+                  fillOpacity: 0,
+                  opacity: 1,
+                  weight: notamMapPathOptions(
+                    hoveredNotamFeature.source,
+                    hoveredNotamFeature.kind === 'polyline' ? 'line' : 'area',
+                    mapZoom,
+                  ).weight + 1.8,
+                  className: 'fp-airspace-highlight-path',
+                }
+
+                if (hoveredNotamFeature.kind === 'circle' && hoveredNotamFeature.radiusNm != null) {
+                  const [lat, lon] = hoveredNotamFeature.positions[0] ?? [0, 0]
+                  return (
+                    <Circle
+                      key={`highlight-${hoveredNotamFeature.id}`}
+                      pane={notamMapHighlightPane}
+                      center={[lat, lon]}
+                      radius={hoveredNotamFeature.radiusNm * 1852}
+                      pathOptions={pathOptions}
+                      interactive={false}
+                    />
+                  )
+                }
+
+                if (hoveredNotamFeature.kind === 'polygon') {
+                  return (
+                    <Polygon
+                      key={`highlight-${hoveredNotamFeature.id}`}
+                      pane={notamMapHighlightPane}
+                      positions={hoveredNotamFeature.positions}
+                      pathOptions={pathOptions}
+                      interactive={false}
+                    />
+                  )
+                }
+
+                if (hoveredNotamFeature.kind === 'polyline') {
+                  return (
+                    <Polyline
+                      key={`highlight-${hoveredNotamFeature.id}`}
+                      pane={notamMapHighlightPane}
+                      positions={hoveredNotamFeature.positions}
+                      pathOptions={pathOptions}
+                      interactive={false}
+                    />
+                  )
+                }
+
+                return null
+              })()
+            : null}
+
           {showAloftWindArrows
             ? aloftWinds.map((wind, index) => {
                 const leg = plan.routeLegs[index]
@@ -2327,6 +2725,21 @@ export function FlightplanMapEditor({
                 )
               })
             : null}
+
+          {airspaceLabels.map((label) => (
+            <Marker
+              key={label.id}
+              position={label.position}
+              icon={createMapLabelIcon(
+                `fp-airspace-map-label fp-airspace-map-label--${label.variant} ${hoveredAirspaceIds.includes(label.id.replace(/^airspace-/, '')) ? 'fp-airspace-map-label--is-highlighted' : ''}`,
+                label.label,
+              )}
+              pane="fp-airspace-label-pane"
+              interactive={false}
+              keyboard={false}
+              zIndexOffset={90}
+            />
+          ))}
 
           {showAirportMarkers ? swedishAirports.map((airport) => {
             const airportWeather = airport.icao ? airportWeatherByIcao[airport.icao] : null
