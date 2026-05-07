@@ -237,6 +237,7 @@ function formatDistanceNm(value: number) {
 const routeLineWeight = 6
 const airportLabelMinZoom = 8
 const airportMarkerRadiusPx = 4
+const airportWeatherFetchBatchSize = 12
 const navaidMinZoom = 7
 const navaidLabelMinZoom = 9
 const directionArrowWaypointClearancePx = 22
@@ -910,7 +911,41 @@ function MapBoundsHandler({
   const map = useMap()
 
   useEffect(() => {
-    onBoundsChange(map.getBounds())
+    let animationFrameId: number | null = null
+    let timeoutId: number | null = null
+
+    const refreshBounds = () => {
+      if (animationFrameId != null) {
+        window.cancelAnimationFrame(animationFrameId)
+      }
+
+      animationFrameId = window.requestAnimationFrame(() => {
+        animationFrameId = null
+        map.invalidateSize({ animate: false })
+        onBoundsChange(map.getBounds())
+      })
+    }
+
+    refreshBounds()
+    timeoutId = window.setTimeout(refreshBounds, 120)
+
+    const container = map.getContainer()
+    const resizeObserver = typeof ResizeObserver === 'undefined'
+      ? null
+      : new ResizeObserver(refreshBounds)
+    resizeObserver?.observe(container)
+    window.addEventListener('resize', refreshBounds)
+
+    return () => {
+      if (animationFrameId != null) {
+        window.cancelAnimationFrame(animationFrameId)
+      }
+      if (timeoutId != null) {
+        window.clearTimeout(timeoutId)
+      }
+      resizeObserver?.disconnect()
+      window.removeEventListener('resize', refreshBounds)
+    }
   }, [map, onBoundsChange])
 
   useMapEvents({
@@ -1210,9 +1245,15 @@ export function FlightplanMapEditor({
 
     const paddedBounds = mapBounds.pad(0.2)
 
+    const boundsCenter = paddedBounds.getCenter()
+
     return swedishAirports
       .filter((airport): airport is SwedishAirport & { icao: string; name: string } => Boolean(airport.icao && airport.name))
       .filter((airport) => paddedBounds.contains([airport.lat, airport.lon]))
+      .sort((left, right) =>
+        distanceNmBetween(boundsCenter.lat, boundsCenter.lng, left.lat, left.lon) -
+        distanceNmBetween(boundsCenter.lat, boundsCenter.lng, right.lat, right.lon),
+      )
       .map((airport) => ({
         ...airport,
         distanceNm: 0,
@@ -1306,37 +1347,56 @@ export function FlightplanMapEditor({
       return
     }
 
-    const controller = new AbortController()
     for (const airport of airportsToFetch) {
       pendingAirportWeatherRef.current.add(airport.icao)
     }
 
-    fetchMapWeatherForAirports(airportsToFetch, controller.signal)
-      .then((results) => {
-        setAirportWeatherByIcao((current) => {
-          const next = { ...current }
-          const storedAt = Date.now()
-          for (const result of results) {
-            next[result.airport.icao] = {
-              ...result,
-              cachedAtMs: storedAt,
-            }
+    const controller = new AbortController()
+    let cancelled = false
+
+    const loadAirportWeather = async () => {
+      try {
+        for (let index = 0; index < airportsToFetch.length; index += airportWeatherFetchBatchSize) {
+          const batch = airportsToFetch.slice(index, index + airportWeatherFetchBatchSize)
+          const results = await fetchMapWeatherForAirports(batch, controller.signal)
+
+          if (cancelled || controller.signal.aborted) {
+            return
           }
-          return next
-        })
-      })
-      .catch((error: unknown) => {
+
+          setAirportWeatherByIcao((current) => {
+            const next = { ...current }
+            const storedAt = Date.now()
+            for (const result of results) {
+              next[result.airport.icao] = {
+                ...result,
+                cachedAtMs: storedAt,
+              }
+            }
+            return next
+          })
+
+          for (const airport of batch) {
+            pendingAirportWeatherRef.current.delete(airport.icao)
+          }
+        }
+      } catch (error: unknown) {
         if (!(error instanceof Error) || error.name !== 'AbortError') {
           console.error('Kunde inte hämta kartväder för flygplatser.', error)
         }
-      })
-      .finally(() => {
+      } finally {
         for (const airport of airportsToFetch) {
           pendingAirportWeatherRef.current.delete(airport.icao)
         }
-      })
+      }
+    }
 
-    return () => controller.abort()
+    void loadAirportWeather()
+
+    return () => {
+      cancelled = true
+      controller.abort()
+    }
   }, [showAirportWeather, visibleWeatherAirportKey, metarStaleCheckTick])
 
   const buildPointInfo = (lat: number, lon: number): MapPointInfo => {
