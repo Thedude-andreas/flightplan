@@ -53,6 +53,7 @@ import {
   type NotamMapCoverageCheck,
   type NotamMapOverlayFeature,
 } from './notamRoute'
+import { fetchNotamsForAirports, type AirportNotam } from './notam'
 import { getAllWeatherOverlays, type RouteWeatherOverlay } from './weatherSigmet'
 import type { RouteLegAloftWind } from './openMeteoAloft'
 import type { FlightPlanInput, FlightPlanDerived } from './types'
@@ -86,10 +87,13 @@ type PointInfoAirspace = {
 }
 type PointInfoAirport = {
   id: string
+  icao: string | null
   label: string
   name: string
   distanceNm: number
   weatherLines: string[]
+  towerHoursSchedule: AirportTowerHoursDay[]
+  adNotam: AirportNotamLookup | null
 }
 type PointInfoNavaid = {
   id: string
@@ -97,6 +101,10 @@ type PointInfoNavaid = {
   kind: SwedishNavaid['kind']
   frequency: string | null
   channel: string | null
+  distanceNm: number
+}
+type PointInfoNotamFeature = {
+  feature: NotamMapOverlayFeature
   distanceNm: number
 }
 type MapPointInfo = {
@@ -107,7 +115,9 @@ type MapPointInfo = {
   airports: PointInfoAirport[]
   navaids: PointInfoNavaid[]
   visualPoints: PointInfoVisualPoint[]
+  notamFeatures: PointInfoNotamFeature[]
 }
+type MapPointInfoDirectObjects = Partial<Pick<MapPointInfo, 'airports' | 'navaids' | 'visualPoints' | 'notamFeatures'>>
 type PointInfoVisualPoint = {
   id: string
   label: string
@@ -121,6 +131,25 @@ type AirspaceMapLabel = {
   label: string
   position: [number, number]
   variant: string
+}
+type AirportNotamLookup =
+  | { status: 'idle' }
+  | { status: 'loading' }
+  | { status: 'ready'; entry: AirportNotam | null }
+  | { status: 'error'; error: string }
+type WeekdayKey = 'MON' | 'TUE' | 'WED' | 'THU' | 'FRI' | 'SAT' | 'SUN'
+type AirportTowerHoursInterval = {
+  startMinutes: number
+  endMinutes: number
+  label: string
+}
+type AirportTowerHoursDay = {
+  key: WeekdayKey
+  label: string
+  raw: string
+  intervals: AirportTowerHoursInterval[]
+  isCurrentDay: boolean
+  status: 'open' | 'closed' | 'unknown' | null
 }
 
 const mapLayerPreferencesStorageKey = 'flightplan.mapLayerPreferences.v1'
@@ -276,6 +305,8 @@ const directionArrowWaypointClearancePx = 22
 const maxVisibleAirspaceLowerFt = 9500
 const notamAreaToPointThresholdPx = 12
 const notamAreaCollapseMaxZoom = 11
+const notamPointInspectRadiusNm = 8
+const notamLineInspectRadiusNm = 5
 const labelBoundsPaddingRatio = 0.03
 const sigmetOverlayPalette = {
   color: '#a61e4d',
@@ -522,6 +553,257 @@ function NotamMapInfoCard({ feature }: { feature: NotamMapOverlayFeature }) {
       ) : null}
       <pre className="fp-notam-map-tooltip__body">{preview}</pre>
     </div>
+  )
+}
+
+function getAirportTowerHoursLines(rawText: string | null) {
+  if (!rawText) {
+    return []
+  }
+
+  const formatted = formatNotamText(rawText)
+  const headingPattern = /AERODROME CONTROL TOWER\s*\(TWR\)\s*HOURS OF SERVICE/i
+  const headingMatch = formatted.match(headingPattern)
+  if (!headingMatch || headingMatch.index == null) {
+    return []
+  }
+
+  const afterHeading = formatted.slice(headingMatch.index + headingMatch[0].length)
+  const lines = afterHeading
+    .split(/\n+/)
+    .map((line) => line.replace(/\s+/g, ' ').trim())
+    .filter(Boolean)
+
+  const stopPattern = /^(?:AERODROME|ATS|RUNWAY|RWY|TAXIWAY|TWY|APRON|FUELLING|CUSTOMS|HANDLING|METEOROLOGICAL|RESCUE|FIRE|AD\s)/i
+  const hoursLines: string[] = []
+  for (const line of lines) {
+    if (hoursLines.length > 0 && stopPattern.test(line)) {
+      break
+    }
+
+    hoursLines.push(line)
+    if (hoursLines.length >= 4) {
+      break
+    }
+  }
+
+  return hoursLines
+}
+
+const weekdayKeys: WeekdayKey[] = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
+const weekdayLabels: Record<WeekdayKey, string> = {
+  MON: 'Mån',
+  TUE: 'Tis',
+  WED: 'Ons',
+  THU: 'Tor',
+  FRI: 'Fre',
+  SAT: 'Lör',
+  SUN: 'Sön',
+}
+
+function getWeekdayRange(from: WeekdayKey, to: WeekdayKey) {
+  const fromIndex = weekdayKeys.indexOf(from)
+  const toIndex = weekdayKeys.indexOf(to)
+  if (fromIndex < 0 || toIndex < 0) {
+    return []
+  }
+
+  if (fromIndex <= toIndex) {
+    return weekdayKeys.slice(fromIndex, toIndex + 1)
+  }
+
+  return [...weekdayKeys.slice(fromIndex), ...weekdayKeys.slice(0, toIndex + 1)]
+}
+
+function parseClockMinutes(value: string) {
+  const normalized = value.replace(':', '')
+  if (!/^\d{4}$/.test(normalized)) {
+    return null
+  }
+
+  const hours = Number(normalized.slice(0, 2))
+  const minutes = Number(normalized.slice(2))
+  if (hours > 23 || minutes > 59) {
+    return null
+  }
+
+  return hours * 60 + minutes
+}
+
+function formatClockMinutes(value: number) {
+  if (value >= 24 * 60) {
+    return '24:00'
+  }
+
+  const hours = Math.floor(value / 60)
+  const minutes = value % 60
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
+}
+
+function parseTimeIntervals(value: string) {
+  if (/\bH24\b/i.test(value)) {
+    return [{ startMinutes: 0, endMinutes: 24 * 60, label: 'H24' }]
+  }
+
+  const parenthesized = [...value.matchAll(/\(([^)]*)\)/g)]
+    .flatMap((match) => [...match[1].matchAll(/\b(\d{2}:?\d{2})\s*-\s*(\d{2}:?\d{2})\b/g)])
+
+  const matches = parenthesized.length > 0
+    ? parenthesized
+    : [...value.matchAll(/\b(\d{2}:?\d{2})\s*-\s*(\d{2}:?\d{2})\b/g)]
+
+  return matches
+    .map((match) => {
+      const startMinutes = parseClockMinutes(match[1])
+      const endMinutes = parseClockMinutes(match[2])
+      if (startMinutes == null || endMinutes == null) {
+        return null
+      }
+
+      return {
+        startMinutes,
+        endMinutes: endMinutes <= startMinutes ? endMinutes + 24 * 60 : endMinutes,
+        label: `${formatClockMinutes(startMinutes)}-${formatClockMinutes(endMinutes)}`,
+      }
+    })
+    .filter((interval): interval is AirportTowerHoursInterval => Boolean(interval))
+}
+
+function getPlannedStartWeekday(date: string, plannedStartTime: string) {
+  if (!date || !plannedStartTime) {
+    return null
+  }
+
+  const normalizedTime = plannedStartTime.length === 5 ? `${plannedStartTime}:00` : plannedStartTime
+  const start = new Date(`${date}T${normalizedTime}Z`)
+  if (Number.isNaN(start.getTime())) {
+    return null
+  }
+
+  const dayIndex = start.getUTCDay()
+  const key = weekdayKeys[(dayIndex + 6) % 7]
+  return {
+    key,
+    minutes: start.getUTCHours() * 60 + start.getUTCMinutes(),
+  }
+}
+
+function segmentTowerHoursByWeekday(lines: string[]) {
+  const byDay = new Map<WeekdayKey, { raw: string[]; intervals: AirportTowerHoursInterval[] }>()
+  for (const key of weekdayKeys) {
+    byDay.set(key, { raw: [], intervals: [] })
+  }
+
+  for (const line of lines) {
+    const normalized = line.replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim()
+    if (!normalized) {
+      continue
+    }
+
+    const dayMatches = [...normalized.matchAll(/\b(MON|TUE|WED|THU|FRI|SAT|SUN)(?:\s*-\s*(MON|TUE|WED|THU|FRI|SAT|SUN))?/gi)]
+    if (dayMatches.length === 0) {
+      const targetDays = /\b(DAILY|DLY|EVERY DAY)\b/i.test(normalized) || parseTimeIntervals(normalized).length > 0 || /\bH24\b/i.test(normalized)
+        ? weekdayKeys
+        : []
+      const intervals = parseTimeIntervals(normalized)
+      for (const day of targetDays) {
+        const item = byDay.get(day)
+        item?.raw.push(normalized)
+        item?.intervals.push(...intervals)
+      }
+      continue
+    }
+
+    for (let index = 0; index < dayMatches.length; index += 1) {
+      const match = dayMatches[index]
+      const from = match[1].toUpperCase() as WeekdayKey
+      const to = (match[2]?.toUpperCase() as WeekdayKey | undefined) ?? from
+      const nextMatch = dayMatches[index + 1]
+      const segmentStart = match.index == null ? 0 : match.index + match[0].length
+      const segmentEnd = nextMatch?.index ?? normalized.length
+      const segment = normalized.slice(segmentStart, segmentEnd).trim()
+      const raw = `${match[0].toUpperCase()} ${segment}`.trim()
+      const intervals = parseTimeIntervals(segment)
+
+      for (const day of getWeekdayRange(from, to)) {
+        const item = byDay.get(day)
+        item?.raw.push(raw)
+        item?.intervals.push(...intervals)
+      }
+    }
+  }
+
+  return byDay
+}
+
+function buildAirportTowerHoursSchedule(
+  rawText: string | null,
+  date: string,
+  plannedStartTime: string,
+): AirportTowerHoursDay[] {
+  const lines = getAirportTowerHoursLines(rawText)
+  if (lines.length === 0) {
+    return []
+  }
+
+  const plannedStart = getPlannedStartWeekday(date, plannedStartTime)
+  const byDay = segmentTowerHoursByWeekday(lines)
+
+  return weekdayKeys.map((key) => {
+    const item = byDay.get(key)
+    const raw = item?.raw.length ? item.raw.join(' / ') : 'Stängt'
+    const intervals = item?.intervals ?? []
+    const isCurrentDay = plannedStart?.key === key
+    const isOpenAtStart = plannedStart && isCurrentDay
+      ? intervals.some((interval) => plannedStart.minutes >= interval.startMinutes && plannedStart.minutes < interval.endMinutes)
+      : false
+    const status: AirportTowerHoursDay['status'] = isCurrentDay
+      ? intervals.length > 0
+        ? isOpenAtStart ? 'open' : 'closed'
+        : raw === 'Stängt' ? 'closed' : 'unknown'
+      : null
+
+    return {
+      key,
+      label: weekdayLabels[key],
+      raw,
+      intervals,
+      isCurrentDay,
+      status,
+    }
+  })
+}
+
+function AirportTowerHoursTable({
+  schedule,
+  compact = false,
+}: {
+  schedule: AirportTowerHoursDay[]
+  compact?: boolean
+}) {
+  if (schedule.length === 0) {
+    return null
+  }
+
+  return (
+    <table className={`fp-airport-hours-table ${compact ? 'fp-airport-hours-table--compact' : ''}`}>
+      <tbody>
+        {schedule.map((day) => (
+          <tr
+            key={day.key}
+            className={[
+              day.isCurrentDay ? 'is-current-day' : '',
+              day.status === 'open' ? 'is-open' : '',
+              day.status === 'closed' ? 'is-closed' : '',
+              day.status === 'unknown' ? 'is-unknown' : '',
+            ].filter(Boolean).join(' ')}
+          >
+            <th scope="row">{day.label}</th>
+            <td>{day.raw}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
   )
 }
 
@@ -850,6 +1132,91 @@ function getNotamAreaBounds(feature: NotamMapOverlayFeature) {
   }
 
   return L.latLngBounds(feature.positions)
+}
+
+function pointToSegmentDistanceNm(
+  lat: number,
+  lon: number,
+  from: [number, number],
+  to: [number, number],
+) {
+  const refLatRad = (lat * Math.PI) / 180
+  const x = (valueLon: number) => (valueLon - lon) * 60 * Math.cos(refLatRad)
+  const y = (valueLat: number) => (valueLat - lat) * 60
+  const ax = x(from[1])
+  const ay = y(from[0])
+  const bx = x(to[1])
+  const by = y(to[0])
+  const dx = bx - ax
+  const dy = by - ay
+  const segmentLengthSquared = dx * dx + dy * dy
+
+  if (segmentLengthSquared === 0) {
+    return Math.hypot(ax, ay)
+  }
+
+  const t = Math.max(0, Math.min(1, -(ax * dx + ay * dy) / segmentLengthSquared))
+  return Math.hypot(ax + dx * t, ay + dy * t)
+}
+
+function distanceToNotamLineNm(lat: number, lon: number, positions: [number, number][]) {
+  if (positions.length === 0) {
+    return null
+  }
+
+  if (positions.length === 1) {
+    const [pointLat, pointLon] = positions[0]
+    return distanceNmBetween(lat, lon, pointLat, pointLon)
+  }
+
+  let minDistance = Number.POSITIVE_INFINITY
+  for (let index = 1; index < positions.length; index += 1) {
+    minDistance = Math.min(
+      minDistance,
+      pointToSegmentDistanceNm(lat, lon, positions[index - 1], positions[index]),
+    )
+  }
+
+  return minDistance
+}
+
+function notamFeatureInspectDistanceNm(feature: NotamMapOverlayFeature, lat: number, lon: number) {
+  if (feature.kind === 'circle' && feature.radiusNm != null) {
+    const [centerLat, centerLon] = feature.positions[0] ?? []
+    if (centerLat == null || centerLon == null) {
+      return null
+    }
+
+    const distanceToCenter = distanceNmBetween(lat, lon, centerLat, centerLon)
+    return distanceToCenter <= feature.radiusNm ? 0 : null
+  }
+
+  if (feature.kind === 'polygon') {
+    if (feature.positions.length < 3) {
+      return null
+    }
+
+    const polygon = [feature.positions.map(([positionLat, positionLon]) => [positionLon, positionLat])]
+    if (pointInPolygon(lat, lon, polygon)) {
+      return 0
+    }
+
+    const distanceToEdge = distanceToNotamLineNm(lat, lon, feature.positions)
+    return distanceToEdge != null && distanceToEdge <= notamLineInspectRadiusNm ? distanceToEdge : null
+  }
+
+  if (feature.kind === 'polyline') {
+    const distanceToLine = distanceToNotamLineNm(lat, lon, feature.positions)
+    return distanceToLine != null && distanceToLine <= notamLineInspectRadiusNm ? distanceToLine : null
+  }
+
+  const [pointLat, pointLon] = feature.positions[0] ?? []
+  if (pointLat == null || pointLon == null) {
+    return null
+  }
+
+  const distanceToPoint = distanceNmBetween(lat, lon, pointLat, pointLon)
+  return distanceToPoint <= notamPointInspectRadiusNm ? distanceToPoint : null
 }
 
 function airspaceContainsPoint(
@@ -1448,6 +1815,7 @@ export function FlightplanMapEditor({
   const [activeSegmentInsertIndex, setActiveSegmentInsertIndex] = useState<number | null>(null)
   const [hoveredAirspaceIds, setHoveredAirspaceIds] = useState<string[]>([])
   const [hoveredNotamFeature, setHoveredNotamFeature] = useState<NotamMapOverlayFeature | null>(null)
+  const [airportNotamByIcao, setAirportNotamByIcao] = useState<Record<string, AirportNotamLookup>>({})
   const [openNotamMapNoticeKey, setOpenNotamMapNoticeKey] = useState<string | null>(null)
   const [waypointMarkerLayerVersion, setWaypointMarkerLayerVersion] = useState(0)
   const [airportWeatherByIcao, setAirportWeatherByIcao] = useState<Record<string, AirportMapWeather>>({})
@@ -1456,6 +1824,7 @@ export function FlightplanMapEditor({
   const suppressNextMapClick = useRef(false)
   const mapLayerMenuRef = useRef<HTMLDivElement | null>(null)
   const notamPanelHideTimeoutRef = useRef<number | null>(null)
+  const pendingAirportNotamRef = useRef(new Set<string>())
   const pendingAirportWeatherRef = useRef(new Set<string>())
   const showAirspaces = mapLayerPreferences.airspaces
   const showWeatherOverlays = mapLayerPreferences.weatherOverlays
@@ -1809,7 +2178,11 @@ export function FlightplanMapEditor({
     }
   }, [showAirportWeather, visibleWeatherAirportKey, metarStaleCheckTick])
 
-  const buildPointInfo = (lat: number, lon: number): MapPointInfo => {
+  const buildPointInfo = (
+    lat: number,
+    lon: number,
+    directObjects: MapPointInfoDirectObjects = {},
+  ): MapPointInfo => {
     const matchingAirspaces = visibleAirspaces
       .filter((airspace) => airspaceContainsPoint(airspace, lat, lon))
       .map((airspace) => ({
@@ -1822,62 +2195,174 @@ export function FlightplanMapEditor({
       }))
       .sort((a, b) => compareAirspaceAltitude(b.upper, a.upper) || compareAirspaceAltitude(b.lower, a.lower))
 
-    const nearbyAirports = swedishAirports
-      .map((airport) => {
-        const distanceNm = distanceNmBetween(lat, lon, airport.lat, airport.lon)
-        const weather = airport.icao ? airportWeatherByIcao[airport.icao] : null
-
-        return {
-          id: airport.icao ?? `${airport.name}-${airport.lat}-${airport.lon}`,
-          label: airport.icao ?? airport.name ?? 'Flygplats',
-          name: airport.name ?? '',
-          distanceNm,
-          weatherLines: getAirportTooltipWeatherLines(weather, { showMetar, showTaf }),
-        }
-      })
-      .filter((airport) => airport.distanceNm <= 12)
-      .sort((a, b) => a.distanceNm - b.distanceNm)
-      .slice(0, 6)
-
-    const nearbyNavaids = swedishNavaids
-      .map((navaid) => ({
-        id: navaid.id,
-        label: navaid.ident ?? navaid.name ?? navaid.kind,
-        kind: navaid.kind,
-        frequency: navaid.frequency,
-        channel: navaid.channel,
-        distanceNm: distanceNmBetween(lat, lon, navaid.lat, navaid.lon),
-      }))
-      .filter((navaid) => navaid.distanceNm <= 15)
-      .sort((a, b) => a.distanceNm - b.distanceNm)
-      .slice(0, 6)
-
-    const nearbyVisualPoints = swedishVisualPoints
-      .map((point) => ({
-        id: point.id,
-        label: getVisualPointDisplayLabel(point),
-        kind: point.kind,
-        positionIndicator: point.positionIndicator,
-        location: point.location,
-        distanceNm: distanceNmBetween(lat, lon, point.lat, point.lon),
-      }))
-      .filter((point) => point.distanceNm <= 8)
-      .sort((a, b) => a.distanceNm - b.distanceNm)
-      .slice(0, 6)
+    const notamFeaturesAtPoint = showNotamOverlays
+      ? notamMapFeatures
+          .map((feature) => {
+            const distanceNm = notamFeatureInspectDistanceNm(feature, lat, lon)
+            return distanceNm == null ? null : { feature, distanceNm }
+          })
+          .filter((item): item is PointInfoNotamFeature => Boolean(item))
+          .sort((left, right) => left.distanceNm - right.distanceNm || left.feature.title.localeCompare(right.feature.title, 'sv'))
+          .slice(0, 8)
+      : []
 
     return {
       lat,
       lon,
       coordinateLabel: `${formatCoordinateDms(lat, 'lat')} ${formatCoordinateDms(lon, 'lon')}`,
       airspaces: matchingAirspaces,
-      airports: nearbyAirports,
-      navaids: nearbyNavaids,
-      visualPoints: nearbyVisualPoints,
+      airports: directObjects.airports ?? [],
+      navaids: directObjects.navaids ?? [],
+      visualPoints: directObjects.visualPoints ?? [],
+      notamFeatures: directObjects.notamFeatures ?? notamFeaturesAtPoint,
     }
   }
 
-  const inspectPoint = (lat: number, lon: number) => {
-    setSelectedPointInfo(buildPointInfo(lat, lon))
+  const inspectPoint = (lat: number, lon: number, directObjects?: MapPointInfoDirectObjects) => {
+    setSelectedPointInfo(buildPointInfo(lat, lon, directObjects))
+  }
+
+  const getAirportNotamLookup = (icao: string | null) => {
+    if (!icao) {
+      return null
+    }
+
+    return airportNotamByIcao[icao] ?? { status: 'idle' }
+  }
+
+  const buildAirportPointInfo = (
+    airport: SwedishAirport,
+    adNotam: AirportNotamLookup | null = getAirportNotamLookup(airport.icao),
+  ): PointInfoAirport => {
+    const weather = airport.icao ? airportWeatherByIcao[airport.icao] : null
+    const towerHoursSchedule = adNotam?.status === 'ready'
+      ? buildAirportTowerHoursSchedule(
+          adNotam.entry?.rawText ?? null,
+          plan.header.date,
+          plan.header.plannedStartTime,
+        )
+      : []
+
+    return {
+      id: airport.icao ?? `${airport.name}-${airport.lat}-${airport.lon}`,
+      icao: airport.icao,
+      label: airport.icao ?? airport.name ?? 'Flygplats',
+      name: airport.name ?? '',
+      distanceNm: 0,
+      weatherLines: getAirportTooltipWeatherLines(weather, { showMetar, showTaf }),
+      towerHoursSchedule,
+      adNotam,
+    }
+  }
+
+  const updateSelectedAirportNotam = (icao: string, lookup: AirportNotamLookup) => {
+    setSelectedPointInfo((current) => {
+      if (!current?.airports.some((item) => item.icao === icao)) {
+        return current
+      }
+
+      const airport = swedishAirports.find((item) => item.icao === icao)
+      if (!airport) {
+        return current
+      }
+
+      return {
+        ...current,
+        airports: current.airports.map((item) => (
+          item.icao === icao ? buildAirportPointInfo(airport, lookup) : item
+        )),
+      }
+    })
+  }
+
+  const loadAirportNotam = (airport: SwedishAirport): AirportNotamLookup | null => {
+    if (!airport.icao) {
+      return null
+    }
+
+    const existing = airportNotamByIcao[airport.icao]
+    if (existing?.status === 'loading' || existing?.status === 'ready' || pendingAirportNotamRef.current.has(airport.icao)) {
+      return existing ?? { status: 'loading' }
+    }
+
+    const icao = airport.icao
+    const loadingLookup: AirportNotamLookup = { status: 'loading' }
+    pendingAirportNotamRef.current.add(icao)
+    setAirportNotamByIcao((current) => ({
+      ...current,
+      [icao]: loadingLookup,
+    }))
+    updateSelectedAirportNotam(icao, loadingLookup)
+
+    fetchNotamsForAirports([icao])
+      .then((response) => {
+        const entry = response.notams.find((result) => result.icao === icao) ?? null
+        const lookup: AirportNotamLookup = { status: 'ready', entry }
+        setAirportNotamByIcao((current) => ({
+          ...current,
+          [icao]: lookup,
+        }))
+        updateSelectedAirportNotam(icao, lookup)
+      })
+      .catch((error: unknown) => {
+        const message = error instanceof Error ? error.message : 'Kunde inte hämta AD-NOTAM.'
+        const lookup: AirportNotamLookup = { status: 'error', error: message }
+        setAirportNotamByIcao((current) => ({
+          ...current,
+          [icao]: lookup,
+        }))
+        updateSelectedAirportNotam(icao, lookup)
+      })
+      .finally(() => {
+        pendingAirportNotamRef.current.delete(icao)
+      })
+
+    return loadingLookup
+  }
+
+  const inspectAirport = (airport: SwedishAirport) => {
+    const adNotam = loadAirportNotam(airport)
+    inspectPoint(airport.lat, airport.lon, {
+      airports: [buildAirportPointInfo(airport, adNotam)],
+    })
+  }
+
+  const inspectNavaid = (navaid: SwedishNavaid) => {
+    inspectPoint(navaid.lat, navaid.lon, {
+      navaids: [{
+        id: navaid.id,
+        label: navaid.ident ?? navaid.name ?? navaid.kind,
+        kind: navaid.kind,
+        frequency: navaid.frequency,
+        channel: navaid.channel,
+        distanceNm: 0,
+      }],
+    })
+  }
+
+  const inspectVisualPoint = (point: SwedishVisualPoint) => {
+    inspectPoint(point.lat, point.lon, {
+      visualPoints: [{
+        id: point.id,
+        label: getVisualPointDisplayLabel(point),
+        kind: point.kind,
+        positionIndicator: point.positionIndicator,
+        location: point.location,
+        distanceNm: 0,
+      }],
+    })
+  }
+
+  const inspectNotamFeature = (feature: NotamMapOverlayFeature, lat: number, lon: number) => {
+    inspectPoint(lat, lon, {
+      notamFeatures: [{ feature, distanceNm: 0 }],
+    })
+  }
+
+  const inspectNotamLeafletPoint = (feature: NotamMapOverlayFeature) => (event: LeafletMouseEvent) => {
+    L.DomEvent.stopPropagation(event.originalEvent)
+    suppressNextMapClick.current = true
+    inspectNotamFeature(feature, event.latlng.lat, event.latlng.lng)
   }
 
   const setWaypoints = (nextWaypoints: typeof waypoints) => {
@@ -1991,7 +2476,7 @@ export function FlightplanMapEditor({
 
   const addNavaidPointToEnd = (navaid: SwedishNavaid) => {
     if (!routeEditingEnabled) {
-      inspectPoint(navaid.lat, navaid.lon)
+      inspectNavaid(navaid)
       return
     }
 
@@ -2040,7 +2525,7 @@ export function FlightplanMapEditor({
 
   const addVisualPointToEnd = (point: SwedishVisualPoint) => {
     if (!routeEditingEnabled) {
-      inspectPoint(point.lat, point.lon)
+      inspectVisualPoint(point)
       return
     }
 
@@ -2325,21 +2810,6 @@ export function FlightplanMapEditor({
         {hudSlot ? <div className="fp-map-hud fp-map-hud--top-left fp-map-hud--editor">{hudSlot}</div> : null}
         {hudTopCenterSlot ? <div className="fp-map-hud fp-map-hud--top-center">{hudTopCenterSlot}</div> : null}
         {hudStatusSlot ? <div className="fp-map-hud fp-map-hud--bottom-center fp-map-hud--status">{hudStatusSlot}</div> : null}
-        {hoveredNotamFeature ? (
-          <aside
-            className="fp-notam-map-panel"
-            role="status"
-            onMouseEnter={() => {
-              if (notamPanelHideTimeoutRef.current != null) {
-                window.clearTimeout(notamPanelHideTimeoutRef.current)
-                notamPanelHideTimeoutRef.current = null
-              }
-            }}
-            onMouseLeave={() => scheduleHideNotamInfoPanel(hoveredNotamFeature.id)}
-          >
-            <NotamMapInfoCard feature={hoveredNotamFeature} />
-          </aside>
-        ) : null}
         {selectedPointInfo ? (
           <aside className="fp-map-point-info-panel" role="status" aria-live="polite">
             <div className="fp-map-point-info-panel__header">
@@ -2369,9 +2839,9 @@ export function FlightplanMapEditor({
               )}
             </section>
 
-            <section>
-              <h3>Flygplatser nära punkten</h3>
-              {selectedPointInfo.airports.length > 0 ? (
+            {selectedPointInfo.airports.length > 0 ? (
+              <section>
+                <h3>Flygplats</h3>
                 <ul>
                   {selectedPointInfo.airports.map((airport) => (
                     <li key={airport.id}>
@@ -2381,17 +2851,34 @@ export function FlightplanMapEditor({
                       {airport.weatherLines.slice(0, 2).map((line) => (
                         <small key={line}>{line}</small>
                       ))}
+                      {airport.towerHoursSchedule.length > 0 ? (
+                        <div className="fp-map-point-info-panel__airport-hours">
+                          <span>AERODROME CONTROL TOWER (TWR) HOURS OF SERVICE</span>
+                          <AirportTowerHoursTable schedule={airport.towerHoursSchedule} />
+                        </div>
+                      ) : null}
+                      {airport.adNotam ? (
+                        <div className="fp-map-point-info-panel__airport-notam">
+                          <span>AD-NOTAM</span>
+                          {airport.adNotam.status === 'loading' ? <small>Hämtar AD-NOTAM...</small> : null}
+                          {airport.adNotam.status === 'error' ? <small>{airport.adNotam.error}</small> : null}
+                          {airport.adNotam.status === 'ready' && airport.adNotam.entry?.rawText ? (
+                            <pre>{formatNotamText(airport.adNotam.entry.rawText)}</pre>
+                          ) : null}
+                          {airport.adNotam.status === 'ready' && !airport.adNotam.entry?.rawText ? (
+                            <small>Inga AD-NOTAM i aktuell LFV-briefing.</small>
+                          ) : null}
+                        </div>
+                      ) : null}
                     </li>
                   ))}
                 </ul>
-              ) : (
-                <p>Ingen flygplats inom 12 NM.</p>
-              )}
-            </section>
+              </section>
+            ) : null}
 
-            <section>
-              <h3>Inpassering och väntlägen</h3>
-              {selectedPointInfo.visualPoints.length > 0 ? (
+            {selectedPointInfo.visualPoints.length > 0 ? (
+              <section>
+                <h3>Inpassering och väntläge</h3>
                 <ul>
                   {selectedPointInfo.visualPoints.map((point) => (
                     <li key={point.id}>
@@ -2402,14 +2889,12 @@ export function FlightplanMapEditor({
                     </li>
                   ))}
                 </ul>
-              ) : (
-                <p>Ingen inpasseringspunkt eller väntläge inom 8 NM.</p>
-              )}
-            </section>
+              </section>
+            ) : null}
 
-            <section>
-              <h3>Navhjälpmedel nära punkten</h3>
-              {selectedPointInfo.navaids.length > 0 ? (
+            {selectedPointInfo.navaids.length > 0 ? (
+              <section>
+                <h3>Navhjälpmedel</h3>
                 <ul>
                   {selectedPointInfo.navaids.map((navaid) => (
                     <li key={navaid.id}>
@@ -2420,8 +2905,22 @@ export function FlightplanMapEditor({
                     </li>
                   ))}
                 </ul>
+              </section>
+            ) : null}
+
+            <section>
+              <h3>NOTAM / AIP SUP</h3>
+              {selectedPointInfo.notamFeatures.length > 0 ? (
+                <ul>
+                  {selectedPointInfo.notamFeatures.map(({ feature, distanceNm }) => (
+                    <li key={feature.id} className="fp-map-point-info-panel__notam-item">
+                      <NotamMapInfoCard feature={feature} />
+                      {distanceNm > 0 ? <small>{formatDistanceNm(distanceNm)} från punkten</small> : null}
+                    </li>
+                  ))}
+                </ul>
               ) : (
-                <p>Inget navhjälpmedel inom 15 NM.</p>
+                <p>Inget visat NOTAM- eller AIP SUP-område över punkten.</p>
               )}
             </section>
           </aside>
@@ -2660,6 +3159,7 @@ export function FlightplanMapEditor({
                         eventHandlers={{
                           mouseover: () => showNotamInfoPanel(feature),
                           mouseout: () => scheduleHideNotamInfoPanel(feature.id),
+                          click: inspectNotamLeafletPoint(feature),
                         }}
                       />
                     )
@@ -2675,6 +3175,7 @@ export function FlightplanMapEditor({
                       eventHandlers={{
                         mouseover: () => showNotamInfoPanel(feature),
                         mouseout: () => scheduleHideNotamInfoPanel(feature.id),
+                        click: inspectNotamLeafletPoint(feature),
                       }}
                     />
                   )
@@ -2694,6 +3195,7 @@ export function FlightplanMapEditor({
                         eventHandlers={{
                           mouseover: () => showNotamInfoPanel(feature),
                           mouseout: () => scheduleHideNotamInfoPanel(feature.id),
+                          click: inspectNotamLeafletPoint(feature),
                         }}
                       />
                     )
@@ -2708,6 +3210,7 @@ export function FlightplanMapEditor({
                       eventHandlers={{
                         mouseover: () => showNotamInfoPanel(feature),
                         mouseout: () => scheduleHideNotamInfoPanel(feature.id),
+                        click: inspectNotamLeafletPoint(feature),
                       }}
                     />
                   )
@@ -2723,6 +3226,7 @@ export function FlightplanMapEditor({
                       eventHandlers={{
                         mouseover: () => showNotamInfoPanel(feature),
                         mouseout: () => scheduleHideNotamInfoPanel(feature.id),
+                        click: inspectNotamLeafletPoint(feature),
                       }}
                     />
                   )
@@ -2740,6 +3244,7 @@ export function FlightplanMapEditor({
                     eventHandlers={{
                       mouseover: () => showNotamInfoPanel(feature),
                       mouseout: () => scheduleHideNotamInfoPanel(feature.id),
+                      click: inspectNotamLeafletPoint(feature),
                     }}
                   />
                 )
@@ -2958,6 +3463,14 @@ export function FlightplanMapEditor({
             const weatherLines = getAirportTooltipWeatherLines(airportWeather, { showMetar, showTaf })
             const hasWeatherData = hasAirportWeatherData(airportWeather, { showMetar, showTaf })
             const iconSize = showAirportWeather && !hasWeatherData ? 'small' : 'default'
+            const airportAdNotam = getAirportNotamLookup(airport.icao)
+            const towerHoursSchedule = airportAdNotam?.status === 'ready'
+              ? buildAirportTowerHoursSchedule(
+                  airportAdNotam.entry?.rawText ?? null,
+                  plan.header.date,
+                  plan.header.plannedStartTime,
+                )
+              : []
 
             return (
             <Marker
@@ -2971,8 +3484,13 @@ export function FlightplanMapEditor({
                 click: (event) => {
                   event.originalEvent.preventDefault()
                   event.originalEvent.stopPropagation()
-                  addPointToEnd(airport.lat, airport.lon)
+                  if (routeEditingEnabled) {
+                    addPointToEnd(airport.lat, airport.lon)
+                  } else {
+                    inspectAirport(airport)
+                  }
                 },
+                mouseover: () => loadAirportNotam(airport),
                 mouseout: closeLeafletTooltipOnMouseOut,
               }}
             >
@@ -2994,6 +3512,12 @@ export function FlightplanMapEditor({
                   {weatherLines.map((line) => (
                     <span key={line}>{line}</span>
                   ))}
+                  {towerHoursSchedule.length > 0 ? (
+                    <>
+                      <span>AERODROME CONTROL TOWER (TWR) HOURS OF SERVICE</span>
+                      <AirportTowerHoursTable schedule={towerHoursSchedule} compact />
+                    </>
+                  ) : null}
                   <span>{formatCoordinateDms(airport.lat, 'lat')} {formatCoordinateDms(airport.lon, 'lon')}</span>
                 </div>
               </Tooltip>

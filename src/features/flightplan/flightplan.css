@@ -1693,6 +1693,106 @@
   line-height: 1.35;
 }
 
+.flightplan-page .fp-map-point-info-panel__notam-item {
+  padding: 0.65rem;
+}
+
+.flightplan-page .fp-map-point-info-panel__notam-item .fp-notam-map-tooltip__body {
+  max-height: 180px;
+}
+
+.flightplan-page .fp-map-point-info-panel__airport-hours,
+.flightplan-page .fp-map-point-info-panel__airport-notam {
+  display: grid;
+  gap: 0.18rem;
+  margin-top: 0.2rem;
+}
+
+.flightplan-page .fp-map-point-info-panel__airport-hours > span,
+.flightplan-page .fp-map-point-info-panel__airport-notam > span {
+  color: #163850;
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.flightplan-page .fp-map-point-info-panel__airport-notam pre {
+  margin: 0.1rem 0 0;
+  max-height: 190px;
+  overflow: auto;
+  color: #26343f;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.flightplan-page .fp-airport-hours-table {
+  width: 100%;
+  border-collapse: collapse;
+  overflow: hidden;
+  border: 1px solid rgba(22, 56, 80, 0.1);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.72);
+  font-size: 0.74rem;
+  line-height: 1.25;
+}
+
+.flightplan-page .fp-airport-hours-table th,
+.flightplan-page .fp-airport-hours-table td {
+  padding: 0.28rem 0.38rem;
+  border-bottom: 1px solid rgba(22, 56, 80, 0.08);
+  text-align: left;
+  vertical-align: top;
+}
+
+.flightplan-page .fp-airport-hours-table tr:last-child th,
+.flightplan-page .fp-airport-hours-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.flightplan-page .fp-airport-hours-table th {
+  width: 3.1rem;
+  color: #163850;
+  font-weight: 800;
+}
+
+.flightplan-page .fp-airport-hours-table td {
+  color: #26343f;
+}
+
+.flightplan-page .fp-airport-hours-table tr.is-current-day {
+  outline: 2px solid rgba(22, 56, 80, 0.16);
+  outline-offset: -2px;
+}
+
+.flightplan-page .fp-airport-hours-table tr.is-open th,
+.flightplan-page .fp-airport-hours-table tr.is-open td {
+  background: rgba(220, 252, 231, 0.95);
+  color: #14532d;
+}
+
+.flightplan-page .fp-airport-hours-table tr.is-closed th,
+.flightplan-page .fp-airport-hours-table tr.is-closed td {
+  background: rgba(254, 226, 226, 0.96);
+  color: #7f1d1d;
+}
+
+.flightplan-page .fp-airport-hours-table tr.is-unknown th,
+.flightplan-page .fp-airport-hours-table tr.is-unknown td {
+  background: rgba(241, 245, 249, 0.96);
+  color: #475569;
+}
+
+.flightplan-page .fp-airport-tooltip .fp-airport-hours-table {
+  margin-top: 0.1rem;
+  font-size: 0.68rem;
+}
+
+.flightplan-page .fp-airport-tooltip .fp-airport-hours-table th,
+.flightplan-page .fp-airport-tooltip .fp-airport-hours-table td {
+  padding: 0.16rem 0.28rem;
+}
+
 .flightplan-page .fp-leaflet-map {
   height: min(78vh, 980px);
   width: 100%;
