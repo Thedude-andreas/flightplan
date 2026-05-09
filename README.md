@@ -165,8 +165,8 @@ Apply the migration and deploy the function:
 
 ```bash
 npm run supabase:db:push
-supabase functions deploy map-weather-briefing
-supabase functions deploy weather-briefing
+supabase functions deploy map-weather-briefing --no-verify-jwt
+supabase functions deploy weather-briefing --no-verify-jwt
 ```
 
 ## Swedish aviation data

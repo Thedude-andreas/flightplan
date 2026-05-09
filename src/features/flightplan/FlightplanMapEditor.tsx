@@ -296,7 +296,6 @@ const airspaceLabelMinZoom = 8
 const airspaceLabelMinSizePx = 120
 const airportLabelMinZoom = 8
 const airportMarkerRadiusPx = 4
-const airportWeatherFetchBatchSize = 12
 const navaidMinZoom = 7
 const navaidLabelMinZoom = 9
 const visualPointMinZoom = 10
@@ -2139,31 +2138,24 @@ export function FlightplanMapEditor({
 
     const loadAirportWeather = async () => {
       try {
-        for (let index = 0; index < airportsToFetch.length; index += airportWeatherFetchBatchSize) {
-          const batch = airportsToFetch.slice(index, index + airportWeatherFetchBatchSize)
-          const results = await fetchMapWeatherForAirports(batch, controller.signal, showTaf)
+        const results = await fetchMapWeatherForAirports(airportsToFetch, controller.signal, showTaf)
 
-          if (cancelled || controller.signal.aborted) {
-            return
-          }
-
-          setAirportWeatherByIcao((current) => {
-            const next = { ...current }
-            const storedAt = Date.now()
-            for (const result of results) {
-              next[result.airport.icao] = {
-                ...result,
-                cachedAtMs: storedAt,
-                tafCachedAtMs: showTaf ? storedAt : result.tafCachedAtMs,
-              }
-            }
-            return next
-          })
-
-          for (const airport of batch) {
-            pendingAirportWeatherRef.current.delete(`${airport.icao}:${showTaf ? 'taf' : 'metar'}`)
-          }
+        if (cancelled || controller.signal.aborted) {
+          return
         }
+
+        setAirportWeatherByIcao((current) => {
+          const next = { ...current }
+          const storedAt = Date.now()
+          for (const result of results) {
+            next[result.airport.icao] = {
+              ...result,
+              cachedAtMs: storedAt,
+              tafCachedAtMs: showTaf ? storedAt : result.tafCachedAtMs,
+            }
+          }
+          return next
+        })
       } catch (error: unknown) {
         if (!(error instanceof Error) || error.name !== 'AbortError') {
           console.error('Kunde inte hämta kartväder för flygplatser.', error)
@@ -2182,6 +2174,28 @@ export function FlightplanMapEditor({
       controller.abort()
     }
   }, [showAirportWeather, showTaf, visibleWeatherAirportKey, metarStaleCheckTick])
+
+  useEffect(() => {
+    setSelectedPointInfo((current) => {
+      if (!current || current.airports.length === 0) {
+        return current
+      }
+
+      return {
+        ...current,
+        airports: current.airports.map((airport) => {
+          if (!airport.icao) {
+            return airport
+          }
+
+          return {
+            ...airport,
+            weatherLines: getAirportTooltipWeatherLines(airportWeatherByIcao[airport.icao] ?? null, { showMetar, showTaf }),
+          }
+        }),
+      }
+    })
+  }, [airportWeatherByIcao, showMetar, showTaf])
 
   const buildPointInfo = (
     lat: number,

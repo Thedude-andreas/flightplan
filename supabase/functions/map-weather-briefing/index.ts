@@ -10,6 +10,7 @@ const aviationWeatherBaseUrl = 'https://aviationweather.gov/api/data'
 const briefingKey = 'map-weather-briefing-v1'
 const metarTtlMinutes = 2
 const tafTtlMinutes = 10
+const aviationWeatherBatchSize = 80
 
 type AirportWeatherReport = {
   metarRawText: string | null
@@ -150,6 +151,16 @@ async function fetchAviationWeatherJson<T>(path: string, icaos: string[]) {
   return await response.json() as T
 }
 
+async function fetchAviationWeatherJsonBatched<T>(path: string, icaos: string[]) {
+  const batches: string[][] = []
+  for (let index = 0; index < icaos.length; index += aviationWeatherBatchSize) {
+    batches.push(icaos.slice(index, index + aviationWeatherBatchSize))
+  }
+
+  const results = await Promise.all(batches.map((batch) => fetchAviationWeatherJson<T[]>(path, batch)))
+  return results.flat()
+}
+
 async function fetchFreshReports(
   icaos: string[],
   includeTaf: boolean,
@@ -161,8 +172,8 @@ async function fetchFreshReports(
 
   const fetchedAt = new Date().toISOString()
   const [metarEntries, tafEntries] = await Promise.all([
-    fetchAviationWeatherJson<MetarApiEntry[]>('metar', icaos),
-    includeTaf ? fetchAviationWeatherJson<TafApiEntry[]>('taf', icaos) : Promise.resolve([]),
+    fetchAviationWeatherJsonBatched<MetarApiEntry>('metar', icaos),
+    includeTaf ? fetchAviationWeatherJsonBatched<TafApiEntry>('taf', icaos) : Promise.resolve([]),
   ])
   const metars = latestMetarsByIcao(metarEntries)
   const tafs = tafsByIcao(tafEntries)
