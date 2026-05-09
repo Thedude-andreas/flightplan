@@ -152,7 +152,7 @@ type AirportTowerHoursDay = {
   status: 'open' | 'closed' | 'unknown' | null
 }
 
-const mapLayerPreferencesStorageKey = 'flightplan.mapLayerPreferences.v1'
+const mapLayerPreferencesStorageKey = 'flightplan.mapLayerPreferences.v2'
 
 const defaultMapLayerPreferences: MapLayerPreferences = {
   airspaces: true,
@@ -163,7 +163,7 @@ const defaultMapLayerPreferences: MapLayerPreferences = {
   visualPoints: true,
   airports: true,
   metar: true,
-  taf: true,
+  taf: false,
 }
 
 const basemaps: Record<
@@ -2118,11 +2118,12 @@ export function FlightplanMapEditor({
     const byIcao = airportWeatherByIcaoRef.current
 
     const airportsToFetch = visible.filter((airport) => {
-      if (pendingAirportWeatherRef.current.has(airport.icao)) {
+      const pendingKey = `${airport.icao}:${showTaf ? 'taf' : 'metar'}`
+      if (pendingAirportWeatherRef.current.has(pendingKey)) {
         return false
       }
 
-      return needsAirportWeatherRefetchForMap(byIcao[airport.icao])
+      return needsAirportWeatherRefetchForMap(byIcao[airport.icao], showTaf)
     })
 
     if (airportsToFetch.length === 0) {
@@ -2130,7 +2131,7 @@ export function FlightplanMapEditor({
     }
 
     for (const airport of airportsToFetch) {
-      pendingAirportWeatherRef.current.add(airport.icao)
+      pendingAirportWeatherRef.current.add(`${airport.icao}:${showTaf ? 'taf' : 'metar'}`)
     }
 
     const controller = new AbortController()
@@ -2140,7 +2141,7 @@ export function FlightplanMapEditor({
       try {
         for (let index = 0; index < airportsToFetch.length; index += airportWeatherFetchBatchSize) {
           const batch = airportsToFetch.slice(index, index + airportWeatherFetchBatchSize)
-          const results = await fetchMapWeatherForAirports(batch, controller.signal)
+          const results = await fetchMapWeatherForAirports(batch, controller.signal, showTaf)
 
           if (cancelled || controller.signal.aborted) {
             return
@@ -2153,13 +2154,14 @@ export function FlightplanMapEditor({
               next[result.airport.icao] = {
                 ...result,
                 cachedAtMs: storedAt,
+                tafCachedAtMs: showTaf ? storedAt : result.tafCachedAtMs,
               }
             }
             return next
           })
 
           for (const airport of batch) {
-            pendingAirportWeatherRef.current.delete(airport.icao)
+            pendingAirportWeatherRef.current.delete(`${airport.icao}:${showTaf ? 'taf' : 'metar'}`)
           }
         }
       } catch (error: unknown) {
@@ -2168,7 +2170,7 @@ export function FlightplanMapEditor({
         }
       } finally {
         for (const airport of airportsToFetch) {
-          pendingAirportWeatherRef.current.delete(airport.icao)
+          pendingAirportWeatherRef.current.delete(`${airport.icao}:${showTaf ? 'taf' : 'metar'}`)
         }
       }
     }
@@ -2179,7 +2181,7 @@ export function FlightplanMapEditor({
       cancelled = true
       controller.abort()
     }
-  }, [showAirportWeather, visibleWeatherAirportKey, metarStaleCheckTick])
+  }, [showAirportWeather, showTaf, visibleWeatherAirportKey, metarStaleCheckTick])
 
   const buildPointInfo = (
     lat: number,

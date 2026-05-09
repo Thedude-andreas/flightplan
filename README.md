@@ -153,12 +153,19 @@ Swedish route weather uses a Supabase Edge Function that:
 - caches the parsed result in `public.weather_briefing_cache`
 - reuses the cached briefing until it is older than 20 minutes
 
+Map airport weather uses a separate Supabase Edge Function, `map-weather-briefing`, that:
+
+- batch-fetches METAR and optional TAF from AviationWeather.gov for all visible airport icons
+- caches METAR for 2 minutes and TAF for 10 minutes in `public.weather_briefing_cache`
+- only fetches TAF when the map TAF layer is enabled
+
 Automatic map and weather-panel loads use the cache. The refresh buttons request a forced refresh.
 
 Apply the migration and deploy the function:
 
 ```bash
 npm run supabase:db:push
+supabase functions deploy map-weather-briefing
 supabase functions deploy weather-briefing
 ```
 

@@ -34,6 +34,8 @@ export type AirportMapWeather = {
   tafIssuedAt: string | null
   /** Sätts i klientcache för negativa svar utan rapporttid, t.ex. saknad METAR/TAF. */
   cachedAtMs?: number
+  /** Sätts när TAF faktiskt efterfrågades, även om stationen saknar aktuell TAF. */
+  tafCachedAtMs?: number
 }
 
 /** Maximal ålder innan kartväder hämtas om. Rapporter med tid mäts från publicerings-/observationstid. */
@@ -69,17 +71,25 @@ function isReportStale(publishedAt: string | null, hasRawReport: boolean): boole
   return hasRawReport
 }
 
-/** Sant om kartväder saknas eller någon befintlig rapport är för gammal. */
-export function needsAirportWeatherRefetchForMap(cached: AirportMapWeather | undefined): boolean {
+/** Sant om kartväder saknas eller någon begärd rapport är för gammal. */
+export function needsAirportWeatherRefetchForMap(cached: AirportMapWeather | undefined, includeTaf = false): boolean {
   if (!cached) {
     return true
+  }
+
+  if (!cached.metarRawText) {
+    return cached.cachedAtMs == null || Date.now() - cached.cachedAtMs > WEATHER_MAP_CACHE_MAX_AGE_MS
+  }
+
+  if (includeTaf && !cached.tafRawText) {
+    return cached.tafCachedAtMs == null || Date.now() - cached.tafCachedAtMs > WEATHER_MAP_CACHE_MAX_AGE_MS
   }
 
   if (isReportStale(cached.metarObservedAt, Boolean(cached.metarRawText))) {
     return true
   }
 
-  if (isReportStale(cached.tafIssuedAt, Boolean(cached.tafRawText))) {
+  if (includeTaf && isReportStale(cached.tafIssuedAt, Boolean(cached.tafRawText))) {
     return true
   }
 
@@ -134,6 +144,18 @@ type WeatherBriefingResponse = {
   lhpAreas: LfvLhpArea[]
   usedStaleCache?: boolean
   refreshError?: string | null
+}
+
+type MapWeatherBriefingResponse = {
+  fetchedAt: string | null
+  includeTaf?: boolean
+  airports?: Array<{
+    icao: string
+    metarRawText: string | null
+    metarObservedAt: string | null
+    tafRawText: string | null
+    tafIssuedAt: string | null
+  }>
 }
 
 function degToRad(value: number) {
@@ -497,30 +519,70 @@ export async function fetchMetarsForAirports(
 export async function fetchMapWeatherForAirports(
   airports: NearbyAirport[],
   signal: AbortSignal,
+  includeTaf = false,
 ): Promise<AirportMapWeather[]> {
-  const settled = await Promise.allSettled(
-    airports.map(async (airport) => {
-      const [metarResponse, tafResponse] = await Promise.all([
-        fetchMetarForAirport(airport, signal),
-        fetchJson<TafApiResponse>(`${METAR_TAF_API_BASE_URL}/taf?icao=${airport.icao}`, signal).catch((error) => {
-          if (error instanceof Error && error.message === 'HTTP 404') {
-            return null
-          }
-          throw error
-        }),
-      ])
+  if (airports.length === 0) {
+    return []
+  }
 
-      return {
-        airport,
-        metarRawText: metarResponse.metarRawText,
-        metarObservedAt: metarResponse.metarObservedAt,
-        tafRawText: tafResponse?.data?.raw_text ?? null,
-        tafIssuedAt: tafResponse?.data?.issue_time ?? null,
-      } satisfies AirportMapWeather
-    }),
-  )
+  const supabase = getSupabaseClient()
 
-  return settled.flatMap((result) => (result.status === 'fulfilled' ? [result.value] : []))
+  if (!supabase) {
+    const settled = await Promise.allSettled(
+      airports.map(async (airport) => {
+        const [metarResponse, tafResponse] = await Promise.all([
+          fetchMetarForAirport(airport, signal),
+          includeTaf
+            ? fetchJson<TafApiResponse>(`${METAR_TAF_API_BASE_URL}/taf?icao=${airport.icao}`, signal).catch((error) => {
+                if (error instanceof Error && error.message === 'HTTP 404') {
+                  return null
+                }
+                throw error
+              })
+            : Promise.resolve(null),
+        ])
+
+        return {
+          airport,
+          metarRawText: metarResponse.metarRawText,
+          metarObservedAt: metarResponse.metarObservedAt,
+          tafRawText: tafResponse?.data?.raw_text ?? null,
+          tafIssuedAt: tafResponse?.data?.issue_time ?? null,
+        } satisfies AirportMapWeather
+      }),
+    )
+
+    return settled.flatMap((result) => (result.status === 'fulfilled' ? [result.value] : []))
+  }
+
+  const { data, error } = await supabase.functions.invoke('map-weather-briefing', {
+    body: {
+      icaos: airports.map((airport) => airport.icao),
+      includeTaf,
+    },
+  })
+
+  if (signal.aborted) {
+    throw new DOMException('Aborted', 'AbortError')
+  }
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  const response = data as MapWeatherBriefingResponse
+  const byIcao = new Map((response.airports ?? []).map((entry) => [entry.icao, entry]))
+
+  return airports.map((airport) => {
+    const entry = byIcao.get(airport.icao)
+    return {
+      airport,
+      metarRawText: entry?.metarRawText ?? null,
+      metarObservedAt: entry?.metarObservedAt ?? null,
+      tafRawText: includeTaf ? entry?.tafRawText ?? null : null,
+      tafIssuedAt: includeTaf ? entry?.tafIssuedAt ?? null : null,
+    }
+  })
 }
 
 export async function fetchWeatherForAirports(
