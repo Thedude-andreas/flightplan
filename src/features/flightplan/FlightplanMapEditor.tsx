@@ -1384,6 +1384,10 @@ function closeLeafletTooltipOnMouseOut(event: { target: L.Layer }) {
   event.target.closeTooltip()
 }
 
+function isCoarsePointerInput() {
+  return typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches
+}
+
 function midpoint(a: FlightPlanInput['routeLegs'][number]['from'], b: FlightPlanInput['routeLegs'][number]['to']) {
   return {
     lat: (a.lat + b.lat) / 2,
@@ -2760,7 +2764,7 @@ export function FlightplanMapEditor({
   return (
     <section className="fp-map-editor">
       <div className="fp-map-canvas">
-        <div className="fp-map-hud-row">
+        <div className={`fp-map-hud-row ${isMapLayerMenuOpen ? 'fp-map-hud-row--layer-menu-open' : ''}`}>
           <div className="fp-map-hud fp-map-hud--top-right">
             <div className="fp-map-controls">
               {hasNotamMapNotice ? (
@@ -3090,6 +3094,7 @@ export function FlightplanMapEditor({
                   sticky: true,
                   opacity: 0.95,
                   offset: [14, -10],
+                  className: 'fp-hover-tooltip fp-airspace-tooltip',
                 })
                 layer.on('mouseover mousemove', (event) => {
                   const pointer = event as LeafletMouseEvent
@@ -3154,7 +3159,7 @@ export function FlightplanMapEditor({
           {showWeatherOverlays
             ? routeWeatherOverlays.map((overlay) => {
                 const tooltipContent = (
-                  <Tooltip sticky opacity={0.95} className="fp-weather-overlay-tooltip">
+                  <Tooltip sticky opacity={0.95} className="fp-hover-tooltip fp-weather-overlay-tooltip">
                     <div className="fp-airport-tooltip fp-weather-overlay-tooltip__content">
                       <strong>{overlay.firCodes[0] ?? 'SIGMET/ARS/AIRMET'}</strong>
                       <span>{overlay.matchSummary}</span>
@@ -3429,7 +3434,7 @@ export function FlightplanMapEditor({
                     zIndexOffset={120}
                     eventHandlers={{ mouseout: closeLeafletTooltipOnMouseOut }}
                   >
-                    <Tooltip direction="top" offset={[0, -10]} opacity={0.95} className="fp-wind-arrow-tooltip">
+                    <Tooltip direction="top" offset={[0, -10]} opacity={0.95} className="fp-hover-tooltip fp-wind-arrow-tooltip">
                       <div className="fp-airport-tooltip fp-wind-arrow-tooltip__content">
                         <strong>{getRoutePointLabel(leg.from)} → {getRoutePointLabel(leg.to)}</strong>
                         <span>Vind {wind.direction}° / {wind.speedKt} kt</span>
@@ -3477,7 +3482,7 @@ export function FlightplanMapEditor({
                         mouseout: closeLeafletTooltipOnMouseOut,
                       }}
                     >
-                      <Tooltip direction="top" offset={[0, -6]} opacity={0.95} className="fp-navaid-tooltip">
+                      <Tooltip direction="top" offset={[0, -6]} opacity={0.95} className="fp-hover-tooltip fp-navaid-tooltip">
                         <div className="fp-airport-tooltip fp-navaid-tooltip__content">
                           <strong>{label}</strong>
                           <span>{navaid.kind === 'DMEV' ? 'VOR/DME' : navaid.kind}</span>
@@ -3526,7 +3531,7 @@ export function FlightplanMapEditor({
                     mouseout: closeLeafletTooltipOnMouseOut,
                   }}
                 >
-                  <Tooltip direction="top" offset={[0, -6]} opacity={0.95} className="fp-visual-point-tooltip">
+                  <Tooltip direction="top" offset={[0, -6]} opacity={0.95} className="fp-hover-tooltip fp-visual-point-tooltip">
                     <div className="fp-airport-tooltip fp-visual-point-tooltip__content">
                       <strong>{label}</strong>
                       <span>{getVisualPointKindLabel(point.kind)}{point.positionIndicator ? ` · ${point.positionIndicator}` : ''}</span>
@@ -3582,6 +3587,10 @@ export function FlightplanMapEditor({
                 click: (event) => {
                   event.originalEvent.preventDefault()
                   event.originalEvent.stopPropagation()
+                  if (isCoarsePointerInput()) {
+                    event.target.closeTooltip()
+                  }
+
                   if (routeEditingEnabled) {
                     addPointToEnd(airport.lat, airport.lon)
                   } else {
@@ -3603,7 +3612,7 @@ export function FlightplanMapEditor({
                   <span>{airport.icao}</span>
                 </Tooltip>
               ) : null}
-              <Tooltip direction="top" offset={[0, -6]} opacity={0.95}>
+              <Tooltip direction="top" offset={[0, -6]} opacity={0.95} className="fp-hover-tooltip fp-airport-tooltip-popup">
                 <div className="fp-airport-tooltip">
                   <strong>{airport.icao}</strong>
                   <span>{airport.name}</span>
@@ -3643,7 +3652,7 @@ export function FlightplanMapEditor({
                   mouseout: closeLeafletTooltipOnMouseOut,
                 }}
               >
-                <Tooltip sticky opacity={1} className="fp-segment-tooltip">
+                <Tooltip sticky opacity={1} className="fp-hover-tooltip fp-segment-tooltip">
                   <div>
                     <strong>{getRoutePointLabel(leg.from)} → {getRoutePointLabel(leg.to)}</strong>
                     <span>TT {previewDerived.routeLegs[index]?.trueTrack ?? '—'}°</span>
@@ -3705,7 +3714,7 @@ export function FlightplanMapEditor({
                 mouseout: closeLeafletTooltipOnMouseOut,
               }}
             >
-              <Tooltip direction="top" offset={[0, -10]} opacity={1} className="fp-waypoint-tooltip">
+              <Tooltip direction="top" offset={[0, -10]} opacity={1} className="fp-hover-tooltip fp-waypoint-tooltip">
                 <div>
                   <strong>{getRoutePointLabel(point)}</strong>
                   <span>{formatCoordinateDms(point.lat, 'lat')} {formatCoordinateDms(point.lon, 'lon')}</span>

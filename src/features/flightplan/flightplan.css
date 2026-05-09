@@ -1195,6 +1195,10 @@
   pointer-events: none;
 }
 
+.flightplan-page .fp-map-hud-row--layer-menu-open {
+  z-index: 5000;
+}
+
 .flightplan-page .fp-map-hud-row > .fp-map-hud {
   position: static;
   max-width: none;
@@ -1872,6 +1876,12 @@
   pointer-events: none !important;
 }
 
+@media (hover: none), (pointer: coarse) {
+  .flightplan-page .fp-hover-tooltip {
+    display: none;
+  }
+}
+
 .flightplan-page .fp-notam-map-warning-button {
   position: relative;
   display: inline-grid;
@@ -1994,6 +2004,10 @@
   flex: 0 0 auto;
 }
 
+.flightplan-page .fp-map-hud-row--layer-menu-open .fp-map-layer-menu {
+  z-index: 5001;
+}
+
 .flightplan-page .fp-map-layer-menu__button {
   display: inline-flex;
   align-items: center;
@@ -2105,7 +2119,7 @@
   position: absolute;
   top: calc(100% + 0.45rem);
   right: 0;
-  z-index: 1211;
+  z-index: 5002;
   width: min(440px, calc(100vw - 2.5rem));
   display: grid;
   gap: 0.3rem;
