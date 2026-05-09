@@ -2667,44 +2667,45 @@ export function FlightplanMapEditor({
   return (
     <section className="fp-map-editor">
       <div className="fp-map-canvas">
-        <div className="fp-map-hud fp-map-hud--top-right">
-          <div className="fp-map-controls">
-            {hasNotamMapNotice ? (
-              <button
-                type="button"
-                className={`fp-notam-map-warning-button ${isNotamMapNoticeOpen ? 'is-open' : ''}`}
-                aria-label={isNotamMapNoticeOpen ? 'Dölj NOTAM/AIP SUP-varning' : 'Visa NOTAM/AIP SUP-varning'}
-                aria-expanded={isNotamMapNoticeOpen}
-                onClick={() => {
-                  setIsMapLayerMenuOpen(false)
-                  setOpenNotamMapNoticeKey((current) => (
-                    current === notamMapNoticeKey ? null : notamMapNoticeKey
-                  ))
-                }}
-              >
-                <span className="fp-notam-map-warning-button__triangle" aria-hidden="true" />
-              </button>
-            ) : null}
-            <div className="fp-map-layer-menu" ref={mapLayerMenuRef}>
-              <button
-                type="button"
-                className="fp-map-layer-menu__button fp-map-layer-menu__button--hamburger"
-                aria-haspopup="menu"
-                aria-expanded={isMapLayerMenuOpen}
-                onClick={() => setIsMapLayerMenuOpen((open) => !open)}
-                aria-label="Öppna visningsmeny"
-              >
-                <span className="fp-map-layer-menu__button-main">
-                  <span className="fp-map-layer-menu__hamburger" aria-hidden="true">
-                    <i />
-                    <i />
-                    <i />
+        <div className="fp-map-hud-row">
+          <div className="fp-map-hud fp-map-hud--top-right">
+            <div className="fp-map-controls">
+              {hasNotamMapNotice ? (
+                <button
+                  type="button"
+                  className={`fp-notam-map-warning-button ${isNotamMapNoticeOpen ? 'is-open' : ''}`}
+                  aria-label={isNotamMapNoticeOpen ? 'Dölj NOTAM/AIP SUP-varning' : 'Visa NOTAM/AIP SUP-varning'}
+                  aria-expanded={isNotamMapNoticeOpen}
+                  onClick={() => {
+                    setIsMapLayerMenuOpen(false)
+                    setOpenNotamMapNoticeKey((current) => (
+                      current === notamMapNoticeKey ? null : notamMapNoticeKey
+                    ))
+                  }}
+                >
+                  <span className="fp-notam-map-warning-button__triangle" aria-hidden="true" />
+                </button>
+              ) : null}
+              <div className="fp-map-layer-menu" ref={mapLayerMenuRef}>
+                <button
+                  type="button"
+                  className="fp-map-layer-menu__button fp-map-layer-menu__button--hamburger"
+                  aria-haspopup="menu"
+                  aria-expanded={isMapLayerMenuOpen}
+                  onClick={() => setIsMapLayerMenuOpen((open) => !open)}
+                  aria-label="Öppna visningsmeny"
+                >
+                  <span className="fp-map-layer-menu__button-main">
+                    <span className="fp-map-layer-menu__hamburger" aria-hidden="true">
+                      <i />
+                      <i />
+                      <i />
+                    </span>
+                    <span className="fp-map-layer-menu__label">Visning</span>
                   </span>
-                  <span className="fp-map-layer-menu__label">Visning</span>
-                </span>
-                <span className="fp-map-layer-menu__count">{enabledLayerCount}/9</span>
-              </button>
-              {isMapLayerMenuOpen ? (
+                  <span className="fp-map-layer-menu__count">{enabledLayerCount}/9</span>
+                </button>
+                {isMapLayerMenuOpen ? (
                 <div className="fp-map-layer-menu__popover" role="menu" aria-label="Kartdata">
                   <div className="fp-map-layer-menu__header">
                     <strong>Visning</strong>
@@ -2809,8 +2810,9 @@ export function FlightplanMapEditor({
               ) : null}
             </div>
           ) : null}
+          </div>
+          {hudSlot ? <div className="fp-map-hud fp-map-hud--top-left fp-map-hud--editor">{hudSlot}</div> : null}
         </div>
-        {hudSlot ? <div className="fp-map-hud fp-map-hud--top-left fp-map-hud--editor">{hudSlot}</div> : null}
         {hudTopCenterSlot ? <div className="fp-map-hud fp-map-hud--top-center">{hudTopCenterSlot}</div> : null}
         {hudStatusSlot ? <div className="fp-map-hud fp-map-hud--bottom-center fp-map-hud--status">{hudStatusSlot}</div> : null}
         {selectedPointInfo ? (
