@@ -3098,6 +3098,14 @@ export function FlightplanMapEditor({
                 })
                 layer.on('mouseover mousemove', (event) => {
                   const pointer = event as LeafletMouseEvent
+                  if (isCoarsePointerInput()) {
+                    if (layer.isTooltipOpen()) {
+                      layer.closeTooltip()
+                    }
+                    setHoveredAirspaceIds([])
+                    return
+                  }
+
                   const matchingAirspaces = visibleAirspaces
                     .filter((airspace) => airspaceContainsPoint(airspace, pointer.latlng.lat, pointer.latlng.lng))
                     .map((airspace) => ({
@@ -3132,6 +3140,10 @@ export function FlightplanMapEditor({
                   const clicked = event as LeafletMouseEvent
                   clicked.originalEvent?.preventDefault?.()
                   clicked.originalEvent?.stopPropagation?.()
+                  if (isCoarsePointerInput() && layer.isTooltipOpen()) {
+                    layer.closeTooltip()
+                  }
+
                   addPointToEnd(clicked.latlng.lat, clicked.latlng.lng)
                 })
               }}
