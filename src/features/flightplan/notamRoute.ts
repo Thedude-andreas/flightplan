@@ -69,12 +69,36 @@ function sanitizeNotamSourceText(value: string) {
   return withoutHtml
 }
 
+function repairPdfColumnDateLabels(value: string) {
+  const datePattern = String.raw`\d{1,2}\s+[A-Z]{3}\s+\d{4}\s+\d{2}:?\d{2}(?:\s+EST)?`
+  const misplacedLabelsPattern = new RegExp(
+    String.raw`(^|\s\+\s)(.*?\S)\s+(${datePattern})\s+FROM:\s+(${datePattern})\s+TO:`,
+    'gi',
+  )
+
+  return value.replace(misplacedLabelsPattern, (_match, prefix: string, body: string, fromDate: string, toDate: string) =>
+    `${prefix}${body}\nFROM: ${fromDate}\nTO: ${toDate}`,
+  )
+}
+
+function repairFormattedDanglingToLabels(value: string) {
+  const datePattern = String.raw`\d{1,2}\s+[A-Z]{3}\s+\d{4}\s+\d{2}:?\d{2}(?:\s+EST)?`
+  const danglingToPattern = new RegExp(
+    String.raw`(^|\n\n\+\s)([^\n]*?\S)\s+(${datePattern})\nFROM:\s+(${datePattern})\nTO:(?=\n\n|$)`,
+    'gi',
+  )
+
+  return value.replace(danglingToPattern, (_match, prefix: string, body: string, fromDate: string, toDate: string) =>
+    `${prefix}${body}\nFROM: ${fromDate}\nTO: ${toDate}`,
+  )
+}
+
 export function formatNotamText(value: string | null) {
   if (!value) {
     return ''
   }
 
-  return sanitizeNotamSourceText(value)
+  const formatted = repairPdfColumnDateLabels(sanitizeNotamSourceText(value))
     .replace(/\u00a0/g, ' ')
     .replace(/\s+/g, ' ')
     .replace(/\s+\+\s+/g, '\n\n+ ')
@@ -96,6 +120,8 @@ export function formatNotamText(value: string | null) {
     .replace(/\s+([•-])\s+/g, '\n$1 ')
     .replace(/\n{3,}/g, '\n\n')
     .trim()
+
+  return repairFormattedDanglingToLabels(formatted)
 }
 
 function degToRad(value: number) {

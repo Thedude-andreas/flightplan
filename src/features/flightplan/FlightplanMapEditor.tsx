@@ -571,10 +571,13 @@ function getAirportTowerHoursLines(rawText: string | null) {
   const afterHeading = formatted.slice(headingMatch.index + headingMatch[0].length)
   const lines = afterHeading
     .split(/\n+/)
-    .map((line) => line.replace(/\s+/g, ' ').trim())
+    .map((line) => line
+      .replace(/\s+/g, ' ')
+      .replace(/\s+\d{1,2}\s+[A-Z]{3}\s+\d{4}\s+\d{2}:?\d{2}(?:\s+EST)?$/i, '')
+      .trim())
     .filter(Boolean)
 
-  const stopPattern = /^(?:AERODROME|ATS|RUNWAY|RWY|TAXIWAY|TWY|APRON|FUELLING|CUSTOMS|HANDLING|METEOROLOGICAL|RESCUE|FIRE|AD\s)/i
+  const stopPattern = /^(?:FROM:|TO:|AERODROME|ATS|RUNWAY|RWY|TAXIWAY|TWY|APRON|FUELLING|CUSTOMS|HANDLING|METEOROLOGICAL|RESCUE|FIRE|AD\s)/i
   const hoursLines: string[] = []
   for (const line of lines) {
     if (hoursLines.length > 0 && stopPattern.test(line)) {
