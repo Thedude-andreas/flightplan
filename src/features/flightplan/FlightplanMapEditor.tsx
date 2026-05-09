@@ -41,6 +41,7 @@ import {
   fetchMapWeatherForAirports,
   mergeFlightRules,
   needsAirportWeatherRefetchForMap,
+  WEATHER_MAP_CACHE_MAX_AGE_MS,
   type AirportMapWeather,
   type MetarFlightCategory,
   type MetarFlightRules,
@@ -235,15 +236,14 @@ function getAirportDisplayFlightRules(
 
 function getAirportTooltipWeatherLines(
   weather: AirportMapWeather | null,
-  options: { showMetar: boolean; showTaf: boolean },
 ) {
   const lines: string[] = []
 
-  if (options.showMetar && weather?.metarRawText) {
+  if (weather?.metarRawText) {
     lines.push(`METAR ${weather.metarRawText}`)
   }
 
-  if (options.showTaf && weather?.tafRawText) {
+  if (weather?.tafRawText) {
     lines.push(`TAF ${weather.tafRawText}`)
   }
 
@@ -2115,14 +2115,15 @@ export function FlightplanMapEditor({
     }
 
     const byIcao = airportWeatherByIcaoRef.current
+    const includeTaf = false
 
     const airportsToFetch = visible.filter((airport) => {
-      const pendingKey = `${airport.icao}:${showTaf ? 'taf' : 'metar'}`
+      const pendingKey = `${airport.icao}:metar`
       if (pendingAirportWeatherRef.current.has(pendingKey)) {
         return false
       }
 
-      return needsAirportWeatherRefetchForMap(byIcao[airport.icao], showTaf)
+      return needsAirportWeatherRefetchForMap(byIcao[airport.icao], includeTaf)
     })
 
     if (airportsToFetch.length === 0) {
@@ -2130,7 +2131,7 @@ export function FlightplanMapEditor({
     }
 
     for (const airport of airportsToFetch) {
-      pendingAirportWeatherRef.current.add(`${airport.icao}:${showTaf ? 'taf' : 'metar'}`)
+      pendingAirportWeatherRef.current.add(`${airport.icao}:metar`)
     }
 
     const controller = new AbortController()
@@ -2138,7 +2139,7 @@ export function FlightplanMapEditor({
 
     const loadAirportWeather = async () => {
       try {
-        const results = await fetchMapWeatherForAirports(airportsToFetch, controller.signal, showTaf)
+        const results = await fetchMapWeatherForAirports(airportsToFetch, controller.signal, includeTaf)
 
         if (cancelled || controller.signal.aborted) {
           return
@@ -2149,9 +2150,12 @@ export function FlightplanMapEditor({
           const storedAt = Date.now()
           for (const result of results) {
             next[result.airport.icao] = {
+              ...next[result.airport.icao],
               ...result,
               cachedAtMs: storedAt,
-              tafCachedAtMs: showTaf ? storedAt : result.tafCachedAtMs,
+              tafRawText: next[result.airport.icao]?.tafRawText ?? result.tafRawText,
+              tafIssuedAt: next[result.airport.icao]?.tafIssuedAt ?? result.tafIssuedAt,
+              tafCachedAtMs: next[result.airport.icao]?.tafCachedAtMs ?? result.tafCachedAtMs,
             }
           }
           return next
@@ -2162,12 +2166,85 @@ export function FlightplanMapEditor({
         }
       } finally {
         for (const airport of airportsToFetch) {
-          pendingAirportWeatherRef.current.delete(`${airport.icao}:${showTaf ? 'taf' : 'metar'}`)
+          pendingAirportWeatherRef.current.delete(`${airport.icao}:metar`)
         }
       }
     }
 
     void loadAirportWeather()
+
+    return () => {
+      cancelled = true
+      controller.abort()
+    }
+  }, [showAirportWeather, visibleWeatherAirportKey, metarStaleCheckTick])
+
+  useEffect(() => {
+    if (!showAirportWeather || !showTaf) {
+      return
+    }
+
+    const visible = visibleWeatherAirportsRef.current
+    if (visible.length === 0) {
+      return
+    }
+
+    const now = Date.now()
+    const byIcao = airportWeatherByIcaoRef.current
+    const airportsToFetch = visible.filter((airport) => {
+      const cached = byIcao[airport.icao]
+      const pendingKey = `${airport.icao}:taf`
+      if (pendingAirportWeatherRef.current.has(pendingKey)) {
+        return false
+      }
+
+      return !cached?.tafRawText && (cached?.tafCachedAtMs == null || now - cached.tafCachedAtMs > WEATHER_MAP_CACHE_MAX_AGE_MS)
+    })
+
+    if (airportsToFetch.length === 0) {
+      return
+    }
+
+    for (const airport of airportsToFetch) {
+      pendingAirportWeatherRef.current.add(`${airport.icao}:taf`)
+    }
+
+    const controller = new AbortController()
+    let cancelled = false
+
+    const loadAirportTaf = async () => {
+      try {
+        const results = await fetchMapWeatherForAirports(airportsToFetch, controller.signal, true)
+
+        if (cancelled || controller.signal.aborted) {
+          return
+        }
+
+        setAirportWeatherByIcao((current) => {
+          const next = { ...current }
+          const storedAt = Date.now()
+          for (const result of results) {
+            next[result.airport.icao] = {
+              ...next[result.airport.icao],
+              ...result,
+              cachedAtMs: next[result.airport.icao]?.cachedAtMs ?? storedAt,
+              tafCachedAtMs: storedAt,
+            }
+          }
+          return next
+        })
+      } catch (error: unknown) {
+        if (!(error instanceof Error) || error.name !== 'AbortError') {
+          console.error('Kunde inte hämta TAF för kartflygplatser.', error)
+        }
+      } finally {
+        for (const airport of airportsToFetch) {
+          pendingAirportWeatherRef.current.delete(`${airport.icao}:taf`)
+        }
+      }
+    }
+
+    void loadAirportTaf()
 
     return () => {
       cancelled = true
@@ -2190,7 +2267,7 @@ export function FlightplanMapEditor({
 
           return {
             ...airport,
-            weatherLines: getAirportTooltipWeatherLines(airportWeatherByIcao[airport.icao] ?? null, { showMetar, showTaf }),
+            weatherLines: getAirportTooltipWeatherLines(airportWeatherByIcao[airport.icao] ?? null),
           }
         }),
       }
@@ -2268,7 +2345,7 @@ export function FlightplanMapEditor({
       label: airport.icao ?? airport.name ?? 'Flygplats',
       name: airport.name ?? '',
       distanceNm: 0,
-      weatherLines: getAirportTooltipWeatherLines(weather, { showMetar, showTaf }),
+      weatherLines: getAirportTooltipWeatherLines(weather),
       towerHoursSchedule,
       adNotam,
     }
@@ -3481,7 +3558,7 @@ export function FlightplanMapEditor({
           {showAirportMarkers ? swedishAirports.map((airport) => {
             const airportWeather = airport.icao ? airportWeatherByIcao[airport.icao] : null
             const flightRules = getAirportDisplayFlightRules(airportWeather, { showMetar, showTaf })
-            const weatherLines = getAirportTooltipWeatherLines(airportWeather, { showMetar, showTaf })
+            const weatherLines = getAirportTooltipWeatherLines(airportWeather)
             const hasWeatherData = hasAirportWeatherData(airportWeather, { showMetar, showTaf })
             const iconSize = showAirportWeather && !hasWeatherData ? 'small' : 'default'
             const airportAdNotam = getAirportNotamLookup(airport.icao)
