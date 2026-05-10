@@ -93,7 +93,7 @@ type PointInfoAirport = {
   name: string
   distanceNm: number
   weatherLines: string[]
-  towerHoursSchedule: AirportTowerHoursDay[]
+  serviceHoursSchedule: AirportServiceHoursSchedule | null
   adNotam: AirportNotamLookup | null
 }
 type PointInfoNavaid = {
@@ -151,6 +151,15 @@ type AirportTowerHoursDay = {
   intervals: AirportTowerHoursInterval[]
   isCurrentDay: boolean
   status: 'open' | 'closed' | 'unknown' | null
+}
+type AirportServiceHoursKind = 'TWR' | 'AFIS'
+type AirportServiceHoursSection = {
+  kind: AirportServiceHoursKind
+  lines: string[]
+}
+type AirportServiceHoursSchedule = {
+  title: string
+  days: AirportTowerHoursDay[]
 }
 
 const mapLayerPreferencesStorageKey = 'flightplan.mapLayerPreferences.v2'
@@ -555,41 +564,100 @@ function NotamMapInfoCard({ feature }: { feature: NotamMapOverlayFeature }) {
   )
 }
 
-function getAirportTowerHoursLines(rawText: string | null) {
+function normalizeAirportHoursLine(line: string) {
+  return line
+    .replace(/\s+/g, ' ')
+    .replace(/\s+\d{1,2}\s+[A-Z]{3}\s+\d{4}\s+\d{2}:?\d{2}(?:\s+EST)?$/i, '')
+    .trim()
+}
+
+function getAirportServiceHoursSections(rawText: string | null): AirportServiceHoursSection[] {
   if (!rawText) {
     return []
   }
 
   const formatted = formatNotamText(rawText)
-  const headingPattern = /AERODROME CONTROL TOWER\s*\(TWR\)\s*HOURS OF SERVICE/i
-  const headingMatch = formatted.match(headingPattern)
-  if (!headingMatch || headingMatch.index == null) {
+  const headingPattern = /(?:AERODROME\s+CONTROL\s+TOWER\s*\(TWR\)|CONTROL\s+TOWER\s*\(TWR\)|TOWER\s*\(TWR\)|\bTWR\b|AERODROME\s+FLIGHT\s+INFORMATION\s+SERVICE\s*\(AFIS\)|FLIGHT\s+INFORMATION\s+SERVICE\s*\(AFIS\)|\bAFIS\b)\s+HOURS\s+OF\s+SERVICE/gi
+  const headingMatches = [...formatted.matchAll(headingPattern)]
+    .map((match) => (match.index == null ? null : { text: match[0], index: match.index }))
+    .filter((match): match is { text: string; index: number } => Boolean(match))
+
+  if (headingMatches.length === 0) {
     return []
   }
 
-  const afterHeading = formatted.slice(headingMatch.index + headingMatch[0].length)
-  const lines = afterHeading
-    .split(/\n+/)
-    .map((line) => line
-      .replace(/\s+/g, ' ')
-      .replace(/\s+\d{1,2}\s+[A-Z]{3}\s+\d{4}\s+\d{2}:?\d{2}(?:\s+EST)?$/i, '')
-      .trim())
-    .filter(Boolean)
-
   const stopPattern = /^(?:FROM:|TO:|AERODROME|ATS|RUNWAY|RWY|TAXIWAY|TWY|APRON|FUELLING|CUSTOMS|HANDLING|METEOROLOGICAL|RESCUE|FIRE|AD\s)/i
-  const hoursLines: string[] = []
-  for (const line of lines) {
-    if (hoursLines.length > 0 && stopPattern.test(line)) {
-      break
-    }
+  return headingMatches
+    .map((match, index) => {
+      const nextMatch = headingMatches[index + 1]
+      const afterHeading = formatted.slice(match.index + match.text.length, nextMatch?.index ?? undefined)
+      const lines = afterHeading
+        .split(/\n+/)
+        .map(normalizeAirportHoursLine)
+        .filter(Boolean)
 
-    hoursLines.push(line)
-    if (hoursLines.length >= 4) {
-      break
-    }
+      const hoursLines: string[] = []
+      for (const line of lines) {
+        if (hoursLines.length > 0 && stopPattern.test(line)) {
+          break
+        }
+
+        hoursLines.push(line)
+        if (hoursLines.length >= 4) {
+          break
+        }
+      }
+
+      return {
+        kind: (/\bAFIS\b/i.test(match.text) ? 'AFIS' : 'TWR') as AirportServiceHoursKind,
+        lines: hoursLines,
+      }
+    })
+    .filter((section) => section.lines.length > 0)
+}
+
+function mergeRawWithSupplement(base: string, supplement: string, label: string) {
+  if (supplement === 'Stängt') {
+    return base
   }
 
-  return hoursLines
+  if (base === 'Stängt') {
+    return `${label} ${supplement}`
+  }
+
+  return `${base} (${label} ${supplement})`
+}
+
+function formatAirportHoursDayValue(day: AirportTowerHoursDay) {
+  if (day.intervals.length > 0) {
+    return day.intervals.map((interval) => interval.label).join(', ')
+  }
+
+  return day.raw
+}
+
+function mergeAirportHoursDays(
+  primary: AirportTowerHoursDay[],
+  supplement: AirportTowerHoursDay[],
+  supplementLabel: string,
+) {
+  const supplementByDay = new Map(supplement.map((day) => [day.key, day]))
+
+  return primary.map((day) => {
+    const supplementDay = supplementByDay.get(day.key)
+    if (!supplementDay) {
+      return day
+    }
+
+    return {
+      ...day,
+      raw: mergeRawWithSupplement(
+        formatAirportHoursDayValue(day),
+        formatAirportHoursDayValue(supplementDay),
+        supplementLabel,
+      ),
+    }
+  })
 }
 
 const weekdayKeys: WeekdayKey[] = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
@@ -738,12 +806,11 @@ function segmentTowerHoursByWeekday(lines: string[]) {
   return byDay
 }
 
-function buildAirportTowerHoursSchedule(
-  rawText: string | null,
+function buildAirportTowerHoursDays(
+  lines: string[],
   date: string,
   plannedStartTime: string,
 ): AirportTowerHoursDay[] {
-  const lines = getAirportTowerHoursLines(rawText)
   if (lines.length === 0) {
     return []
   }
@@ -776,21 +843,56 @@ function buildAirportTowerHoursSchedule(
   })
 }
 
+function buildAirportServiceHoursSchedule(
+  rawText: string | null,
+  date: string,
+  plannedStartTime: string,
+): AirportServiceHoursSchedule | null {
+  const sections = getAirportServiceHoursSections(rawText)
+  const twrSection = sections.find((section) => section.kind === 'TWR')
+  const afisSection = sections.find((section) => section.kind === 'AFIS')
+
+  if (!twrSection && !afisSection) {
+    return null
+  }
+
+  if (twrSection && afisSection) {
+    const twrDays = buildAirportTowerHoursDays(twrSection.lines, date, plannedStartTime)
+    const afisDays = buildAirportTowerHoursDays(afisSection.lines, date, plannedStartTime)
+    return {
+      title: 'TWR öppet',
+      days: mergeAirportHoursDays(twrDays, afisDays, 'AFIS'),
+    }
+  }
+
+  if (twrSection) {
+    return {
+      title: 'TWR öppet',
+      days: buildAirportTowerHoursDays(twrSection.lines, date, plannedStartTime),
+    }
+  }
+
+  return {
+    title: 'AFIS öppet',
+    days: buildAirportTowerHoursDays(afisSection?.lines ?? [], date, plannedStartTime),
+  }
+}
+
 function AirportTowerHoursTable({
-  schedule,
+  days,
   compact = false,
 }: {
-  schedule: AirportTowerHoursDay[]
+  days: AirportTowerHoursDay[]
   compact?: boolean
 }) {
-  if (schedule.length === 0) {
+  if (days.length === 0) {
     return null
   }
 
   return (
     <table className={`fp-airport-hours-table ${compact ? 'fp-airport-hours-table--compact' : ''}`}>
       <tbody>
-        {schedule.map((day) => (
+        {days.map((day) => (
           <tr
             key={day.key}
             className={[
@@ -2335,13 +2437,13 @@ export function FlightplanMapEditor({
     adNotam: AirportNotamLookup | null = getAirportNotamLookup(airport.icao),
   ): PointInfoAirport => {
     const weather = airport.icao ? airportWeatherByIcao[airport.icao] : null
-    const towerHoursSchedule = adNotam?.status === 'ready'
-      ? buildAirportTowerHoursSchedule(
+    const serviceHoursSchedule = adNotam?.status === 'ready'
+      ? buildAirportServiceHoursSchedule(
           adNotam.entry?.rawText ?? null,
           plan.header.date,
           plan.header.plannedStartTime,
         )
-      : []
+      : null
 
     return {
       id: airport.icao ?? `${airport.name}-${airport.lat}-${airport.lon}`,
@@ -2350,7 +2452,7 @@ export function FlightplanMapEditor({
       name: airport.name ?? '',
       distanceNm: 0,
       weatherLines: getAirportTooltipWeatherLines(weather),
-      towerHoursSchedule,
+      serviceHoursSchedule,
       adNotam,
     }
   }
@@ -2953,10 +3055,10 @@ export function FlightplanMapEditor({
                       {airport.weatherLines.slice(0, 2).map((line) => (
                         <small key={line}>{line}</small>
                       ))}
-                      {airport.towerHoursSchedule.length > 0 ? (
+                      {airport.serviceHoursSchedule ? (
                         <div className="fp-map-point-info-panel__airport-hours">
-                          <span>AERODROME CONTROL TOWER (TWR) HOURS OF SERVICE</span>
-                          <AirportTowerHoursTable schedule={airport.towerHoursSchedule} />
+                          <span>{airport.serviceHoursSchedule.title}</span>
+                          <AirportTowerHoursTable days={airport.serviceHoursSchedule.days} />
                         </div>
                       ) : null}
                       {airport.adNotam ? (
@@ -3579,13 +3681,13 @@ export function FlightplanMapEditor({
             const hasWeatherData = hasAirportWeatherData(airportWeather, { showMetar, showTaf })
             const iconSize = showAirportWeather && !hasWeatherData ? 'small' : 'default'
             const airportAdNotam = getAirportNotamLookup(airport.icao)
-            const towerHoursSchedule = airportAdNotam?.status === 'ready'
-              ? buildAirportTowerHoursSchedule(
+            const serviceHoursSchedule = airportAdNotam?.status === 'ready'
+              ? buildAirportServiceHoursSchedule(
                   airportAdNotam.entry?.rawText ?? null,
                   plan.header.date,
                   plan.header.plannedStartTime,
                 )
-              : []
+              : null
 
             return (
             <Marker
@@ -3631,10 +3733,10 @@ export function FlightplanMapEditor({
                   {weatherLines.map((line) => (
                     <span key={line}>{line}</span>
                   ))}
-                  {towerHoursSchedule.length > 0 ? (
+                  {serviceHoursSchedule ? (
                     <>
-                      <span>AERODROME CONTROL TOWER (TWR) HOURS OF SERVICE</span>
-                      <AirportTowerHoursTable schedule={towerHoursSchedule} compact />
+                      <span>{serviceHoursSchedule.title}</span>
+                      <AirportTowerHoursTable days={serviceHoursSchedule.days} compact />
                     </>
                   ) : null}
                   <span>{formatCoordinateDms(airport.lat, 'lat')} {formatCoordinateDms(airport.lon, 'lon')}</span>
