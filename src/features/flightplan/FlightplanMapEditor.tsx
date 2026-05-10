@@ -568,6 +568,17 @@ function normalizeAirportHoursLine(line: string) {
   return line
     .replace(/\s+/g, ' ')
     .replace(/\s+\d{1,2}\s+[A-Z]{3}\s+\d{4}\s+\d{2}:?\d{2}(?:\s+EST)?$/i, '')
+    .replace(/[;,]\s*$/g, '')
+    .trim()
+}
+
+function normalizeAirportHoursDisplayValue(value: string) {
+  return value
+    .replace(/\u00a0/g, ' ')
+    .replace(/\s+/g, ' ')
+    .replace(/\b(?:MON|TUE|WED|THU|FRI|SAT|SUN)(?:\s*-\s*(?:MON|TUE|WED|THU|FRI|SAT|SUN))?\b\s*/gi, '')
+    .replace(/\b(?:DAILY|DLY|EVERY DAY)\b\s*/gi, '')
+    .replace(/[;,]\s*$/g, '')
     .trim()
 }
 
@@ -776,9 +787,12 @@ function segmentTowerHoursByWeekday(lines: string[]) {
         ? weekdayKeys
         : []
       const intervals = parseTimeIntervals(normalized)
+      const raw = normalizeAirportHoursDisplayValue(normalized)
       for (const day of targetDays) {
         const item = byDay.get(day)
-        item?.raw.push(normalized)
+        if (raw) {
+          item?.raw.push(raw)
+        }
         item?.intervals.push(...intervals)
       }
       continue
@@ -792,12 +806,14 @@ function segmentTowerHoursByWeekday(lines: string[]) {
       const segmentStart = match.index == null ? 0 : match.index + match[0].length
       const segmentEnd = nextMatch?.index ?? normalized.length
       const segment = normalized.slice(segmentStart, segmentEnd).trim()
-      const raw = `${match[0].toUpperCase()} ${segment}`.trim()
+      const raw = normalizeAirportHoursDisplayValue(segment)
       const intervals = parseTimeIntervals(segment)
 
       for (const day of getWeekdayRange(from, to)) {
         const item = byDay.get(day)
-        item?.raw.push(raw)
+        if (raw) {
+          item?.raw.push(raw)
+        }
         item?.intervals.push(...intervals)
       }
     }

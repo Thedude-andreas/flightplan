@@ -1844,6 +1844,24 @@
   padding: 0.16rem 0.28rem;
 }
 
+.flightplan-page .leaflet-tooltip.fp-airport-tooltip-popup {
+  max-width: min(34rem, 90vw);
+}
+
+.flightplan-page .fp-airport-tooltip-popup .fp-airport-tooltip {
+  width: max-content;
+  max-width: min(32rem, 88vw);
+}
+
+.flightplan-page .fp-airport-tooltip-popup .fp-airport-hours-table {
+  width: max-content;
+  min-width: 100%;
+}
+
+.flightplan-page .fp-airport-tooltip-popup .fp-airport-hours-table td {
+  white-space: nowrap;
+}
+
 .flightplan-page .fp-leaflet-map {
   height: min(78vh, 980px);
   width: 100%;
