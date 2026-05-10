@@ -1845,17 +1845,29 @@
 }
 
 .flightplan-page .leaflet-tooltip.fp-airport-tooltip-popup {
-  max-width: min(34rem, 90vw);
+  max-width: min(38rem, calc(100vw - 2rem));
+  white-space: normal;
 }
 
 .flightplan-page .fp-airport-tooltip-popup .fp-airport-tooltip {
   width: max-content;
-  max-width: min(32rem, 88vw);
+  min-width: min(18rem, calc(100vw - 3rem));
+  max-width: min(36rem, calc(100vw - 3rem));
+}
+
+.flightplan-page .fp-airport-tooltip-popup .fp-airport-tooltip > span {
+  max-width: 100%;
+  overflow-wrap: normal;
+}
+
+.flightplan-page .fp-airport-tooltip-popup .fp-airport-tooltip__weather-line {
+  white-space: normal;
 }
 
 .flightplan-page .fp-airport-tooltip-popup .fp-airport-hours-table {
   width: max-content;
   min-width: 100%;
+  max-width: 100%;
 }
 
 .flightplan-page .fp-airport-tooltip-popup .fp-airport-hours-table td {

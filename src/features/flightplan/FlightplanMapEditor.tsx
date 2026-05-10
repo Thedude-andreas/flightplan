@@ -2056,7 +2056,7 @@ export function FlightplanMapEditor({
     [sigmetText],
   )
   const visibleWeatherAirports = useMemo<NearbyAirport[]>(() => {
-    if (!showAirportWeather) {
+    if (!showAirportMarkers) {
       return []
     }
 
@@ -2079,7 +2079,7 @@ export function FlightplanMapEditor({
         ...airport,
         distanceNm: 0,
       }))
-  }, [mapBounds, showAirportWeather, swedishAirports])
+  }, [mapBounds, showAirportMarkers, swedishAirports])
   const visibleVisualPoints = useMemo(() => {
     if (!showVisualPoints || mapZoom < visualPointMinZoom) {
       return []
@@ -2227,7 +2227,7 @@ export function FlightplanMapEditor({
   }, [])
 
   useEffect(() => {
-    if (!showAirportWeather) {
+    if (!showAirportMarkers) {
       return
     }
 
@@ -2237,7 +2237,7 @@ export function FlightplanMapEditor({
     }
 
     const byIcao = airportWeatherByIcaoRef.current
-    const includeTaf = false
+    const includeTaf = true
 
     const airportsToFetch = visible.filter((airport) => {
       const pendingKey = `${airport.icao}:metar`
@@ -2277,7 +2277,7 @@ export function FlightplanMapEditor({
               cachedAtMs: storedAt,
               tafRawText: next[result.airport.icao]?.tafRawText ?? result.tafRawText,
               tafIssuedAt: next[result.airport.icao]?.tafIssuedAt ?? result.tafIssuedAt,
-              tafCachedAtMs: next[result.airport.icao]?.tafCachedAtMs ?? result.tafCachedAtMs,
+              tafCachedAtMs: next[result.airport.icao]?.tafCachedAtMs ?? storedAt,
             }
           }
           return next
@@ -2299,10 +2299,10 @@ export function FlightplanMapEditor({
       cancelled = true
       controller.abort()
     }
-  }, [showAirportWeather, visibleWeatherAirportKey, metarStaleCheckTick])
+  }, [showAirportMarkers, visibleWeatherAirportKey, metarStaleCheckTick])
 
   useEffect(() => {
-    if (!showAirportWeather || !showTaf) {
+    if (!showAirportMarkers) {
       return
     }
 
@@ -2372,7 +2372,7 @@ export function FlightplanMapEditor({
       cancelled = true
       controller.abort()
     }
-  }, [showAirportWeather, showTaf, visibleWeatherAirportKey, metarStaleCheckTick])
+  }, [showAirportMarkers, visibleWeatherAirportKey, metarStaleCheckTick])
 
   useEffect(() => {
     setSelectedPointInfo((current) => {
@@ -2394,7 +2394,7 @@ export function FlightplanMapEditor({
         }),
       }
     })
-  }, [airportWeatherByIcao, showMetar, showTaf])
+  }, [airportWeatherByIcao])
 
   const buildPointInfo = (
     lat: number,
@@ -3747,7 +3747,7 @@ export function FlightplanMapEditor({
                   <strong>{airport.icao}</strong>
                   <span>{airport.name}</span>
                   {weatherLines.map((line) => (
-                    <span key={line}>{line}</span>
+                    <span className="fp-airport-tooltip__weather-line" key={line}>{line}</span>
                   ))}
                   {serviceHoursSchedule ? (
                     <>
