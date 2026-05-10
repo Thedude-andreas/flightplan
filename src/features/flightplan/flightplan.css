@@ -843,10 +843,101 @@
 .flightplan-page .fp-map-meta { display: flex; gap: 0.9rem; flex-wrap: wrap; color: rgba(255,255,255,0.7); }
 .flightplan-page .fp-route-preview { background: #fffdf8; border: 2px solid #c9c0ad; padding: 1rem; }
 .flightplan-page .fp-route-preview svg { width: 100%; height: auto; display: block; }
+.flightplan-page .fp-route-preview--portrait {
+  max-width: 760px;
+  margin: 0 auto;
+}
 .flightplan-page .fp-route-legend { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; margin-top: 1rem; }
 .flightplan-page .fp-route-legend div { background: #f3efe5; border: 1px solid #d8cfbe; padding: 0.7rem; color: #151515; }
 .flightplan-page .fp-route-legend strong,
 .flightplan-page .fp-route-legend span { display: block; }
+
+.flightplan-page .fp-route-continuation {
+  width: 100%;
+  background: #f5f2e8;
+  border: 3px solid #232323;
+  padding: 1rem;
+  font-family: 'Iowan Old Style', 'Palatino Linotype', 'Book Antiqua', Georgia, serif;
+}
+
+.flightplan-page .fp-route-continuation__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  border: 2px solid #232323;
+  border-bottom: 0;
+  background: #d6d6d6;
+  color: #151515;
+  padding: 0.45rem 0.65rem;
+  font-weight: 700;
+}
+
+.flightplan-page .fp-route-map-sheet {
+  position: relative;
+  overflow: hidden;
+  padding: 0;
+  width: 100%;
+  aspect-ratio: 297 / 210;
+}
+
+.flightplan-page .fp-print-map,
+.flightplan-page .fp-map-editor--print,
+.flightplan-page .fp-map-editor--print .fp-map-canvas,
+.flightplan-page .fp-map-editor--print .fp-leaflet-map {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 100% !important;
+  min-height: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
+}
+
+.flightplan-page .fp-map-editor--print .fp-map-canvas {
+  border: 0;
+  border-radius: 0;
+  overflow: hidden;
+}
+
+.flightplan-page .fp-map-editor--print .leaflet-container,
+.flightplan-page .fp-map-editor--print .leaflet-pane,
+.flightplan-page .fp-map-editor--print .leaflet-map-pane,
+.flightplan-page .fp-map-editor--print .leaflet-tile-pane {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.flightplan-page .fp-print-route-leg-info-marker {
+  background: transparent;
+  border: 0;
+}
+
+.flightplan-page .fp-print-route-leg-info-marker span {
+  display: grid;
+  gap: 0.05rem;
+  width: max-content;
+  min-width: 84px;
+  border: 1px solid rgba(21, 21, 21, 0.75);
+  border-radius: 4px;
+  padding: 0.22rem 0.34rem;
+  background: rgba(255, 253, 248, 0.92);
+  color: #151515;
+  box-shadow: 0 1px 4px rgba(21, 21, 21, 0.22);
+  font-family: 'Space Grotesk', 'Inter', sans-serif;
+  line-height: 1.05;
+  white-space: nowrap;
+}
+
+.flightplan-page .fp-print-route-leg-info-marker strong {
+  font-size: 0.66rem;
+}
+
+.flightplan-page .fp-print-route-leg-info-marker small {
+  font-size: 0.58rem;
+}
 
 .flightplan-page .fp-overlay-shell {
   position: fixed;
@@ -2937,6 +3028,21 @@
     margin: 0;
   }
 
+  @page flightplan-landscape {
+    size: A4 landscape;
+    margin: 0;
+  }
+
+  @page route-map-portrait {
+    size: A4 portrait;
+    margin: 0;
+  }
+
+  @page route-map-landscape {
+    size: A4 landscape;
+    margin: 0;
+  }
+
   .flightplan-page .fp-no-print,
   .leaflet-control-container {
     display: none !important;
@@ -2944,7 +3050,7 @@
 
   .flightplan-page {
     max-width: none;
-    width: 297mm;
+    width: 100vw;
     margin: 0;
     padding: 0;
     display: block;
@@ -2952,22 +3058,73 @@
     background: #fff;
   }
 
-  .flightplan-page .fp-document-stack { gap: 0; }
+  .flightplan-page .fp-document-stack { width: 297mm; gap: 0; }
   .flightplan-page .fp-document-sheet,
   .flightplan-page .fp-map-sheet {
     width: 297mm;
     height: 210mm;
     border-radius: 0;
     overflow: hidden;
-    break-after: page;
-    page-break-after: always;
     box-shadow: none;
     padding: 0;
     background: #fff;
   }
 
-  .flightplan-page .fp-map-sheet { break-before: page; page-break-before: always; page-break-after: auto; box-sizing: border-box; padding: 8mm 8mm 7mm; display: grid; grid-template-rows: auto 1fr; }
-  .flightplan-page .fp-flight-form { width: 297mm; height: 210mm; border: 0; padding: 4mm 5mm 3.5mm; box-sizing: border-box; overflow: hidden; font-size: 7.7pt; display: flex; flex-direction: column; }
+  .flightplan-page .fp-document-sheet {
+    break-after: page;
+    page-break-after: always;
+  }
+
+  .flightplan-page .fp-route-continuation-sheet {
+    page: flightplan-landscape;
+    box-sizing: border-box;
+    padding: 5mm;
+  }
+  .flightplan-page .fp-route-continuation {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    padding: 0;
+    box-sizing: border-box;
+    overflow: hidden;
+    font-size: 7.7pt;
+  }
+  .flightplan-page .fp-route-continuation__header {
+    border-width: 1px;
+    border-bottom: 0;
+    padding: 1.2mm 1.6mm;
+    font-size: 7.4pt;
+  }
+  .flightplan-page .fp-map-sheet {
+    break-before: auto;
+    break-after: auto;
+    page-break-before: auto;
+    page-break-after: auto;
+    box-sizing: border-box;
+    padding: 8mm 8mm 7mm;
+    display: grid;
+    grid-template-rows: auto 1fr;
+  }
+  .flightplan-page .fp-route-map-sheet {
+    position: relative;
+    padding: 0;
+    display: block;
+    overflow: hidden;
+  }
+  .flightplan-page .fp-route-map-sheet--landscape {
+    page: route-map-landscape;
+    width: 297mm;
+    height: 210mm;
+  }
+  .flightplan-page .fp-route-map-sheet--portrait {
+    page: route-map-landscape;
+    width: 297mm;
+    height: 210mm;
+  }
+  .flightplan-page .fp-document-sheet { page: flightplan-landscape; }
+  .flightplan-page .fp-route-map-sheet { page: route-map-landscape; }
+  .flightplan-page .fp-route-map-sheet--portrait { page: route-map-landscape; }
+  .flightplan-page .fp-flight-form { width: 100%; height: 100%; border: 0; padding: 4mm 5mm 3.5mm; box-sizing: border-box; overflow: hidden; font-size: 7.7pt; display: flex; flex-direction: column; }
   .flightplan-page .fp-flight-form__header { grid-template-columns: 31% 69%; margin-bottom: 2.2mm; border-width: 1px; }
   .flightplan-page .fp-title-box { min-height: 24mm; grid-template-columns: 18mm 1fr; border-right-width: 1px; }
   .flightplan-page .fp-crest { display: grid; place-items: center; border-right: 1px solid #232323; padding: 0.6mm; background: #fff; }
@@ -2984,31 +3141,66 @@
   .flightplan-page .fp-meta-date,
   .flightplan-page .fp-meta-captain,
   .flightplan-page .fp-meta-fpl-status { border-left: 0; }
-  .flightplan-page .fp-route-table__wrap { margin-bottom: 2.2mm; }
+  .flightplan-page .fp-route-table__wrap { margin-bottom: 3mm; }
   .flightplan-page .fp-route-table { font-size: 6.6pt; }
   .flightplan-page .fp-route-table th,
   .flightplan-page .fp-route-table td { border-width: 1px; padding: 1mm 0.6mm; line-height: 1.05; }
-  .flightplan-page .fp-bottom-grid { grid-template-columns: 1.35fr 1.55fr 0.95fr 1.15fr; margin-top: auto; }
+  .flightplan-page .fp-route-continuation .fp-route-table th,
+  .flightplan-page .fp-route-continuation .fp-route-table td { padding: 1.55mm 0.75mm; line-height: 1.1; }
+  .flightplan-page .fp-bottom-grid { grid-template-columns: 1.35fr 1.55fr 0.95fr 1.15fr; margin-top: 0; }
   .flightplan-page .fp-subtable { min-height: 0; border-width: 1px; }
-  .flightplan-page .fp-subtable-title { border-bottom-width: 1px; padding: 1mm; font-size: 7pt; }
+  .flightplan-page .fp-subtable-title { border-bottom-width: 1px; padding: 0.8mm 1mm; font-size: 6.8pt; line-height: 1.05; }
   .flightplan-page .fp-metric-row,
   .flightplan-page .fp-radio-row,
   .flightplan-page .fp-fuel-table > div,
-  .flightplan-page .fp-wb-grid > div { min-height: 6.5mm; border-bottom-width: 1px; }
-  .flightplan-page .fp-metric-row { padding: 0.9mm 1.2mm; line-height: 1.1; }
+  .flightplan-page .fp-wb-grid > div { min-height: 4.8mm; border-bottom-width: 1px; }
+  .flightplan-page .fp-metric-row { padding: 0.55mm 1.2mm; line-height: 1.05; }
   .flightplan-page .fp-radio-row { grid-template-columns: 1fr 24mm; }
-  .flightplan-page .fp-radio-row input { padding: 0.9mm 1.1mm; font-size: 7pt; }
+  .flightplan-page .fp-radio-row input { padding: 0.55mm 1.1mm; font-size: 6.7pt; line-height: 1.05; }
   .flightplan-page .fp-fuel-table span,
   .flightplan-page .fp-fuel-table strong,
   .flightplan-page .fp-wb-grid span,
-  .flightplan-page .fp-wb-grid strong { padding: 0.9mm 1.1mm; line-height: 1.1; }
-  .flightplan-page .fp-fuel-burn-note { padding: 1.2mm; font-size: 7.1pt; }
-  .flightplan-page .fp-wb-limits { padding: 1.1mm; gap: 0; line-height: 1.2; }
+  .flightplan-page .fp-wb-grid strong { padding: 0.55mm 1.1mm; line-height: 1.05; }
+  .flightplan-page .fp-fuel-burn-note { padding: 0.8mm 1.1mm; font-size: 6.8pt; }
+  .flightplan-page .fp-wb-limits { padding: 0.8mm 1.1mm; gap: 0; line-height: 1.1; }
   .flightplan-page .fp-map-header { margin-bottom: 3mm; }
   .flightplan-page .fp-map-header h2 { color: #151515; font-size: 16pt; }
   .flightplan-page .fp-map-meta,
   .flightplan-page .fp-eyebrow { color: #4a4a4a; }
   .flightplan-page .fp-route-preview { height: 100%; padding: 3mm; display: grid; grid-template-rows: 1fr auto; gap: 2.5mm; box-sizing: border-box; }
   .flightplan-page .fp-route-preview svg { height: 100%; min-height: 0; }
+  .flightplan-page .fp-route-preview--portrait { max-width: none; }
   .flightplan-page .fp-route-legend { margin-top: 0; gap: 2mm; font-size: 7.2pt; }
+  .flightplan-page .fp-print-map,
+  .flightplan-page .fp-map-editor--print,
+  .flightplan-page .fp-map-editor--print .fp-map-canvas,
+  .flightplan-page .fp-map-editor--print .fp-leaflet-map {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100% !important;
+    height: 100% !important;
+    min-width: 100% !important;
+    min-height: 100% !important;
+    max-width: none !important;
+    max-height: none !important;
+  }
+  .flightplan-page .fp-map-editor--print .fp-map-canvas {
+    border: 0;
+    border-radius: 0;
+    overflow: hidden;
+  }
+  .flightplan-page .fp-map-editor--print .leaflet-container,
+  .flightplan-page .fp-map-editor--print .leaflet-pane,
+  .flightplan-page .fp-map-editor--print .leaflet-map-pane,
+  .flightplan-page .fp-map-editor--print .leaflet-tile-pane {
+    width: 100% !important;
+    height: 100% !important;
+  }
+  .flightplan-page .fp-print-route-leg-info-marker strong {
+    font-size: 6.3pt;
+  }
+  .flightplan-page .fp-print-route-leg-info-marker small {
+    font-size: 5.6pt;
+  }
 }

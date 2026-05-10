@@ -163,6 +163,7 @@ type AirportServiceHoursSchedule = {
 }
 
 const mapLayerPreferencesStorageKey = 'flightplan.mapLayerPreferences.v2'
+const mapBasemapStorageKey = 'flightplan.basemap.v1'
 
 const defaultMapLayerPreferences: MapLayerPreferences = {
   airspaces: true,
@@ -197,6 +198,15 @@ const basemaps: Record<
     attribution:
       '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>, style by Humanitarian OpenStreetMap Team hosted by <a href="https://www.openstreetmap.fr/">OpenStreetMap France</a>',
   },
+}
+
+function readStoredBasemap(): BasemapKey {
+  if (typeof window === 'undefined') {
+    return 'topo'
+  }
+
+  const stored = window.localStorage.getItem(mapBasemapStorageKey)
+  return stored === 'topo' || stored === 'osm' || stored === 'hot' ? stored : 'topo'
 }
 
 const waypointIcon = divIcon({
@@ -1572,6 +1582,63 @@ function projectedOffsetMidpoint(
   }
 }
 
+function projectedOffsetRoutePoint(
+  map: L.Map | null,
+  a: FlightPlanInput['routeLegs'][number]['from'],
+  b: FlightPlanInput['routeLegs'][number]['to'],
+  fraction: number,
+  offsetPx: number,
+) {
+  if (!map) {
+    return {
+      lat: a.lat + (b.lat - a.lat) * fraction,
+      lon: a.lon + (b.lon - a.lon) * fraction,
+    }
+  }
+
+  const fromPoint = map.latLngToLayerPoint([a.lat, a.lon])
+  const toPoint = map.latLngToLayerPoint([b.lat, b.lon])
+  const dx = toPoint.x - fromPoint.x
+  const dy = toPoint.y - fromPoint.y
+  const length = Math.hypot(dx, dy)
+
+  if (length < 1e-6) {
+    return midpoint(a, b)
+  }
+
+  const routePoint = L.point(
+    fromPoint.x + dx * fraction,
+    fromPoint.y + dy * fraction,
+  )
+  const offsetPoint = L.point(
+    routePoint.x - (dy / length) * offsetPx,
+    routePoint.y + (dx / length) * offsetPx,
+  )
+  const offsetLatLng = map.layerPointToLatLng(offsetPoint)
+
+  return {
+    lat: offsetLatLng.lat,
+    lon: offsetLatLng.lng,
+  }
+}
+
+function createPrintRouteLegInfoIcon({
+  magneticHeading,
+  magneticTrack,
+  time,
+}: {
+  magneticHeading: number | string
+  magneticTrack: number | string
+  time: string
+}) {
+  return divIcon({
+    className: 'fp-print-route-leg-info-marker',
+    html: `<span><strong>MH ${magneticHeading}°</strong><small>MT ${magneticTrack}° · ${time}</small></span>`,
+    iconSize: [96, 34],
+    iconAnchor: [48, 34],
+  })
+}
+
 function createChevronIcon(rotationDeg: number) {
   return divIcon({
     className: 'fp-direction-icon',
@@ -1806,10 +1873,12 @@ function InitialViewportHandler({
   waypoints,
   focusedLegIndex,
   initialViewport,
+  printMode = false,
 }: {
   waypoints: FlightPlanInput['routeLegs'][number]['from'][]
   focusedLegIndex: number | null
   initialViewport: FlightplanMapViewport | null
+  printMode?: boolean
 }) {
   const map = useMap()
   const didApplyInitialViewport = useRef(false)
@@ -1825,7 +1894,7 @@ function InitialViewportHandler({
       })
     } else if (waypoints.length >= 2) {
       const bounds = L.latLngBounds(waypoints.map((point) => [point.lat, point.lon] as [number, number]))
-      map.fitBounds(bounds.pad(0.3), {
+      map.fitBounds(bounds.pad(printMode ? 0.14 : 0.3), {
         animate: false,
       })
     } else {
@@ -1835,7 +1904,60 @@ function InitialViewportHandler({
     }
 
     didApplyInitialViewport.current = true
-  }, [focusedLegIndex, initialViewport, map, waypoints])
+  }, [focusedLegIndex, initialViewport, map, printMode, waypoints])
+
+  return null
+}
+
+function PrintMapLayoutHandler({
+  waypoints,
+}: {
+  waypoints: FlightPlanInput['routeLegs'][number]['from'][]
+}) {
+  const map = useMap()
+
+  useEffect(() => {
+    const fitPrintMap = () => {
+      map.invalidateSize({ animate: false })
+
+      if (waypoints.length >= 2) {
+        const bounds = L.latLngBounds(waypoints.map((point) => [point.lat, point.lon] as [number, number]))
+        map.fitBounds(bounds, {
+          animate: false,
+          paddingTopLeft: [130, 115],
+          paddingBottomRight: [130, 115],
+        })
+      } else if (waypoints.length === 1) {
+        map.setView([waypoints[0].lat, waypoints[0].lon], 9, {
+          animate: false,
+        })
+      }
+    }
+
+    const scheduleFit = () => {
+      fitPrintMap()
+      window.setTimeout(fitPrintMap, 80)
+      window.setTimeout(fitPrintMap, 250)
+      window.setTimeout(fitPrintMap, 600)
+    }
+
+    scheduleFit()
+
+    const container = map.getContainer()
+    const resizeObserver = typeof ResizeObserver === 'undefined'
+      ? null
+      : new ResizeObserver(scheduleFit)
+    resizeObserver?.observe(container)
+
+    window.addEventListener('beforeprint', scheduleFit)
+    window.addEventListener('afterprint', scheduleFit)
+
+    return () => {
+      resizeObserver?.disconnect()
+      window.removeEventListener('beforeprint', scheduleFit)
+      window.removeEventListener('afterprint', scheduleFit)
+    }
+  }, [map, waypoints])
 
   return null
 }
@@ -1903,6 +2025,7 @@ export function FlightplanMapEditor({
   focusedLegIndex = null,
   initialViewport = null,
   onViewportChange,
+  printMode = false,
 }: {
   plan: FlightPlanInput
   derived: FlightPlanDerived
@@ -1923,12 +2046,13 @@ export function FlightplanMapEditor({
   focusedLegIndex?: number | null
   initialViewport?: FlightplanMapViewport | null
   onViewportChange?: (viewport: FlightplanMapViewport) => void
+  printMode?: boolean
 }) {
   const swedishAirspaces = getSwedishAirspaces()
   const swedishAirports = getSwedishAirports()
   const swedishNavaids = getSwedishNavaids()
   const swedishVisualPoints = getSwedishVisualPoints()
-  const [basemap, setBasemap] = useState<BasemapKey>('topo')
+  const [basemap, setBasemap] = useState<BasemapKey>(readStoredBasemap)
   const [mapLayerPreferences, setMapLayerPreferences] = useState(readStoredMapLayerPreferences)
   const [isMapLayerMenuOpen, setIsMapLayerMenuOpen] = useState(false)
   const [mapZoom, setMapZoom] = useState(7)
@@ -1950,6 +2074,8 @@ export function FlightplanMapEditor({
   const notamPanelHideTimeoutRef = useRef<number | null>(null)
   const pendingAirportNotamRef = useRef(new Set<string>())
   const pendingAirportWeatherRef = useRef(new Set<string>())
+  const mapCanvasRef = useRef<HTMLDivElement | null>(null)
+  const [printMapSizeKey, setPrintMapSizeKey] = useState('print-map-initial')
   const showAirspaces = mapLayerPreferences.airspaces
   const showWeatherOverlays = mapLayerPreferences.weatherOverlays
   const showNotamOverlays = mapLayerPreferences.notamOverlays
@@ -2174,12 +2300,62 @@ export function FlightplanMapEditor({
   }, [mapLayerPreferences])
 
   useEffect(() => {
+    window.localStorage.setItem(mapBasemapStorageKey, basemap)
+  }, [basemap])
+
+  useEffect(() => {
     airportWeatherByIcaoRef.current = airportWeatherByIcao
   }, [airportWeatherByIcao])
 
   useEffect(() => {
     visibleWeatherAirportsRef.current = visibleWeatherAirports
   }, [visibleWeatherAirports])
+
+  useEffect(() => {
+    if (!printMode) {
+      return
+    }
+
+    const element = mapCanvasRef.current
+    if (!element) {
+      return
+    }
+
+    let animationFrameId: number | null = null
+
+    const updateSizeKey = () => {
+      if (animationFrameId != null) {
+        window.cancelAnimationFrame(animationFrameId)
+      }
+
+      animationFrameId = window.requestAnimationFrame(() => {
+        animationFrameId = null
+        const rect = element.getBoundingClientRect()
+        const width = Math.round(rect.width)
+        const height = Math.round(rect.height)
+
+        if (width > 0 && height > 0) {
+          setPrintMapSizeKey(`print-map-${width}x${height}`)
+        }
+      })
+    }
+
+    updateSizeKey()
+
+    const resizeObserver = typeof ResizeObserver === 'undefined'
+      ? null
+      : new ResizeObserver(updateSizeKey)
+    resizeObserver?.observe(element)
+    window.addEventListener('beforeprint', updateSizeKey)
+
+    return () => {
+      if (animationFrameId != null) {
+        window.cancelAnimationFrame(animationFrameId)
+      }
+      resizeObserver?.disconnect()
+      window.removeEventListener('beforeprint', updateSizeKey)
+    }
+  }, [printMode])
 
   useEffect(() => {
     return () => {
@@ -2880,9 +3056,9 @@ export function FlightplanMapEditor({
   }
 
   return (
-    <section className="fp-map-editor">
-      <div className="fp-map-canvas">
-        <div className={`fp-map-hud-row ${isMapLayerMenuOpen ? 'fp-map-hud-row--layer-menu-open' : ''}`}>
+    <section className={`fp-map-editor${printMode ? ' fp-map-editor--print' : ''}`}>
+      <div className="fp-map-canvas" ref={mapCanvasRef}>
+        {!printMode ? <div className={`fp-map-hud-row ${isMapLayerMenuOpen ? 'fp-map-hud-row--layer-menu-open' : ''}`}>
           <div className="fp-map-hud fp-map-hud--top-right">
             <div className="fp-map-controls">
               {hasNotamMapNotice ? (
@@ -3027,9 +3203,9 @@ export function FlightplanMapEditor({
           ) : null}
           </div>
           {hudSlot ? <div className="fp-map-hud fp-map-hud--top-left fp-map-hud--editor">{hudSlot}</div> : null}
-        </div>
-        {hudTopCenterSlot ? <div className="fp-map-hud fp-map-hud--top-center">{hudTopCenterSlot}</div> : null}
-        {hudStatusSlot ? <div className="fp-map-hud fp-map-hud--bottom-center fp-map-hud--status">{hudStatusSlot}</div> : null}
+        </div> : null}
+        {!printMode && hudTopCenterSlot ? <div className="fp-map-hud fp-map-hud--top-center">{hudTopCenterSlot}</div> : null}
+        {!printMode && hudStatusSlot ? <div className="fp-map-hud fp-map-hud--bottom-center fp-map-hud--status">{hudStatusSlot}</div> : null}
         {selectedPointInfo ? (
           <aside className="fp-map-point-info-panel" role="status" aria-live="polite">
             <div className="fp-map-point-info-panel__header">
@@ -3145,22 +3321,29 @@ export function FlightplanMapEditor({
             </section>
           </aside>
         ) : null}
-        {!routeEditingEnabled && !selectedPointInfo && (
+        {!printMode && !routeEditingEnabled && !selectedPointInfo && (
           <div className="fp-map-empty-hint">
             Utforska kartan. Klicka för "Vad finns här?" eller välj Skapa rutt.
           </div>
         )}
-        {routeEditingEnabled && waypoints.length === 0 && (
+        {!printMode && routeEditingEnabled && waypoints.length === 0 && (
           <div className="fp-map-empty-hint">
             Klicka i kartan för att välja startpunkten
           </div>
         )}
-        {routeEditingEnabled && hasPendingStartPoint && (
+        {!printMode && routeEditingEnabled && hasPendingStartPoint && (
           <div className="fp-map-empty-hint">
             Startpunkt vald. Klicka igen i kartan för nästa waypoint.
           </div>
         )}
-        <MapContainer center={center} zoom={7} scrollWheelZoom zoomControl={false} className="fp-leaflet-map">
+        <MapContainer
+          key={printMode ? printMapSizeKey : 'interactive-map'}
+          center={center}
+          zoom={7}
+          scrollWheelZoom={!printMode}
+          zoomControl={false}
+          className="fp-leaflet-map"
+        >
           <ZoomControl position="topright" />
           <Pane name={notamMapPane} style={{ zIndex: 525 }} />
           <Pane name="fp-navaid-pane" style={{ zIndex: 530 }} />
@@ -3175,7 +3358,9 @@ export function FlightplanMapEditor({
             waypoints={displayWaypoints}
             focusedLegIndex={focusedLegIndex}
             initialViewport={initialViewport}
+            printMode={printMode}
           />
+          {printMode ? <PrintMapLayoutHandler waypoints={displayWaypoints} /> : null}
           <MapClickHandler
             onAddPoint={addPointToEnd}
             onInspectPoint={inspectPoint}
@@ -3803,6 +3988,24 @@ export function FlightplanMapEditor({
                   interactive={false}
                   keyboard={false}
                   zIndexOffset={200}
+                />
+              ) : null}
+              {printMode ? (
+                <Marker
+                  position={(() => {
+                    const point = projectedOffsetRoutePoint(mapInstance, leg.from, leg.to, 0.28, -22)
+                    return [point.lat, point.lon] as [number, number]
+                  })()}
+                  icon={createPrintRouteLegInfoIcon({
+                    magneticHeading: previewDerived.routeLegs[index]?.magneticHeading ?? '-',
+                    magneticTrack: previewDerived.routeLegs[index]
+                      ? Math.round(normalizeDegrees(previewDerived.routeLegs[index].trueTrack - leg.variation))
+                      : '-',
+                    time: formatTimeFromMinutes(previewDerived.routeLegs[index]?.legTimeMinutes ?? 0),
+                  })}
+                  interactive={false}
+                  keyboard={false}
+                  zIndexOffset={260}
                 />
               ) : null}
             </FeatureGroup>

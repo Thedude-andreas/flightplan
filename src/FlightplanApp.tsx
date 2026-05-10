@@ -38,6 +38,8 @@ type WorkspaceTab = 'flightplan' | 'map' | 'print'
 const aloftWindAutoFetchStorageKey = 'flightplan.aloftWindAutoFetch.v1'
 const debugNotamMapNoticeParam = 'debugNotamMapNotice'
 const startTimePassedThresholdMs = 60 * 60 * 1000
+const printFirstPageRouteRowCount = 13
+const printContinuationRouteRowCount = 32
 
 type RouteRow = {
   index: number
@@ -60,6 +62,7 @@ type RouteRow = {
   timeAcc: string
   notes: string
 }
+type RouteMapOrientation = 'landscape' | 'portrait'
 type RowContextMenuState = { x: number; y: number; rowIndex: number } | null
 type AltitudeDragState = {
   sourceIndex: number
@@ -344,6 +347,18 @@ function createRouteRows(
   }
 
   return rows.concat(Array.from({ length: targetLength - rows.length }, (_, index) => emptyRouteRow(rows.length + index)))
+}
+
+function splitPrintRouteRows(rows: RouteRow[]) {
+  const firstPageRows = rows.slice(0, printFirstPageRouteRowCount)
+  const continuationRows = rows.slice(printFirstPageRouteRowCount)
+  const continuationPages: RouteRow[][] = []
+
+  for (let index = 0; index < continuationRows.length; index += printContinuationRouteRowCount) {
+    continuationPages.push(continuationRows.slice(index, index + printContinuationRouteRowCount))
+  }
+
+  return { firstPageRows, continuationPages }
 }
 
 function cloneAircraftProfile(source: AircraftProfile): AircraftProfile {
@@ -819,9 +834,11 @@ export function FlightplanApp({
     [aloftWindAutoFetchEnabled, effectivePlan, derived, tasInputUnit],
   )
   const printRouteRows = useMemo(
-    () => createRouteRows(effectivePlan, derived, aloftWindAutoFetchEnabled, tasInputUnit, 13),
+    () => createRouteRows(effectivePlan, derived, aloftWindAutoFetchEnabled, tasInputUnit),
     [aloftWindAutoFetchEnabled, effectivePlan, derived, tasInputUnit],
   )
+  const printRoutePages = useMemo(() => splitPrintRouteRows(printRouteRows), [printRouteRows])
+  const routeMapOrientation = useMemo<RouteMapOrientation>(() => 'landscape', [])
   const suggestedRadioNav = useMemo(() => buildSuggestedRadioNav(plan), [plan])
   const effectiveRadioNav = useMemo(
     () => mergeRadioNavEntries(plan.radioNav, suggestedRadioNav),
@@ -1589,7 +1606,7 @@ export function FlightplanApp({
               <FlightPlanDocument
                 plan={plan}
                 derived={derived}
-                routeRows={printRouteRows}
+                routeRows={printRoutePages.firstPageRows}
                 tasInputUnit={tasInputUnit}
                 radioNavEntries={effectiveRadioNav}
                 isStartTimePassed={isStartTimePassed}
@@ -1629,8 +1646,18 @@ export function FlightplanApp({
               />
             </section>
 
-            <section className="fp-map-sheet">
-              <div className="fp-map-header">
+            {printRoutePages.continuationPages.map((routeRows, pageIndex) => (
+              <section className="fp-document-sheet fp-route-continuation-sheet" key={`route-continuation-${pageIndex}`}>
+                <FlightPlanRouteContinuation
+                  routeRows={routeRows}
+                  tasInputUnit={tasInputUnit}
+                  pageNumber={pageIndex + 2}
+                />
+              </section>
+            ))}
+
+            <section className={`fp-map-sheet fp-route-map-sheet fp-route-map-sheet--${routeMapOrientation}`}>
+              <div className="fp-map-header fp-no-print">
                 <div>
                   <p className="fp-eyebrow">Ruttöversikt</p>
                   <h2>Kartbild för utskrift</h2>
@@ -1641,7 +1668,24 @@ export function FlightplanApp({
                   <span>{formatNumber(derived.totals.distanceNm, 1)} nm</span>
                 </div>
               </div>
-              <RoutePreview legs={effectivePlan.routeLegs} />
+              <div className="fp-print-map">
+                <FlightplanMapEditor
+                  plan={effectivePlan}
+                  derived={derived}
+                  aloftWindAutoFetchEnabled={aloftWindAutoFetchEnabled}
+                  aloftWinds={aloftWindState.winds}
+                  aloftWindStatus={aloftWindState.status}
+                  sigmetText={weatherState.sigmetText}
+                  notamMapFeatures={notamMapFeatures}
+                  notamMapCoverage={notamMapCoverage}
+                  notamMapNotice={notamMapNotice}
+                  notamMapNoticeLinks={notamMapNoticeLinks}
+                  notamMapStatus={notamState.status}
+                  routeEditingEnabled={false}
+                  onRouteLegsChange={() => {}}
+                  printMode
+                />
+              </div>
             </section>
           </div>
         )}
@@ -2641,108 +2685,27 @@ function FlightPlanDocument({
             )}
           </div>
         </div>
-        <table className="fp-route-table">
-          <colgroup>
-            <col style={{ width: '7%' }} />
-            <col style={{ width: '5%' }} />
-            <col style={{ width: '4.2%' }} />
-            <col style={{ width: '4.2%' }} />
-            <col style={{ width: '4.2%' }} />
-            <col style={{ width: '4.2%' }} />
-            <col style={{ width: '4.2%' }} />
-            <col style={{ width: '4.2%' }} />
-            <col style={{ width: '6%' }} />
-            <col style={{ width: '16%' }} />
-            <col style={{ width: '5%' }} />
-            <col style={{ width: '6%' }} />
-            <col style={{ width: '6%' }} />
-            <col style={{ width: '5%' }} />
-            <col style={{ width: '5%' }} />
-            <col style={{ width: '13.8%' }} />
-          </colgroup>
-          <thead>
-            <tr>
-              <th>W/v</th><th className={tasInputUnit === 'mph' ? 'fp-tas-heading is-imperial' : 'fp-tas-heading'}>{`TAS (${tasInputUnit})`}</th><th>TT</th><th>WCA</th><th>TH</th><th>var</th><th>MT</th><th>MH</th><th>Alt</th><th>STRÄCKA</th><th>GS</th><th>DIST INT</th><th>DIST ACC</th><th>TID INT</th><th>TID ACC</th><th>NOTERING</th>
-            </tr>
-          </thead>
-          <tbody>
-            {routeRows.map((row) => (
-              <tr
-                key={String(row.index)}
-                onContextMenu={(event) => {
-                  if (!onOpenRowMenu || typeof row.index !== 'number' || row.index >= plan.routeLegs.length) {
-                    return
-                  }
-                  event.preventDefault()
-                  onOpenRowMenu(event.clientX, event.clientY, row.index)
-                }}
-                onPointerDown={(event) => {
-                  if (!onOpenRowMenu || typeof row.index !== 'number' || row.index >= plan.routeLegs.length || event.pointerType !== 'touch') {
-                    return
-                  }
-                  startLongPress(event, row.index)
-                }}
-                onPointerUp={clearPressTimer}
-                onPointerCancel={clearPressTimer}
-                onPointerLeave={clearPressTimer}
-                onPointerMove={clearPressTimer}
-              >
-                <td className={row.windManual ? 'fp-route-cell-button is-manual' : 'fp-route-cell-button'}>
-                  <WindCellInput
-                    value={row.wind}
-                    isManual={row.windManual}
-                    disabled={aloftWindAutoFetchEnabled}
-                    onCommit={(value) => onManualWindChange(row.index, value)}
-                  />
-                </td>
-                <td className={tasInputUnit === 'mph' ? 'fp-route-cell-button fp-route-cell-button--imperial' : 'fp-route-cell-button'}>
-                  <TasCellInput
-                    value={typeof row.tas === 'number' ? row.tas : ''}
-                    unit={tasInputUnit}
-                    onCommit={(value) => onTasChange(row.index, value)}
-                  />
-                </td>
-                <td className="fp-highlight-cell">{formatDegreeCellValue(row.tt)}</td>
-                <td>{formatDegreeCellValue(row.wca)}</td>
-                <td>{formatDegreeCellValue(row.th)}</td>
-                <td>{formatDegreeCellValue(row.variation)}</td>
-                <td className="fp-highlight-cell">{formatDegreeCellValue(row.mt)}</td>
-                <td className="fp-highlight-cell">{formatDegreeCellValue(row.mh)}</td>
-                <td className="fp-route-cell-button">
-                  <AltitudeCellSelect
-                    rowIndex={row.index}
-                    rootRef={altitudeMenuRootRef}
-                    value={row.altitude}
-                    trueTrack={typeof row.tt === 'number' ? row.tt : 0}
-                    variation={typeof row.variation === 'number' ? row.variation : 0}
-                    isActive={activeAltitudeLegIndex === row.index}
-                    isOpen={openAltitudeMenuIndex === row.index}
-                    onFocus={() => onAltitudeSelect(row.index)}
-                    onOpenChange={(nextOpen) => onAltitudeMenuOpenChange(nextOpen ? row.index : null)}
-                    onChange={(nextAltitude) => onAltitudeChange(row.index, nextAltitude)}
-                    onDragStart={onAltitudeDragStart}
-                    onDragEnter={onAltitudeDragEnter}
-                    onDragEnd={onAltitudeDragEnd}
-                  />
-                </td>
-                <td
-                  className="fp-highlight-cell fp-route-link"
-                  onClick={() => {
-                    if (typeof row.index === 'number' && row.index < plan.routeLegs.length) {
-                      onRouteSegmentSelect(row.index)
-                    }
-                  }}
-                >
-                  {row.segment}
-                </td>
-                <td>{formatUnitCellValue(row.gs, 'kt')}</td>
-                <td>{formatUnitCellValue(row.distInt, 'nm')}</td>
-                <td>{formatUnitCellValue(row.distAcc, 'nm')}</td>
-                <td>{row.timeInt}</td><td>{row.timeAcc}</td><td>{row.notes}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <RouteTable
+          routeRows={routeRows}
+          tasInputUnit={tasInputUnit}
+          planRouteLegCount={plan.routeLegs.length}
+          aloftWindAutoFetchEnabled={aloftWindAutoFetchEnabled}
+          activeAltitudeLegIndex={activeAltitudeLegIndex}
+          openAltitudeMenuIndex={openAltitudeMenuIndex}
+          altitudeMenuRootRef={altitudeMenuRootRef}
+          onManualWindChange={onManualWindChange}
+          onTasChange={onTasChange}
+          onAltitudeSelect={onAltitudeSelect}
+          onAltitudeMenuOpenChange={onAltitudeMenuOpenChange}
+          onAltitudeChange={onAltitudeChange}
+          onAltitudeDragStart={onAltitudeDragStart}
+          onAltitudeDragEnter={onAltitudeDragEnter}
+          onAltitudeDragEnd={onAltitudeDragEnd}
+          onRouteSegmentSelect={onRouteSegmentSelect}
+          onOpenRowMenu={onOpenRowMenu}
+          onStartLongPress={startLongPress}
+          onClearPressTimer={clearPressTimer}
+        />
       </section>
 
       <section className="fp-bottom-grid">
@@ -2816,6 +2779,209 @@ function FlightPlanDocument({
   )
 }
 
+function FlightPlanRouteContinuation({
+  routeRows,
+  tasInputUnit,
+  pageNumber,
+}: {
+  routeRows: RouteRow[]
+  tasInputUnit: 'kt' | 'mph'
+  pageNumber: number
+}) {
+  return (
+    <div className="fp-route-continuation">
+      <div className="fp-route-continuation__header">
+        <strong>Navigationsrader, fortsättning</strong>
+        <span>Sida {pageNumber}</span>
+      </div>
+      <RouteTable routeRows={routeRows} tasInputUnit={tasInputUnit} />
+    </div>
+  )
+}
+
+function RouteTable({
+  routeRows,
+  tasInputUnit,
+  planRouteLegCount = 0,
+  aloftWindAutoFetchEnabled = true,
+  activeAltitudeLegIndex = null,
+  openAltitudeMenuIndex = null,
+  altitudeMenuRootRef,
+  onManualWindChange,
+  onTasChange,
+  onAltitudeSelect,
+  onAltitudeMenuOpenChange,
+  onAltitudeChange,
+  onAltitudeDragStart,
+  onAltitudeDragEnter,
+  onAltitudeDragEnd,
+  onRouteSegmentSelect,
+  onOpenRowMenu,
+  onStartLongPress,
+  onClearPressTimer,
+}: {
+  routeRows: RouteRow[]
+  tasInputUnit: 'kt' | 'mph'
+  planRouteLegCount?: number
+  aloftWindAutoFetchEnabled?: boolean
+  activeAltitudeLegIndex?: number | null
+  openAltitudeMenuIndex?: number | null
+  altitudeMenuRootRef?: { current: HTMLDivElement | null }
+  onManualWindChange?: (rowIndex: number, value: string) => boolean
+  onTasChange?: (rowIndex: number, value: string) => boolean
+  onAltitudeSelect?: (rowIndex: number) => void
+  onAltitudeMenuOpenChange?: (rowIndex: number | null) => void
+  onAltitudeChange?: (rowIndex: number, altitude: string) => void
+  onAltitudeDragStart?: (rowIndex: number, clientX: number, clientY: number) => void
+  onAltitudeDragEnter?: (rowIndex: number, buttons: number, clientX: number, clientY: number) => void
+  onAltitudeDragEnd?: () => void
+  onRouteSegmentSelect?: (rowIndex: number) => void
+  onOpenRowMenu?: (x: number, y: number, rowIndex: number) => void
+  onStartLongPress?: (event: ReactPointerEvent<HTMLTableRowElement>, rowIndex: number) => void
+  onClearPressTimer?: () => void
+}) {
+  const canEdit = Boolean(
+    altitudeMenuRootRef &&
+      onManualWindChange &&
+      onTasChange &&
+      onAltitudeSelect &&
+      onAltitudeMenuOpenChange &&
+      onAltitudeChange &&
+      onAltitudeDragStart &&
+      onAltitudeDragEnter &&
+      onAltitudeDragEnd,
+  )
+
+  return (
+    <table className="fp-route-table">
+      <colgroup>
+        <col style={{ width: '7%' }} />
+        <col style={{ width: '5%' }} />
+        <col style={{ width: '4.2%' }} />
+        <col style={{ width: '4.2%' }} />
+        <col style={{ width: '4.2%' }} />
+        <col style={{ width: '4.2%' }} />
+        <col style={{ width: '4.2%' }} />
+        <col style={{ width: '4.2%' }} />
+        <col style={{ width: '6%' }} />
+        <col style={{ width: '16%' }} />
+        <col style={{ width: '5%' }} />
+        <col style={{ width: '6%' }} />
+        <col style={{ width: '6%' }} />
+        <col style={{ width: '5%' }} />
+        <col style={{ width: '5%' }} />
+        <col style={{ width: '13.8%' }} />
+      </colgroup>
+      <thead>
+        <tr>
+          <th>W/v</th><th className={tasInputUnit === 'mph' ? 'fp-tas-heading is-imperial' : 'fp-tas-heading'}>{`TAS (${tasInputUnit})`}</th><th>TT</th><th>WCA</th><th>TH</th><th>var</th><th>MT</th><th>MH</th><th>Alt</th><th>STRÄCKA</th><th>GS</th><th>DIST INT</th><th>DIST ACC</th><th>TID INT</th><th>TID ACC</th><th>NOTERING</th>
+        </tr>
+      </thead>
+      <tbody>
+        {routeRows.map((row, tableIndex) => {
+          const hasRouteLeg = typeof row.index === 'number' && row.index < planRouteLegCount
+
+          return (
+            <tr
+              key={`${row.index}-${tableIndex}-${row.segment}`}
+              onContextMenu={(event) => {
+                if (!onOpenRowMenu || !hasRouteLeg) {
+                  return
+                }
+                event.preventDefault()
+                onOpenRowMenu(event.clientX, event.clientY, row.index)
+              }}
+              onPointerDown={(event) => {
+                if (!onStartLongPress || !hasRouteLeg || event.pointerType !== 'touch') {
+                  return
+                }
+                onStartLongPress(event, row.index)
+              }}
+              onPointerUp={onClearPressTimer}
+              onPointerCancel={onClearPressTimer}
+              onPointerLeave={onClearPressTimer}
+              onPointerMove={onClearPressTimer}
+            >
+              <td className={row.windManual ? 'fp-route-cell-button is-manual' : 'fp-route-cell-button'}>
+                {canEdit && hasRouteLeg && onManualWindChange ? (
+                  <WindCellInput
+                    value={row.wind}
+                    isManual={row.windManual}
+                    disabled={aloftWindAutoFetchEnabled}
+                    onCommit={(value) => onManualWindChange(row.index, value)}
+                  />
+                ) : (
+                  row.wind
+                )}
+              </td>
+              <td className={tasInputUnit === 'mph' ? 'fp-route-cell-button fp-route-cell-button--imperial' : 'fp-route-cell-button'}>
+                {canEdit && hasRouteLeg && onTasChange ? (
+                  <TasCellInput
+                    value={typeof row.tas === 'number' ? row.tas : ''}
+                    unit={tasInputUnit}
+                    onCommit={(value) => onTasChange(row.index, value)}
+                  />
+                ) : (
+                  row.tas
+                )}
+              </td>
+              <td className="fp-highlight-cell">{formatDegreeCellValue(row.tt)}</td>
+              <td>{formatDegreeCellValue(row.wca)}</td>
+              <td>{formatDegreeCellValue(row.th)}</td>
+              <td>{formatDegreeCellValue(row.variation)}</td>
+              <td className="fp-highlight-cell">{formatDegreeCellValue(row.mt)}</td>
+              <td className="fp-highlight-cell">{formatDegreeCellValue(row.mh)}</td>
+              <td className="fp-route-cell-button">
+                {canEdit &&
+                hasRouteLeg &&
+                altitudeMenuRootRef &&
+                onAltitudeSelect &&
+                onAltitudeMenuOpenChange &&
+                onAltitudeChange &&
+                onAltitudeDragStart &&
+                onAltitudeDragEnter &&
+                onAltitudeDragEnd ? (
+                  <AltitudeCellSelect
+                    rowIndex={row.index}
+                    rootRef={altitudeMenuRootRef}
+                    value={row.altitude}
+                    trueTrack={typeof row.tt === 'number' ? row.tt : 0}
+                    variation={typeof row.variation === 'number' ? row.variation : 0}
+                    isActive={activeAltitudeLegIndex === row.index}
+                    isOpen={openAltitudeMenuIndex === row.index}
+                    onFocus={() => onAltitudeSelect(row.index)}
+                    onOpenChange={(nextOpen) => onAltitudeMenuOpenChange(nextOpen ? row.index : null)}
+                    onChange={(nextAltitude) => onAltitudeChange(row.index, nextAltitude)}
+                    onDragStart={onAltitudeDragStart}
+                    onDragEnter={onAltitudeDragEnter}
+                    onDragEnd={onAltitudeDragEnd}
+                  />
+                ) : (
+                  row.altitude
+                )}
+              </td>
+              <td
+                className="fp-highlight-cell fp-route-link"
+                onClick={() => {
+                  if (hasRouteLeg) {
+                    onRouteSegmentSelect?.(row.index)
+                  }
+                }}
+              >
+                {row.segment}
+              </td>
+              <td>{formatUnitCellValue(row.gs, 'kt')}</td>
+              <td>{formatUnitCellValue(row.distInt, 'nm')}</td>
+              <td>{formatUnitCellValue(row.distAcc, 'nm')}</td>
+              <td>{row.timeInt}</td><td>{row.timeAcc}</td><td>{row.notes}</td>
+            </tr>
+          )
+        })}
+      </tbody>
+    </table>
+  )
+}
+
 function HeaderField({
   label,
   children,
@@ -2830,65 +2996,5 @@ function HeaderField({
       <span>{label}</span>
       <div>{children}</div>
     </label>
-  )
-}
-
-function RoutePreview({ legs }: { legs: FlightPlanInput['routeLegs'] }) {
-  const points = legs.flatMap((leg, index) => (index === 0 ? [leg.from, leg.to] : [leg.to]))
-  const lats = points.map((point) => point.lat)
-  const lons = points.map((point) => point.lon)
-  const minLat = Math.min(...lats)
-  const maxLat = Math.max(...lats)
-  const minLon = Math.min(...lons)
-  const maxLon = Math.max(...lons)
-
-  const project = (lat: number, lon: number) => {
-    const width = 760
-    const height = 420
-    const padding = 40
-    const x = padding + ((lon - minLon) / Math.max(maxLon - minLon, 0.01)) * (width - padding * 2)
-    const y = height - padding - ((lat - minLat) / Math.max(maxLat - minLat, 0.01)) * (height - padding * 2)
-    return { x, y }
-  }
-
-  const polyline = points.map((point) => {
-    const projected = project(point.lat, point.lon)
-    return `${projected.x},${projected.y}`
-  }).join(' ')
-
-  return (
-    <div className="fp-route-preview">
-      <svg viewBox="0 0 760 420" role="img" aria-label="Ruttöversikt">
-        <rect x="0" y="0" width="760" height="420" fill="#f6f3ea" />
-        {Array.from({ length: 7 }, (_, index) => (
-          <line key={`h-${index}`} x1="40" x2="720" y1={40 + index * 56} y2={40 + index * 56} stroke="#ddd5c4" strokeDasharray="4 6" />
-        ))}
-        {Array.from({ length: 6 }, (_, index) => (
-          <line key={`v-${index}`} y1="40" y2="380" x1={40 + index * 136} x2={40 + index * 136} stroke="#ddd5c4" strokeDasharray="4 6" />
-        ))}
-        <polyline fill="none" stroke="#ff35c4" strokeWidth="5" strokeLinejoin="round" strokeLinecap="round" points={polyline} />
-        {points.map((point, index) => {
-          const projected = project(point.lat, point.lon)
-          const label = getRoutePointLabel(point)
-          return (
-            <g key={`${label}-${index}`}>
-              <circle cx={projected.x} cy={projected.y} r="7" fill="#ff35c4" stroke="#ffffff" strokeWidth="3" />
-              <text x={projected.x + 10} y={projected.y - 12} fontSize="16" fill="#3a3228" fontWeight="600">
-                {label}
-              </text>
-            </g>
-          )
-        })}
-      </svg>
-
-      <div className="fp-route-legend">
-        {legs.map((leg, index) => (
-          <div key={`${getRoutePointLabel(leg.from)}-${getRoutePointLabel(leg.to)}-${index}`}>
-            <strong>{getRoutePointLabel(leg.from)} → {getRoutePointLabel(leg.to)}</strong>
-            <span>{leg.altitude} · {leg.windDirection}/{leg.windSpeedKt} kt</span>
-          </div>
-        ))}
-      </div>
-    </div>
   )
 }
