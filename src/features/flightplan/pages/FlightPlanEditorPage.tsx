@@ -479,6 +479,10 @@ export function FlightPlanEditorPage() {
     )
   }
 
+  const openPrintPreview = () => {
+    setEditorActiveTab('print')
+  }
+
   const renderToolbarContent = (mode: 'default' | 'map') => {
     const mapReturnTo = `${location.pathname}${location.search}`
     const mapPanelLink = (path: string) => {
@@ -490,10 +494,10 @@ export function FlightPlanEditorPage() {
     const printButton =
       editorActiveTab === 'print' ? (
         <button type="button" onClick={() => window.print()}>
-          Skriv ut formulär
+          Skriv ut
         </button>
       ) : (
-        <button type="button" onClick={() => setEditorActiveTab('print')}>
+        <button type="button" onClick={openPrintPreview}>
           Skriv ut
         </button>
       )
