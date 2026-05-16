@@ -2005,6 +2005,117 @@ function RouteInsertDragHandler({
   return null
 }
 
+function RouteInsertTouchDragHandler({
+  enabled,
+  routeSegmentCount,
+  onStart,
+  onMove,
+  onEnd,
+}: {
+  enabled: boolean
+  routeSegmentCount: number
+  onStart: (segmentIndex: number, lat: number, lon: number) => void
+  onMove: (lat: number, lon: number) => void
+  onEnd: (lat: number, lon: number) => void
+}) {
+  const map = useMap()
+
+  useEffect(() => {
+    if (!enabled || routeSegmentCount === 0) {
+      return
+    }
+
+    const container = map.getContainer()
+    let removeDocumentListeners: (() => void) | null = null
+
+    const touchToLatLng = (touch: Touch) =>
+      map.containerPointToLatLng(map.mouseEventToContainerPoint(touch as unknown as MouseEvent))
+
+    const parseRouteSegmentIndex = (target: EventTarget | null) => {
+      if (!(target instanceof Element)) {
+        return null
+      }
+
+      const segmentElement = target.closest('.fp-route-segment')
+      const segmentClass = Array.from(segmentElement?.classList ?? [])
+        .find((className) => className.startsWith('fp-route-segment--'))
+      const segmentIndex = Number(segmentClass?.replace('fp-route-segment--', ''))
+
+      return Number.isInteger(segmentIndex) && segmentIndex >= 0 && segmentIndex < routeSegmentCount
+        ? segmentIndex
+        : null
+    }
+
+    const handleTouchStart = (event: TouchEvent) => {
+      if (event.touches.length !== 1) {
+        return
+      }
+
+      const segmentIndex = parseRouteSegmentIndex(event.target)
+      if (segmentIndex == null) {
+        return
+      }
+
+      event.preventDefault()
+      event.stopPropagation()
+
+      let latestLatLng = touchToLatLng(event.touches[0])
+      onStart(segmentIndex, latestLatLng.lat, latestLatLng.lng)
+
+      const handleTouchMove = (moveEvent: TouchEvent) => {
+        if (moveEvent.touches.length !== 1) {
+          return
+        }
+
+        moveEvent.preventDefault()
+        moveEvent.stopPropagation()
+        latestLatLng = touchToLatLng(moveEvent.touches[0])
+        onMove(latestLatLng.lat, latestLatLng.lng)
+      }
+
+      const handleTouchEnd = (endEvent: TouchEvent) => {
+        endEvent.preventDefault()
+        endEvent.stopPropagation()
+
+        if (endEvent.changedTouches.length > 0) {
+          latestLatLng = touchToLatLng(endEvent.changedTouches[0])
+        }
+
+        removeDocumentListeners?.()
+        removeDocumentListeners = null
+        onEnd(latestLatLng.lat, latestLatLng.lng)
+      }
+
+      const handleTouchCancel = (cancelEvent: TouchEvent) => {
+        cancelEvent.preventDefault()
+        cancelEvent.stopPropagation()
+        removeDocumentListeners?.()
+        removeDocumentListeners = null
+        onEnd(latestLatLng.lat, latestLatLng.lng)
+      }
+
+      removeDocumentListeners?.()
+      document.addEventListener('touchmove', handleTouchMove, { passive: false })
+      document.addEventListener('touchend', handleTouchEnd, { passive: false })
+      document.addEventListener('touchcancel', handleTouchCancel, { passive: false })
+      removeDocumentListeners = () => {
+        document.removeEventListener('touchmove', handleTouchMove)
+        document.removeEventListener('touchend', handleTouchEnd)
+        document.removeEventListener('touchcancel', handleTouchCancel)
+      }
+    }
+
+    container.addEventListener('touchstart', handleTouchStart, { passive: false })
+
+    return () => {
+      container.removeEventListener('touchstart', handleTouchStart)
+      removeDocumentListeners?.()
+    }
+  }, [enabled, map, onEnd, onMove, onStart, routeSegmentCount])
+
+  return null
+}
+
 export function FlightplanMapEditor({
   plan,
   derived,
@@ -2061,6 +2172,7 @@ export function FlightplanMapEditor({
   const [selectedPointInfo, setSelectedPointInfo] = useState<MapPointInfo | null>(null)
   const [dragPreviewWaypoints, setDragPreviewWaypoints] = useState<ReturnType<typeof legsToWaypoints> | null>(null)
   const [activeSegmentInsertIndex, setActiveSegmentInsertIndex] = useState<number | null>(null)
+  const activeSegmentInsertIndexRef = useRef<number | null>(null)
   const [hoveredAirspaceIds, setHoveredAirspaceIds] = useState<string[]>([])
   const [hoveredNotamFeature, setHoveredNotamFeature] = useState<NotamMapOverlayFeature | null>(null)
   const [airportNotamByIcao, setAirportNotamByIcao] = useState<Record<string, AirportNotamLookup>>({})
@@ -2761,6 +2873,7 @@ export function FlightplanMapEditor({
 
   const setWaypoints = (nextWaypoints: typeof waypoints) => {
     setDragPreviewWaypoints(null)
+    activeSegmentInsertIndexRef.current = null
     setActiveSegmentInsertIndex(null)
     const nextLegs = waypointsToLegs(nextWaypoints, plan.routeLegs, DEFAULT_ROUTE_TAS_KT)
     onRouteLegsChange(nextLegs)
@@ -2990,6 +3103,7 @@ export function FlightplanMapEditor({
     }
 
     suppressNextMapClick.current = true
+    activeSegmentInsertIndexRef.current = segmentIndex + 1
     setActiveSegmentInsertIndex(segmentIndex + 1)
 
     if (mapInstance) {
@@ -3000,25 +3114,27 @@ export function FlightplanMapEditor({
   }
 
   const updateSegmentInsertDrag = (lat: number, lon: number) => {
-    if (activeSegmentInsertIndex == null) {
+    const activeIndex = activeSegmentInsertIndexRef.current ?? activeSegmentInsertIndex
+    if (activeIndex == null) {
       return
     }
 
     setDragPreviewWaypoints((current) => {
       if (!current) {
         const next = [...waypoints]
-        next.splice(activeSegmentInsertIndex, 0, resolveRoutePoint(lat, lon))
+        next.splice(activeIndex, 0, resolveRoutePoint(lat, lon))
         return next
       }
 
       return current.map((point, pointIndex) =>
-        pointIndex === activeSegmentInsertIndex ? resolveRoutePoint(lat, lon) : point,
+        pointIndex === activeIndex ? resolveRoutePoint(lat, lon) : point,
       )
     })
   }
 
   const endSegmentInsertDrag = (lat: number, lon: number) => {
-    if (activeSegmentInsertIndex == null) {
+    const activeIndex = activeSegmentInsertIndexRef.current ?? activeSegmentInsertIndex
+    if (activeIndex == null) {
       return
     }
 
@@ -3026,7 +3142,7 @@ export function FlightplanMapEditor({
       mapInstance.dragging.enable()
     }
 
-    insertWaypointAt(activeSegmentInsertIndex, lat, lon)
+    insertWaypointAt(activeIndex, lat, lon)
   }
 
   const removeWaypoint = (index: number) => {
@@ -3373,6 +3489,13 @@ export function FlightplanMapEditor({
           {onViewportChange ? <MapViewportHandler onViewportChange={onViewportChange} /> : null}
           <RouteInsertDragHandler
             activeSegmentIndex={activeSegmentInsertIndex}
+            onMove={updateSegmentInsertDrag}
+            onEnd={endSegmentInsertDrag}
+          />
+          <RouteInsertTouchDragHandler
+            enabled={routeEditingEnabled}
+            routeSegmentCount={previewRouteLegs.length}
+            onStart={startSegmentInsertDrag}
             onMove={updateSegmentInsertDrag}
             onEnd={endSegmentInsertDrag}
           />
@@ -3953,7 +4076,11 @@ export function FlightplanMapEditor({
                   [leg.from.lat, leg.from.lon],
                   [leg.to.lat, leg.to.lon],
                 ]}
-                pathOptions={{ color: '#ff35c4', weight: routeLineWeight }}
+                pathOptions={{
+                  color: '#ff35c4',
+                  weight: routeLineWeight,
+                  className: `fp-route-segment fp-route-segment--${index}`,
+                }}
                 eventHandlers={{
                   mousedown: (event) => {
                     if (!routeEditingEnabled) {
