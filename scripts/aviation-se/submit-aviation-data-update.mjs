@@ -225,6 +225,14 @@ function itemKey(fileName, item) {
     return `${item?.name ?? ''}:${item?.kind ?? ''}:${item?.lat ?? ''}:${item?.lon ?? ''}`
   }
 
+  if (fileName === 'airport-frequencies.se.json') {
+    return `${item?.positionIndicator ?? ''}:${item?.kind ?? ''}:${item?.unit ?? ''}:${item?.hours ?? ''}:${item?.remarks ?? ''}`
+  }
+
+  if (fileName === 'airspace-frequencies.se.json') {
+    return `${item?.positionIndicator ?? ''}:${item?.kind ?? ''}:${item?.name ?? ''}:${item?.unit ?? item?.callSign ?? ''}`
+  }
+
   return item?.id ??
     item?.icao ??
     `${item?.positionIndicator ?? ''}:${item?.kind ?? ''}:${item?.name ?? item?.unit ?? item?.sectorName ?? ''}`
@@ -244,6 +252,22 @@ function itemLabel(item) {
   }
 
   return String(item?.id ?? item?.name ?? item?.positionIndicator ?? 'unknown')
+}
+
+function frequencyList(item) {
+  return Array.isArray(item?.frequencies) ? item.frequencies.join(', ') : null
+}
+
+function changeLabel(fileName, previous, next) {
+  if (fileName === 'airport-frequencies.se.json') {
+    return `${next.positionIndicator} ${next.unit} [${next.kind}] ${frequencyList(previous) ?? '-'} -> ${frequencyList(next) ?? '-'}`
+  }
+
+  if (fileName === 'airspace-frequencies.se.json') {
+    return `${next.positionIndicator ?? 'NO-ICAO'} ${next.name} -> ${next.unit ?? next.callSign ?? 'NO-UNIT'} ${frequencyList(previous) ?? '-'} -> ${frequencyList(next) ?? '-'}`
+  }
+
+  return itemLabel(next)
 }
 
 function distanceNm(left, right) {
@@ -302,7 +326,7 @@ function summarizeCollection(fileName, previousPayload, nextPayload) {
     if (!previous.has(key)) {
       added.push(`- tillagd ${itemLabel(item)}`)
     } else if (stableStringify(previous.get(key)) !== stableStringify(item)) {
-      changed.push(`- ändrad ${itemLabel(item)}`)
+      changed.push(`- ändrad ${changeLabel(fileName, previous.get(key), item)}`)
     }
   }
 
@@ -312,7 +336,7 @@ function summarizeCollection(fileName, previousPayload, nextPayload) {
     }
   }
 
-  return [...added, ...removed, ...changed].slice(0, 12)
+  return [...changed, ...added, ...removed].slice(0, 40)
 }
 
 function collectionChanged(fileName, previousPayload, nextPayload) {

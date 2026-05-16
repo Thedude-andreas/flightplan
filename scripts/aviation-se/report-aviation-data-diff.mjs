@@ -91,7 +91,7 @@ function summarizeDatasetCounts(path, current, previous) {
   return `- \`${path}\`: ${previousCount ?? 'new'} -> ${currentCount ?? 'n/a'}`
 }
 
-function diffCollections(previousItems, currentItems, getId, summarize) {
+function diffCollections(previousItems, currentItems, getId, summarize, summarizeChange = summarize) {
   const previousMap = new Map((previousItems ?? []).map((item) => [getId(item), item]))
   const currentMap = new Map((currentItems ?? []).map((item) => [getId(item), item]))
 
@@ -107,7 +107,7 @@ function diffCollections(previousItems, currentItems, getId, summarize) {
 
     const previousItem = previousMap.get(id)
     if (stableStringify(previousItem) !== stableStringify(currentItem)) {
-      changed.push(`- changed ${summarize(currentItem)}`)
+      changed.push(`- changed ${summarizeChange(previousItem, currentItem)}`)
     }
   }
 
@@ -128,8 +128,16 @@ function summarizeAirportFrequency(record) {
   return `${record.positionIndicator} ${record.unit} [${record.kind}] -> ${frequencyList(record)}`
 }
 
+function summarizeAirportFrequencyChange(previous, current) {
+  return `${current.positionIndicator} ${current.unit} [${current.kind}] ${frequencyList(previous)} -> ${frequencyList(current)}`
+}
+
 function summarizeAirspaceFrequency(record) {
   return `${record.positionIndicator ?? 'NO-ICAO'} ${record.name} -> ${record.unit ?? record.callSign ?? 'NO-UNIT'} -> ${frequencyList(record)}`
+}
+
+function summarizeAirspaceFrequencyChange(previous, current) {
+  return `${current.positionIndicator ?? 'NO-ICAO'} ${current.name} -> ${current.unit ?? current.callSign ?? 'NO-UNIT'} ${frequencyList(previous)} -> ${frequencyList(current)}`
 }
 
 function summarizeNavaid(record) {
@@ -157,15 +165,17 @@ function buildFrequencySections(previous, current) {
   const airportFrequencies = diffCollections(
     previous?.airportFrequencies,
     current?.airportFrequencies,
-    (record) => `${record.positionIndicator}:${record.kind}:${record.unit}:${frequencyList(record)}`,
+    (record) => `${record.positionIndicator}:${record.kind}:${record.unit}:${record.hours ?? ''}:${record.remarks ?? ''}`,
     summarizeAirportFrequency,
+    summarizeAirportFrequencyChange,
   )
 
   const airspaceFrequencies = diffCollections(
     previous?.airspaceFrequencies,
     current?.airspaceFrequencies,
-    (record) => `${record.positionIndicator ?? ''}:${record.kind}:${record.name}:${record.unit ?? record.callSign ?? ''}:${frequencyList(record)}`,
+    (record) => `${record.positionIndicator ?? ''}:${record.kind}:${record.name}:${record.unit ?? record.callSign ?? ''}`,
     summarizeAirspaceFrequency,
+    summarizeAirspaceFrequencyChange,
   )
 
   return [

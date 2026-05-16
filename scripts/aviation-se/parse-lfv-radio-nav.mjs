@@ -32,6 +32,33 @@ function isFrequencyToken(value) {
   return /^\d{3}\.\d{3}$/.test(value) || /^\d{3}\.\d{2}$/.test(value)
 }
 
+function is8_33ReplacementPair(previousFrequency, nextFrequency) {
+  if (!isFrequencyToken(previousFrequency) || !isFrequencyToken(nextFrequency)) {
+    return false
+  }
+
+  const previous = Number(previousFrequency)
+  const next = Number(nextFrequency)
+  return Math.abs(next - previous - 0.005) < 0.0001
+}
+
+function collapse8_33ReplacementTokens(tokens) {
+  const frequencies = []
+
+  for (let index = 0; index < tokens.length; index += 1) {
+    const current = tokens[index]
+    const next = tokens[index + 1]
+    if (next && is8_33ReplacementPair(current, next)) {
+      frequencies.push(next)
+      index += 1
+    } else {
+      frequencies.push(current)
+    }
+  }
+
+  return frequencies
+}
+
 function looksLikeLateralLimit(value) {
   return /\d{6}[NS]\d{7}[EW]/.test(value) || /A circle with radius/i.test(value)
 }
@@ -51,7 +78,15 @@ function normalizeFrequency(value) {
     .replace(/KHZ/i, ' kHz')
     .trim()
 
-  return normalized || null
+  if (!normalized) {
+    return null
+  }
+
+  return normalized.replace(
+    /\b(\d{3}\.\d{2,3})\s+(\d{3}\.\d{2,3})\b/g,
+    (match, previousFrequency, nextFrequency) =>
+      is8_33ReplacementPair(previousFrequency, nextFrequency) ? nextFrequency : match,
+  )
 }
 
 function normalizeAltitudeValue(value) {
@@ -206,11 +241,12 @@ function listOfflineAirportPages() {
   const entries = []
 
   if (existsSync(offlineZipPath)) {
-    const output = execFileSync(
-      'python3',
-      [
-        '-c',
-        `
+    try {
+      const output = execFileSync(
+        'python3',
+        [
+          '-c',
+          `
 import json
 import re
 import sys
@@ -224,14 +260,17 @@ with zipfile.ZipFile(sys.argv[1]) as archive:
             entries.append({"icao": match.group(1), "path": name})
     print(json.dumps(entries, ensure_ascii=False))
         `,
-        offlineZipPath,
-      ],
-      {
-      encoding: 'utf8',
-      maxBuffer: 10 * 1024 * 1024,
-    })
+          offlineZipPath,
+        ],
+        {
+        encoding: 'utf8',
+        maxBuffer: 10 * 1024 * 1024,
+      })
 
-    return JSON.parse(output).map((entry) => ({ ...entry, source: 'zip' }))
+      return JSON.parse(output).map((entry) => ({ ...entry, source: 'zip' }))
+    } catch (error) {
+      console.warn(`Unable to read ${offlineZipPath}; falling back to extracted AIP directory.`)
+    }
   }
 
   const extractedDir = resolve('data/aviation/se/raw/lfv/AIP_OFFLINE/eAIP')
@@ -570,7 +609,7 @@ function parseSectionRows(tokens, startMarker, endMarker, kind) {
     const classIndex = extras.findIndex((token) => /^Class\b/i.test(token))
     const unit = classIndex >= 0 ? extras[classIndex + 1] ?? null : null
     const callSign = classIndex >= 0 ? extras[classIndex + 2] ?? null : null
-    const frequencies = [...new Set(extras.filter(isFrequencyToken))]
+    const frequencies = [...new Set(collapse8_33ReplacementTokens(extras.filter(isFrequencyToken)))]
 
     rows.push({
       kind,
@@ -622,7 +661,7 @@ function parseFirRows(tokens) {
       nextIndex += 1
     }
 
-    const frequencies = [...new Set(extras.slice(index + 4, nextIndex).filter(isFrequencyToken))]
+    const frequencies = [...new Set(collapse8_33ReplacementTokens(extras.slice(index + 4, nextIndex).filter(isFrequencyToken)))]
     if (frequencies.length > 0) {
       records.push({
         kind: 'FIR',
@@ -669,6 +708,7 @@ function parseAccSectorRows(tokens) {
     const frequencies = frequencyTokens
       .flatMap((token) => [...token.matchAll(/\d{3}\.\d{3}/g)].map((match) => match[0]))
       .filter(Boolean)
+    const normalizedFrequencies = collapse8_33ReplacementTokens(frequencies)
 
     const frequencyLabel = normalizeDisplayText(frequencyTokens.join(', ').replace(/\s+/g, ' ').trim())
 
@@ -687,7 +727,7 @@ function parseAccSectorRows(tokens) {
         sectorName: normalizeDisplayText(sectorName),
         subAreaName,
         frequencyLabel,
-        frequencies,
+        frequencies: normalizedFrequencies,
         lateral,
         upper,
         lower,

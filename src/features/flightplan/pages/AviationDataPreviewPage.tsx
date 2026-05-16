@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { CircleMarker, GeoJSON, MapContainer, Pane, TileLayer, Tooltip, ZoomControl } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import '../flightplan.css'
-import type { SwedishAirspace, SwedishAirport, SwedishNavaid } from '../aviationData'
+import type { SwedishAirspace, SwedishAirport, SwedishAirportFrequency, SwedishAirspaceFrequency, SwedishNavaid } from '../aviationData'
 
 type PlaceEntry = {
   id?: string
@@ -36,6 +36,12 @@ type RadioNavPayload = {
   navaids?: SwedishNavaid[]
 }
 
+type FrequencyChange<T> = {
+  state: ChangeState
+  previous: T | null
+  next: T
+}
+
 type PlacesPayload = PlaceEntry[] | {
   places?: PlaceEntry[]
 }
@@ -45,6 +51,8 @@ type DataSet = {
   airspaces: SwedishAirspace[]
   navaids: SwedishNavaid[]
   places: PlaceEntry[]
+  airportFrequencies: SwedishAirportFrequency[]
+  airspaceFrequencies: SwedishAirspaceFrequency[]
 }
 
 type ChangeState = 'added' | 'changed'
@@ -67,6 +75,10 @@ type PreviewDiff = {
   airports: Array<PointChange<SwedishAirport>>
   navaids: Array<PointChange<SwedishNavaid>>
   places: Array<PointChange<PlaceEntry>>
+  airportFrequencies: Array<FrequencyChange<SwedishAirportFrequency>>
+  airspaceFrequencies: Array<FrequencyChange<SwedishAirspaceFrequency>>
+  airportFrequencyMarkers: Array<{ change: FrequencyChange<SwedishAirportFrequency>; airport: SwedishAirport }>
+  airspaceFrequencyAirspaces: SwedishAirspace[]
 }
 
 const currentBaseUrlParam = 'aviationDataCurrentBaseUrl'
@@ -158,11 +170,13 @@ function normalizePlaceKind(kind: string) {
 }
 
 async function loadDataSet(baseUrl: string): Promise<DataSet> {
-  const [airports, airspaces, radioNav, places] = await Promise.all([
+  const [airports, airspaces, radioNav, places, airportFrequencies, airspaceFrequencies] = await Promise.all([
     fetchJson<AirportPayload>(baseUrl, 'airports.se.json'),
     fetchJson<AirspacePayload>(baseUrl, 'airspaces.se.json'),
     fetchJson<RadioNavPayload>(baseUrl, 'radio-nav.se.json'),
     fetchJson<PlacesPayload>(baseUrl, 'places.se.json'),
+    fetchJson<SwedishAirportFrequency[]>(baseUrl, 'airport-frequencies.se.json'),
+    fetchJson<SwedishAirspaceFrequency[]>(baseUrl, 'airspace-frequencies.se.json'),
   ])
 
   return {
@@ -170,6 +184,8 @@ async function loadDataSet(baseUrl: string): Promise<DataSet> {
     airspaces: airspaces.airspaces ?? [],
     navaids: radioNav.navaids ?? [],
     places: normalizePlaces(places),
+    airportFrequencies,
+    airspaceFrequencies,
   }
 }
 
@@ -291,6 +307,41 @@ function comparableAirspace(airspace: SwedishAirspace) {
   return comparable
 }
 
+function frequencyList(record: { frequencies: string[] }) {
+  return record.frequencies.join(', ')
+}
+
+function airportFrequencyKey(record: SwedishAirportFrequency) {
+  return `${record.positionIndicator}:${record.kind}:${record.unit}:${record.hours ?? ''}:${record.remarks ?? ''}`
+}
+
+function airspaceFrequencyKey(record: SwedishAirspaceFrequency) {
+  return `${record.positionIndicator ?? ''}:${record.kind}:${record.name}:${record.unit ?? record.callSign ?? ''}`
+}
+
+function diffFrequencyItems<T>(
+  previousItems: T[],
+  nextItems: T[],
+  keyFor: (item: T) => string,
+): Array<FrequencyChange<T>> {
+  const previousByKey = new Map(previousItems.map((item) => [keyFor(item), item]))
+  const changes: Array<FrequencyChange<T>> = []
+
+  for (const next of nextItems) {
+    const previous = previousByKey.get(keyFor(next))
+    if (!previous) {
+      changes.push({ state: 'added', previous: null, next })
+      continue
+    }
+
+    if (stableStringify(previous) !== stableStringify(next)) {
+      changes.push({ state: 'changed', previous, next })
+    }
+  }
+
+  return changes
+}
+
 function buildDiff(previous: DataSet, next: DataSet): PreviewDiff {
   const previousAirspaces = new Map(previous.airspaces.map((airspace) => [airspaceKey(airspace), airspace]))
   const airspaces: ChangedAirspace[] = []
@@ -317,12 +368,39 @@ function buildDiff(previous: DataSet, next: DataSet): PreviewDiff {
     }
   }
 
+  const airportFrequencies = diffFrequencyItems(previous.airportFrequencies, next.airportFrequencies, airportFrequencyKey)
+  const airspaceFrequencies = diffFrequencyItems(previous.airspaceFrequencies, next.airspaceFrequencies, airspaceFrequencyKey)
+
   return {
     airspaces,
     airports: diffPointItems(previous.airports, next.airports, airportKey),
     navaids: diffPointItems(previous.navaids, next.navaids, navaidKey),
     places: diffPlaces(previous.places, next.places).filter((change) => (change.next.importance ?? 0) >= 0.8),
+    airportFrequencies,
+    airspaceFrequencies,
+    airportFrequencyMarkers: airportFrequencies
+      .map((change) => {
+        const airport = matchAirportForFrequency(next.airports, change.next)
+        return airport ? { change, airport } : null
+      })
+      .filter((item): item is { change: FrequencyChange<SwedishAirportFrequency>; airport: SwedishAirport } => Boolean(item)),
+    airspaceFrequencyAirspaces: airspaceFrequencies
+      .map((change) => matchAirspaceForFrequency(next.airspaces, change.next))
+      .filter((airspace): airspace is SwedishAirspace => Boolean(airspace)),
   }
+}
+
+function matchAirportForFrequency(airports: SwedishAirport[], record: SwedishAirportFrequency) {
+  return airports.find((airport) => airport.icao === record.positionIndicator) ?? null
+}
+
+function matchAirspaceForFrequency(airspaces: SwedishAirspace[], record: SwedishAirspaceFrequency) {
+  const normalizedName = record.name.toLowerCase()
+  return airspaces.find((airspace) =>
+    airspace.positionIndicator === record.positionIndicator &&
+    airspace.kind === record.kind &&
+    (airspace.name?.toLowerCase() === normalizedName || airspace.location?.toLowerCase() === normalizedName),
+  ) ?? null
 }
 
 function toGeoJson(airspaces: SwedishAirspace[]) {
@@ -354,6 +432,14 @@ function markerColor(state: ChangeState) {
 
 function pointLabel(item: { name?: string | null; icao?: string | null; ident?: string | null; kind?: string | null }) {
   return [item.icao ?? item.ident, item.name, item.kind].filter(Boolean).join(' · ')
+}
+
+function airportFrequencyLabel(change: FrequencyChange<SwedishAirportFrequency>) {
+  return `${change.next.positionIndicator} ${change.next.unit} · ${change.previous ? `${frequencyList(change.previous)} -> ` : ''}${frequencyList(change.next)}`
+}
+
+function airspaceFrequencyLabel(change: FrequencyChange<SwedishAirspaceFrequency>) {
+  return `${change.next.positionIndicator ?? ''} ${change.next.name} · ${change.previous ? `${frequencyList(change.previous)} -> ` : ''}${frequencyList(change.next)}`
 }
 
 export function AviationDataPreviewPage() {
@@ -402,6 +488,8 @@ export function AviationDataPreviewPage() {
     [state.diff],
   )
   const textOnlyAirspaces = state.diff?.airspaces.filter((change) => !change.geometryChanged) ?? []
+  const airportFrequencyMarkers = state.diff?.airportFrequencyMarkers ?? []
+  const frequencyAirspaces = state.diff?.airspaceFrequencyAirspaces ?? []
 
   return (
     <section className="aviation-preview-page">
@@ -414,6 +502,7 @@ export function AviationDataPreviewPage() {
           <dl>
             <div><dt>Luftrum</dt><dd>{state.diff.airspaces.length}</dd></div>
             <div><dt>Flygplatser</dt><dd>{state.diff.airports.length}</dd></div>
+            <div><dt>Frekvenser</dt><dd>{state.diff.airportFrequencies.length + state.diff.airspaceFrequencies.length}</dd></div>
             <div><dt>NAV</dt><dd>{state.diff.navaids.length}</dd></div>
             <div><dt>Orter</dt><dd>{state.diff.places.length}</dd></div>
           </dl>
@@ -468,6 +557,24 @@ export function AviationDataPreviewPage() {
                 />
               ) : null}
 
+              {frequencyAirspaces.length > 0 ? (
+                <GeoJSON
+                  key={`frequency-airspaces-${frequencyAirspaces.map((airspace) => airspace.id).join(',')}`}
+                  pane="next"
+                  data={toGeoJson(frequencyAirspaces)}
+                  style={() => ({
+                    color: '#2563eb',
+                    weight: 3,
+                    opacity: 0.95,
+                    fillColor: '#60a5fa',
+                    fillOpacity: 0.18,
+                  })}
+                  onEachFeature={(feature, layer) => {
+                    layer.bindTooltip(`Frekvensändring · ${airspaceLabel(feature.properties as SwedishAirspace)}`, { sticky: true })
+                  }}
+                />
+              ) : null}
+
               {state.diff.airports.slice(0, 250).map((change) => (
                 <CircleMarker
                   key={`airport-${airportKey(change.next)}`}
@@ -477,6 +584,18 @@ export function AviationDataPreviewPage() {
                   pathOptions={{ color: markerColor(change.state), fillColor: markerColor(change.state), fillOpacity: 0.9, weight: 2 }}
                 >
                   <Tooltip>{pointLabel(change.next)}</Tooltip>
+                </CircleMarker>
+              ))}
+
+              {airportFrequencyMarkers.slice(0, 250).map(({ change, airport }) => (
+                <CircleMarker
+                  key={`airport-frequency-${airportFrequencyKey(change.next)}`}
+                  pane="points"
+                  center={[airport.lat, airport.lon]}
+                  radius={8}
+                  pathOptions={{ color: '#2563eb', fillColor: '#60a5fa', fillOpacity: 0.9, weight: 2 }}
+                >
+                  <Tooltip>{airportFrequencyLabel(change)}</Tooltip>
                 </CircleMarker>
               ))}
 
@@ -517,10 +636,24 @@ export function AviationDataPreviewPage() {
                 ))}
               </ul>
             )}
+            <h2>Frekvensändringar</h2>
+            {state.diff.airportFrequencies.length + state.diff.airspaceFrequencies.length === 0 ? (
+              <p>Inga frekvensändringar.</p>
+            ) : (
+              <ul>
+                {state.diff.airspaceFrequencies.slice(0, 24).map((change) => (
+                  <li key={`airspace-frequency-${airspaceFrequencyKey(change.next)}`}>{airspaceFrequencyLabel(change)}</li>
+                ))}
+                {state.diff.airportFrequencies.slice(0, 24).map((change) => (
+                  <li key={`airport-frequency-${airportFrequencyKey(change.next)}`}>{airportFrequencyLabel(change)}</li>
+                ))}
+              </ul>
+            )}
             <h2>Legend</h2>
             <ul>
               <li><span className="aviation-preview-panel__swatch is-old" /> Gammalt luftrum</li>
               <li><span className="aviation-preview-panel__swatch is-new" /> Nytt eller ändrat luftrum</li>
+              <li><span className="aviation-preview-panel__swatch is-frequency" /> Frekvensändring</li>
               <li><span className="aviation-preview-panel__swatch is-added" /> Tillkomna punkter</li>
               <li><span className="aviation-preview-panel__swatch is-changed" /> Ändrade punkter</li>
             </ul>
