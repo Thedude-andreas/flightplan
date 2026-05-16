@@ -22,6 +22,15 @@ function requireString(value: unknown, name: string) {
   return value.trim()
 }
 
+function isAuthorized(request: Request) {
+  const configuredSecret = Deno.env.get('APP_EMAIL_FUNCTION_SECRET')
+    ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+  const authorization = request.headers.get('authorization') ?? ''
+  const token = authorization.replace(/^Bearer\s+/i, '').trim()
+
+  return Boolean(configuredSecret && token && token === configuredSecret)
+}
+
 Deno.serve(async (request) => {
   if (request.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -32,6 +41,10 @@ Deno.serve(async (request) => {
   }
 
   try {
+    if (!isAuthorized(request)) {
+      return jsonResponse({ error: 'Unauthorized.' }, 401)
+    }
+
     const resendApiKey = Deno.env.get('RESEND_API_KEY')
     if (!resendApiKey) {
       throw new Error('Missing RESEND_API_KEY.')

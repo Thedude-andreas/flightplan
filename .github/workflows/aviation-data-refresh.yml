@@ -39,6 +39,7 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          APP_EMAIL_FUNCTION_SECRET: ${{ secrets.APP_EMAIL_FUNCTION_SECRET }}
           AVIATION_DATA_APPROVER_EMAIL: ${{ secrets.AVIATION_DATA_APPROVER_EMAIL }}
           AVIATION_DATA_BUCKET: ${{ vars.AVIATION_DATA_BUCKET || 'aviation-data' }}
           AVIATION_PUBLIC_APP_URL: ${{ vars.AVIATION_PUBLIC_APP_URL }}

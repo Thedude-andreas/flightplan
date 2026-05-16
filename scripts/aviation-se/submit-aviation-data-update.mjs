@@ -556,11 +556,11 @@ async function sendEmail({ apiKey, fromEmail, toEmail, subject, html }) {
   }
 }
 
-async function sendEmailViaFunction({ functionUrl, serviceRoleKey, fromEmail, toEmail, subject, html }) {
+async function sendEmailViaFunction({ functionUrl, authToken, fromEmail, toEmail, subject, html }) {
   const response = await fetch(functionUrl, {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${serviceRoleKey}`,
+      Authorization: `Bearer ${authToken}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
@@ -629,7 +629,7 @@ async function sendReviewEmail({ supabaseUrl, serviceRoleKey, fromEmail, toEmail
 
   await sendEmailViaFunction({
     functionUrl: optionalEnv('APP_EMAIL_FUNCTION_URL', `${supabaseUrl}/functions/v1/send-email`),
-    serviceRoleKey,
+    authToken: optionalEnv('APP_EMAIL_FUNCTION_SECRET', serviceRoleKey),
     fromEmail,
     toEmail,
     subject,
