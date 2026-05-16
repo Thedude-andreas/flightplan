@@ -34,6 +34,7 @@ const sourceStatePath = 'meta/source-state.json'
 const lfvAipSourceUrl = 'https://aro.lfv.se/Content/eaip/AIP_OFFLINE.zip'
 const geonamesSourceUrl = 'https://download.geonames.org/export/dump/SE.zip'
 const airspaceSourceTypeNames = ['mais:CTR', 'mais:TMAS', 'mais:TIA', 'mais:TIZ', 'mais:RSTA', 'mais:DNGA', 'mais:ATZ', 'mais:TRA']
+const sourceFetchTimeoutMs = 60_000
 
 function parseArgs() {
   return new Set(process.argv.slice(2))
@@ -82,6 +83,38 @@ function makeToken() {
 
 function sourceSignatureHash(sourceSignature) {
   return sha256(stableStringify(sourceSignature))
+}
+
+async function timedStep(label, fn) {
+  const startedAt = Date.now()
+  console.log(`${label}...`)
+  try {
+    const result = await fn()
+    console.log(`${label} done in ${Date.now() - startedAt} ms.`)
+    return result
+  } catch (error) {
+    console.error(`${label} failed after ${Date.now() - startedAt} ms.`)
+    throw error
+  }
+}
+
+async function fetchWithTimeout(url, options = {}) {
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), sourceFetchTimeoutMs)
+
+  try {
+    return await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    })
+  } catch (error) {
+    if (error?.name === 'AbortError') {
+      throw new Error(`Timed out after ${sourceFetchTimeoutMs} ms fetching ${url}`)
+    }
+    throw error
+  } finally {
+    clearTimeout(timeout)
+  }
 }
 
 function snapshot(paths) {
@@ -291,7 +324,7 @@ function collectionChanged(fileName, previousPayload, nextPayload) {
 }
 
 async function fetchHeadMetadata(url) {
-  const response = await fetch(url, {
+  const response = await fetchWithTimeout(url, {
     method: 'HEAD',
     redirect: 'follow',
     headers: {
@@ -320,7 +353,7 @@ async function fetchAirspaceLayerSignature(typeName) {
   url.searchParams.set('outputFormat', 'application/json')
   url.searchParams.set('srsName', 'EPSG:4326')
 
-  const response = await fetch(url, {
+  const response = await fetchWithTimeout(url, {
     headers: {
       Accept: 'application/json',
       'User-Agent': 'VFRplan/1.0 (+https://vfrplan.se/)',
@@ -340,11 +373,13 @@ async function fetchAirspaceLayerSignature(typeName) {
 }
 
 async function getSourceSignature() {
-  const [lfvAip, geonames, airspaces] = await Promise.all([
-    fetchHeadMetadata(lfvAipSourceUrl),
-    fetchHeadMetadata(geonamesSourceUrl),
-    Promise.all(airspaceSourceTypeNames.map((typeName) => fetchAirspaceLayerSignature(typeName))),
+  const [lfvAip, geonames] = await Promise.all([
+    timedStep('Reading LFV AIP source metadata', () => fetchHeadMetadata(lfvAipSourceUrl)),
+    timedStep('Reading GeoNames source metadata', () => fetchHeadMetadata(geonamesSourceUrl)),
   ])
+  const airspaces = await timedStep('Hashing LFV WFS airspace layers', () =>
+    Promise.all(airspaceSourceTypeNames.map((typeName) => fetchAirspaceLayerSignature(typeName))),
+  )
 
   return {
     lfvAip,
@@ -354,7 +389,7 @@ async function getSourceSignature() {
 }
 
 async function readSourceState(supabase, bucket) {
-  return await readStorageJson(supabase, bucket, sourceStatePath)
+  return await timedStep('Reading stored aviation source state', () => readStorageJson(supabase, bucket, sourceStatePath))
 }
 
 async function writeSourceState(supabase, bucket, sourceSignature) {
