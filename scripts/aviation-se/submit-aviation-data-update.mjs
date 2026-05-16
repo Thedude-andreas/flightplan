@@ -16,7 +16,7 @@ const dataFiles = [
 ]
 
 const generatedFiles = [
-  'public/vfrplan-data/places.se.json',
+  ...dataFiles.map((fileName) => `public/vfrplan-data/${fileName}`),
   'src/features/flightplan/generated/airports.se.ts',
   'src/features/flightplan/generated/airspaces.se.ts',
   'src/features/flightplan/generated/places.se.ts',

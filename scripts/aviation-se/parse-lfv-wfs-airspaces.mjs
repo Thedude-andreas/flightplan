@@ -124,13 +124,20 @@ const normalizedOutput = {
 }
 
 const outputDir = resolve('data/aviation/se/normalized')
+const publicDataDir = resolve('public/vfrplan-data')
 const generatedDir = resolve('src/features/flightplan/generated')
 mkdirSync(outputDir, { recursive: true })
+mkdirSync(publicDataDir, { recursive: true })
 mkdirSync(generatedDir, { recursive: true })
 
 writeFileSync(
   resolve(outputDir, 'airspaces.se.json'),
-  JSON.stringify(normalizedOutput, null, 2),
+  `${JSON.stringify(normalizedOutput, null, 2)}\n`,
+)
+
+writeFileSync(
+  resolve(publicDataDir, 'airspaces.se.json'),
+  `${JSON.stringify(normalizedOutput, null, 2)}\n`,
 )
 
 writeFileSync(

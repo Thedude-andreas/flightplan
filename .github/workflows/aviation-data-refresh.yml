@@ -1,0 +1,44 @@
+name: Aviation data refresh
+
+on:
+  schedule:
+    - cron: '15 3 * * *'
+  workflow_dispatch:
+    inputs:
+      force_refresh:
+        description: 'Run refresh even when source signatures are unchanged'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  submit-update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Submit aviation data update
+        run: |
+          if [ "${{ inputs.force_refresh }}" = "true" ]; then
+            npm run aviation:se:submit-update -- --force-refresh
+          else
+            npm run aviation:se:submit-update
+          fi
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          AVIATION_DATA_APPROVER_EMAIL: ${{ secrets.AVIATION_DATA_APPROVER_EMAIL }}
+          AVIATION_DATA_BUCKET: ${{ vars.AVIATION_DATA_BUCKET || 'aviation-data' }}
+          AVIATION_PUBLIC_APP_URL: ${{ vars.AVIATION_PUBLIC_APP_URL }}
