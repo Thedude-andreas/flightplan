@@ -15,6 +15,11 @@ function getConfiguredDataBaseUrl() {
     return normalizeDataBaseUrl(configuredUrl)
   }
 
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL?.trim()
+  if (supabaseUrl) {
+    return normalizeDataBaseUrl(`${supabaseUrl}/storage/v1/object/public/aviation-data/current`)
+  }
+
   return normalizeDataBaseUrl(`${import.meta.env.BASE_URL}vfrplan-data`)
 }
 
