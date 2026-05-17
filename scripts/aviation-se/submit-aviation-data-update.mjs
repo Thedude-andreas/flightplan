@@ -154,6 +154,25 @@ function normalizeCoordinate(value, precision = 5) {
   return typeof value === 'number' ? Number(value.toFixed(precision)) : value
 }
 
+function normalizeGeometry(value) {
+  if (Array.isArray(value)) {
+    return value.map((item) => normalizeGeometry(item))
+  }
+
+  return normalizeCoordinate(value)
+}
+
+function normalizeGeometryRecord(geometry) {
+  if (!geometry) {
+    return geometry
+  }
+
+  return {
+    ...geometry,
+    coordinates: normalizeGeometry(geometry.coordinates),
+  }
+}
+
 function normalizeCollectionItem(fileName, item) {
   if (fileName === 'places.se.json' && Array.isArray(item)) {
     const [name, lat, lon, kind, importance] = item
@@ -188,8 +207,37 @@ function normalizeCollectionItem(fileName, item) {
   }
 
   if (fileName === 'airspaces.se.json') {
-    const { effectiveFrom: _effectiveFrom, ...airspace } = item
-    return airspace
+    const { id: _id, effectiveFrom: _effectiveFrom, ...airspace } = item
+    return {
+      ...airspace,
+      geometry: normalizeGeometryRecord(item.geometry),
+    }
+  }
+
+  if (fileName === 'radio-nav.se.json') {
+    const { id: _id, ...navaid } = item
+    return {
+      ...navaid,
+      lat: normalizeCoordinate(item.lat),
+      lon: normalizeCoordinate(item.lon),
+    }
+  }
+
+  if (fileName === 'acc-sectors.se.json') {
+    const { id: _id, frequencyLabel: _frequencyLabel, ...sector } = item
+    return {
+      ...sector,
+      geometry: normalizeGeometryRecord(item.geometry),
+    }
+  }
+
+  if (fileName === 'visual-points.se.json') {
+    const { id: _id, effectiveFrom: _effectiveFrom, ...visualPoint } = item
+    return {
+      ...visualPoint,
+      lat: normalizeCoordinate(item.lat),
+      lon: normalizeCoordinate(item.lon),
+    }
   }
 
   return item
@@ -205,6 +253,7 @@ function getCollection(fileName, payload) {
       payload?.airportFrequencies ??
       payload?.airspaceFrequencies ??
       payload?.accSectors ??
+      payload?.visualPoints ??
       []
 
   return collection.map((item) => normalizeCollectionItem(fileName, item))
@@ -231,6 +280,22 @@ function itemKey(fileName, item) {
 
   if (fileName === 'airspace-frequencies.se.json') {
     return `${item?.positionIndicator ?? ''}:${item?.kind ?? ''}:${item?.name ?? ''}:${item?.unit ?? item?.callSign ?? ''}`
+  }
+
+  if (fileName === 'airspaces.se.json') {
+    return `${item?.positionIndicator ?? ''}:${item?.kind ?? ''}:${item?.name ?? ''}:${item?.location ?? ''}`
+  }
+
+  if (fileName === 'radio-nav.se.json') {
+    return `${item?.kind ?? ''}:${item?.ident ?? ''}:${item?.positionIndicator ?? ''}:${item?.name ?? ''}`
+  }
+
+  if (fileName === 'acc-sectors.se.json') {
+    return `${item?.sectorCode ?? ''}:${item?.sectorName ?? ''}`
+  }
+
+  if (fileName === 'visual-points.se.json') {
+    return `${item?.positionIndicator ?? ''}:${item?.kind ?? ''}:${item?.name ?? ''}:${item?.location ?? ''}`
   }
 
   return item?.id ??
@@ -316,6 +381,11 @@ function summarizeCollection(fileName, previousPayload, nextPayload) {
     return summarizePlaces(previousPayload, nextPayload)
   }
 
+  const { changed, added, removed } = diffCollection(fileName, previousPayload, nextPayload)
+  return [...changed, ...added, ...removed].slice(0, 40)
+}
+
+function diffCollection(fileName, previousPayload, nextPayload) {
   const previous = new Map(getCollection(fileName, previousPayload).map((item) => [itemKey(fileName, item), item]))
   const next = new Map(getCollection(fileName, nextPayload).map((item) => [itemKey(fileName, item), item]))
   const added = []
@@ -336,7 +406,7 @@ function summarizeCollection(fileName, previousPayload, nextPayload) {
     }
   }
 
-  return [...changed, ...added, ...removed].slice(0, 40)
+  return { added, removed, changed }
 }
 
 function collectionChanged(fileName, previousPayload, nextPayload) {
@@ -344,7 +414,8 @@ function collectionChanged(fileName, previousPayload, nextPayload) {
     return summarizePlaces(previousPayload, nextPayload).length > 0
   }
 
-  return stableStringify(getCollection(fileName, previousPayload)) !== stableStringify(getCollection(fileName, nextPayload))
+  const { added, removed, changed } = diffCollection(fileName, previousPayload, nextPayload)
+  return added.length > 0 || removed.length > 0 || changed.length > 0
 }
 
 async function fetchHeadMetadata(url) {

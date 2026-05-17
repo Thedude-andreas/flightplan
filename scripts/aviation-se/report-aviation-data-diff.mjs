@@ -46,6 +46,29 @@ function stableStringify(value) {
   return `{${entries.map(([key, item]) => `${JSON.stringify(key)}:${stableStringify(item)}`).join(',')}}`
 }
 
+function normalizeCoordinate(value, precision = 5) {
+  return typeof value === 'number' ? Number(value.toFixed(precision)) : value
+}
+
+function normalizeGeometry(value) {
+  if (Array.isArray(value)) {
+    return value.map((item) => normalizeGeometry(item))
+  }
+
+  return normalizeCoordinate(value)
+}
+
+function normalizeGeometryRecord(geometry) {
+  if (!geometry) {
+    return geometry
+  }
+
+  return {
+    ...geometry,
+    coordinates: normalizeGeometry(geometry.coordinates),
+  }
+}
+
 function truncateList(items, maxItems = 12) {
   if (items.length <= maxItems) {
     return items
@@ -75,6 +98,7 @@ function summarizeDatasetCounts(path, current, previous) {
     current?.airportFrequencies?.length ??
     current?.airspaceFrequencies?.length ??
     current?.accSectors?.length ??
+    current?.visualPoints?.length ??
     null
 
   const previousCount =
@@ -86,6 +110,7 @@ function summarizeDatasetCounts(path, current, previous) {
     previous?.airportFrequencies?.length ??
     previous?.airspaceFrequencies?.length ??
     previous?.accSectors?.length ??
+    previous?.visualPoints?.length ??
     null
 
   return `- \`${path}\`: ${previousCount ?? 'new'} -> ${currentCount ?? 'n/a'}`
@@ -146,9 +171,58 @@ function summarizeNavaid(record) {
   return `${label} [${record.kind}] -> ${frequency}`
 }
 
+function summarizeNavaidChange(previous, current) {
+  const label = current.ident ?? current.name ?? current.id
+  const previousFrequency = previous.frequency ?? (previous.channel ? `CH ${previous.channel}` : 'NO-FREQ')
+  const currentFrequency = current.frequency ?? (current.channel ? `CH ${current.channel}` : 'NO-FREQ')
+  return `${label} [${current.kind}] ${previousFrequency} -> ${currentFrequency}`
+}
+
+function comparableNavaid(record) {
+  if (!record) {
+    return record
+  }
+
+  const { id: _id, ...navaid } = record
+  return {
+    ...navaid,
+    lat: normalizeCoordinate(record.lat),
+    lon: normalizeCoordinate(record.lon),
+  }
+}
+
 function summarizeAccSector(record) {
   const frequencies = (record.frequencies ?? []).join(', ')
   return `${record.sectorCode} ${record.sectorName} -> ${frequencies}`
+}
+
+function comparableAccSector(record) {
+  if (!record) {
+    return record
+  }
+
+  const { id: _id, frequencyLabel: _frequencyLabel, ...sector } = record
+  return {
+    ...sector,
+    geometry: normalizeGeometryRecord(record.geometry),
+  }
+}
+
+function summarizeVisualPoint(record) {
+  return `${record.positionIndicator ?? 'NO-ICAO'} ${record.name} [${record.kind}] ${record.location ?? ''}`.trim()
+}
+
+function comparableVisualPoint(record) {
+  if (!record) {
+    return record
+  }
+
+  const { id: _id, effectiveFrom: _effectiveFrom, ...visualPoint } = record
+  return {
+    ...visualPoint,
+    lat: normalizeCoordinate(record.lat),
+    lon: normalizeCoordinate(record.lon),
+  }
 }
 
 function summarizeAirspace(record) {
@@ -157,8 +231,35 @@ function summarizeAirspace(record) {
   return `${record.positionIndicator ?? 'NO-ICAO'} ${record.name} [${record.kind}] ${lower} -> ${upper}`
 }
 
+function comparableAirspace(record) {
+  if (!record) {
+    return record
+  }
+
+  const { id: _id, effectiveFrom: _effectiveFrom, ...airspace } = record
+  return {
+    ...airspace,
+    geometry: normalizeGeometryRecord(record.geometry),
+  }
+}
+
 function summarizeAirport(record) {
   return `${record.icao ?? 'NO-ICAO'} ${record.name ?? 'NO-NAME'}`
+}
+
+function comparableAirport(record) {
+  if (!record) {
+    return record
+  }
+
+  return {
+    icao: record.icao,
+    name: record.name,
+    lat: normalizeCoordinate(record.arp?.lat ?? record.lat),
+    lon: normalizeCoordinate(record.arp?.lon ?? record.lon),
+    category: record.category,
+    detailsInAd2: record.detailsInAd2,
+  }
 }
 
 function buildFrequencySections(previous, current) {
@@ -194,15 +295,15 @@ function buildFrequencySections(previous, current) {
 
 function buildAirspaceSections(previous, current) {
   const airspaces = diffCollections(
-    previous?.airspaces,
-    current?.airspaces,
-    (record) => `${record.positionIndicator ?? ''}:${record.kind}:${record.name}`,
+    previous?.airspaces?.map(comparableAirspace),
+    current?.airspaces?.map(comparableAirspace),
+    (record) => `${record.positionIndicator ?? ''}:${record.kind}:${record.name}:${record.location ?? ''}`,
     summarizeAirspace,
   )
 
   const sectors = diffCollections(
-    previous?.accSectors,
-    current?.accSectors,
+    previous?.accSectors?.map(comparableAccSector),
+    current?.accSectors?.map(comparableAccSector),
     (record) => `${record.sectorCode}:${record.sectorName}`,
     summarizeAccSector,
   )
@@ -223,10 +324,11 @@ function buildAirspaceSections(previous, current) {
 
 function buildNavaidSections(previous, current) {
   const navaids = diffCollections(
-    previous?.navaids,
-    current?.navaids,
-    (record) => `${record.ident ?? record.name ?? ''}:${record.kind}:${record.frequency ?? record.channel ?? ''}`,
+    previous?.navaids?.map(comparableNavaid),
+    current?.navaids?.map(comparableNavaid),
+    (record) => `${record.kind}:${record.ident ?? ''}:${record.positionIndicator ?? ''}:${record.name ?? ''}`,
     summarizeNavaid,
+    summarizeNavaidChange,
   )
 
   return makeSection('## Navaids', [
@@ -238,8 +340,8 @@ function buildNavaidSections(previous, current) {
 
 function buildAirportSections(previous, current) {
   const airports = diffCollections(
-    previous?.airports,
-    current?.airports,
+    previous?.airports?.map(comparableAirport),
+    current?.airports?.map(comparableAirport),
     (record) => `${record.icao ?? ''}:${record.name ?? ''}`,
     summarizeAirport,
   )
@@ -248,6 +350,21 @@ function buildAirportSections(previous, current) {
     ...airports.added,
     ...airports.removed,
     ...airports.changed,
+  ])
+}
+
+function buildVisualPointSections(previous, current) {
+  const visualPoints = diffCollections(
+    previous?.visualPoints?.map(comparableVisualPoint),
+    current?.visualPoints?.map(comparableVisualPoint),
+    (record) => `${record.positionIndicator ?? ''}:${record.kind}:${record.name}:${record.location ?? ''}`,
+    summarizeVisualPoint,
+  )
+
+  return makeSection('## Visual Points', [
+    ...visualPoints.added,
+    ...visualPoints.removed,
+    ...visualPoints.changed,
   ])
 }
 
@@ -272,12 +389,15 @@ if (changedFiles.length === 0) {
   const currentAirspaces = readWorkingJson('data/aviation/se/normalized/airspaces.se.json')
   const previousAirports = readHeadJson('data/aviation/se/normalized/airports.se.json')
   const currentAirports = readWorkingJson('data/aviation/se/normalized/airports.se.json')
+  const previousVisualPoints = readHeadJson('data/aviation/se/normalized/visual-points.se.json')
+  const currentVisualPoints = readWorkingJson('data/aviation/se/normalized/visual-points.se.json')
 
   lines.push(
     ...buildFrequencySections(previousRadioNav, currentRadioNav),
     ...buildAirspaceSections(previousAirspaces, currentAirspaces),
     ...buildNavaidSections(previousRadioNav, currentRadioNav),
     ...buildAirportSections(previousAirports, currentAirports),
+    ...buildVisualPointSections(previousVisualPoints, currentVisualPoints),
   )
 }
 

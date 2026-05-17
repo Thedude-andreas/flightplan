@@ -105,6 +105,7 @@
 .aviation-preview-panel__swatch.is-old { background: #9aa0a6; }
 .aviation-preview-panel__swatch.is-new { background: #f97316; }
 .aviation-preview-panel__swatch.is-frequency { background: #60a5fa; }
+.aviation-preview-panel__swatch.is-nav { background: #a78bfa; }
 .aviation-preview-panel__swatch.is-added { background: #0f8f55; }
 .aviation-preview-panel__swatch.is-changed { background: #d97706; }
 

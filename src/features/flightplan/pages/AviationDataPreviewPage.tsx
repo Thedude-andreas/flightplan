@@ -213,16 +213,24 @@ function roundPlaceCoordinate(value: number) {
   return Number(value.toFixed(2))
 }
 
+function roundGeometryCoordinates(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map((item) => roundGeometryCoordinates(item))
+  }
+
+  return typeof value === 'number' ? roundCoordinate(value) : value
+}
+
 function airportKey(airport: SwedishAirport) {
   return airport.icao ?? `${airport.name}:${roundCoordinate(airport.lat)}:${roundCoordinate(airport.lon)}`
 }
 
 function airspaceKey(airspace: SwedishAirspace) {
-  return airspace.id
+  return `${airspace.positionIndicator ?? ''}:${airspace.kind}:${airspace.name}:${airspace.location ?? ''}`
 }
 
 function navaidKey(navaid: SwedishNavaid) {
-  return navaid.id
+  return `${navaid.kind}:${navaid.ident ?? ''}:${navaid.positionIndicator ?? ''}:${navaid.name ?? ''}`
 }
 
 function placeKey(place: PlaceEntry) {
@@ -238,6 +246,7 @@ function diffPointItems<T extends { lat: number; lon: number }>(
   nextItems: T[],
   keyFor: (item: T) => string,
   coordinatePrecision: 'point' | 'place' = 'point',
+  comparableFor: (item: T) => unknown = (item) => item,
 ): Array<PointChange<T>> {
   const previousByKey = new Map(previousItems.map((item) => [keyFor(item), item]))
   const changes: Array<PointChange<T>> = []
@@ -249,12 +258,14 @@ function diffPointItems<T extends { lat: number; lon: number }>(
       continue
     }
 
+    const nextComparableBase = comparableFor(next) as T
+    const previousComparableBase = comparableFor(previous) as T
     const nextComparable = coordinatePrecision === 'place'
-      ? { ...next, lat: roundPlaceCoordinate(next.lat), lon: roundPlaceCoordinate(next.lon) }
-      : next
+      ? { ...nextComparableBase, lat: roundPlaceCoordinate(next.lat), lon: roundPlaceCoordinate(next.lon) }
+      : nextComparableBase
     const previousComparable = coordinatePrecision === 'place'
-      ? { ...previous, lat: roundPlaceCoordinate(previous.lat), lon: roundPlaceCoordinate(previous.lon) }
-      : previous
+      ? { ...previousComparableBase, lat: roundPlaceCoordinate(previous.lat), lon: roundPlaceCoordinate(previous.lon) }
+      : previousComparableBase
 
     if (stableStringify(previousComparable) !== stableStringify(nextComparable) || pointChanged(previousComparable, nextComparable)) {
       changes.push({ state: 'changed', previous, next })
@@ -302,9 +313,26 @@ function diffPlaces(previousPlaces: PlaceEntry[], nextPlaces: PlaceEntry[]): Arr
 }
 
 function comparableAirspace(airspace: SwedishAirspace) {
-  const { effectiveFrom, ...comparable } = airspace
+  const { id, effectiveFrom, ...comparable } = airspace
+  void id
   void effectiveFrom
-  return comparable
+  return {
+    ...comparable,
+    geometry: {
+      ...airspace.geometry,
+      coordinates: roundGeometryCoordinates(airspace.geometry.coordinates),
+    },
+  }
+}
+
+function comparableNavaid(navaid: SwedishNavaid) {
+  const { id, ...comparable } = navaid
+  void id
+  return {
+    ...comparable,
+    lat: roundCoordinate(navaid.lat),
+    lon: roundCoordinate(navaid.lon),
+  }
 }
 
 function frequencyList(record: { frequencies: string[] }) {
@@ -374,7 +402,7 @@ function buildDiff(previous: DataSet, next: DataSet): PreviewDiff {
   return {
     airspaces,
     airports: diffPointItems(previous.airports, next.airports, airportKey),
-    navaids: diffPointItems(previous.navaids, next.navaids, navaidKey),
+    navaids: diffPointItems(previous.navaids, next.navaids, navaidKey, 'point', comparableNavaid),
     places: diffPlaces(previous.places, next.places).filter((change) => (change.next.importance ?? 0) >= 0.8),
     airportFrequencies,
     airspaceFrequencies,
@@ -654,6 +682,7 @@ export function AviationDataPreviewPage() {
               <li><span className="aviation-preview-panel__swatch is-old" /> Gammalt luftrum</li>
               <li><span className="aviation-preview-panel__swatch is-new" /> Nytt eller ändrat luftrum</li>
               <li><span className="aviation-preview-panel__swatch is-frequency" /> Frekvensändring</li>
+              <li><span className="aviation-preview-panel__swatch is-nav" /> NAV-hjälpmedel</li>
               <li><span className="aviation-preview-panel__swatch is-added" /> Tillkomna punkter</li>
               <li><span className="aviation-preview-panel__swatch is-changed" /> Ändrade punkter</li>
             </ul>

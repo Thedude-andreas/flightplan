@@ -28,6 +28,21 @@ function normalizeGeometryPoint(geometry) {
   return null
 }
 
+function stablePointId(layer, properties, point) {
+  return [
+    layer.kind,
+    normalizeText(properties.POSITIONINDICATOR),
+    normalizeText(properties.NAMEOFPOINT),
+    normalizeText(properties.LOCATION),
+    Number(point.lat.toFixed(5)),
+    Number(point.lon.toFixed(5)),
+  ]
+    .filter((value) => value != null && value !== '')
+    .join(':')
+    .toLowerCase()
+    .replace(/[^a-z0-9:.]+/g, '-')
+}
+
 function normalizeFeature(layer, feature, index) {
   const point = normalizeGeometryPoint(feature.geometry)
   if (!point) {
@@ -35,10 +50,10 @@ function normalizeFeature(layer, feature, index) {
   }
 
   const properties = feature.properties ?? {}
-  const id = properties.IDNR ?? properties.MSID ?? index + 1
+  const id = stablePointId(layer, properties, point) || `${layer.kind}-${index + 1}`
 
   return {
-    id: `${layer.kind}-${id}`,
+    id,
     kind: layer.kind,
     sourceTypeName: layer.typeName,
     positionIndicator: normalizeText(properties.POSITIONINDICATOR),
