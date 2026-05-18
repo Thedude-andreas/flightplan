@@ -143,6 +143,10 @@ type SwedishRadioNavPayload = {
   navaids: SwedishNavaid[]
 }
 
+type SwedishVisualPointsPayload = SwedishVisualPoint[] | {
+  visualPoints: SwedishVisualPoint[]
+}
+
 type SwedishAviationData = {
   airports: SwedishAirport[]
   airspaces: SwedishAirspace[]
@@ -180,6 +184,10 @@ function toSwedishAirports(payload: SwedishAirportsPayload): SwedishAirport[] {
   }))
 }
 
+function toSwedishVisualPoints(payload: SwedishVisualPointsPayload): SwedishVisualPoint[] {
+  return Array.isArray(payload) ? payload : payload.visualPoints ?? []
+}
+
 function requireAviationData() {
   if (!aviationData) {
     throw new Error('Svenska flygdata är inte laddade ännu.')
@@ -213,7 +221,7 @@ export async function preloadSwedishAviationData() {
       fetchJson<SwedishRadioNavPayload>('radio-nav.se.json', () => ({
         navaids: embeddedNavaids,
       })),
-      fetchJson<SwedishVisualPoint[]>('visual-points.se.json', () => embeddedVisualPoints),
+      fetchJson<SwedishVisualPointsPayload>('visual-points.se.json', () => embeddedVisualPoints),
       fetchJson<SwedishAirspaceFrequency[]>('airspace-frequencies.se.json'),
       fetchJson<SwedishAirportFrequency[]>('airport-frequencies.se.json'),
       fetchJson<SwedishAccSector[]>('acc-sectors.se.json'),
@@ -223,7 +231,7 @@ export async function preloadSwedishAviationData() {
           airports: toSwedishAirports(airportsPayload),
           airspaces: airspacesPayload.airspaces,
           navaids: radioNavPayload.navaids,
-          visualPoints,
+          visualPoints: toSwedishVisualPoints(visualPoints),
           airspaceFrequencies,
           airportFrequencies,
           accSectors,

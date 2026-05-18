@@ -180,24 +180,30 @@ const defaultMapLayerPreferences: MapLayerPreferences = {
 
 const basemaps: Record<
   BasemapKey,
-  { label: string; url: string | null; attribution: string | null }
+  { label: string; url: string | null; attribution: string | null; maxNativeZoom?: number; maxZoom?: number }
 > = {
   topo: {
     label: 'OSM Topografisk',
     url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
     attribution:
       '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>, <a href="https://opentopomap.org">OpenTopoMap</a>',
+    maxNativeZoom: 17,
+    maxZoom: 17,
   },
   osm: {
     label: 'Open Street Map',
     url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    maxNativeZoom: 19,
+    maxZoom: 19,
   },
   hot: {
     label: 'OSM Humanitär',
     url: 'https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png',
     attribution:
       '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>, style by Humanitarian OpenStreetMap Team hosted by <a href="https://www.openstreetmap.fr/">OpenStreetMap France</a>',
+    maxNativeZoom: 20,
+    maxZoom: 20,
   },
   'mapbox3d-ortho': {
     label: '3D Mapbox Orto (Beta)',
@@ -2272,6 +2278,7 @@ export function FlightplanMapEditor({
   const notamLayerMeta = notamMapStatus === 'ready'
     ? formatNotamMapCoverageLabel(notamMapCoverage)
     : 'En-route och NAV-varningar'
+  const activeBasemap = basemaps[basemap]
   const hasNotamMapNotice = Boolean(notamMapNotice)
   const notamMapNoticeKey = notamMapNotice
     ? `${notamMapNotice}|${notamMapNoticeLinks.map((link) => `${link.label}:${link.href}`).join('|')}`
@@ -3545,6 +3552,7 @@ export function FlightplanMapEditor({
             key={printMode ? printMapSizeKey : 'interactive-map'}
             center={center}
             zoom={7}
+            maxZoom={activeBasemap.maxZoom}
             scrollWheelZoom={!printMode}
             zoomControl={false}
             className="fp-leaflet-map"
@@ -3557,7 +3565,12 @@ export function FlightplanMapEditor({
           <Pane name="fp-airspace-label-pane" style={{ zIndex: 555 }} />
           <Pane name={notamMapHighlightPane} style={{ zIndex: 558 }} />
           <Pane name="fp-airport-pane" style={{ zIndex: 560 }} />
-          <TileLayer attribution={basemaps[basemap].attribution ?? ''} url={basemaps[basemap].url ?? basemaps.topo.url ?? ''} />
+          <TileLayer
+            attribution={activeBasemap.attribution ?? ''}
+            maxNativeZoom={activeBasemap.maxNativeZoom}
+            maxZoom={activeBasemap.maxZoom}
+            url={activeBasemap.url ?? basemaps.topo.url ?? ''}
+          />
           <MapInstanceHandler onReady={setMapInstance} />
           <InitialViewportHandler
             waypoints={displayWaypoints}
