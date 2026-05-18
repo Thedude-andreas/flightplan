@@ -58,8 +58,9 @@ import { fetchNotamsForAirports, type AirportNotam } from './notam'
 import { getAllWeatherOverlays, type RouteWeatherOverlay } from './weatherSigmet'
 import type { RouteLegAloftWind } from './openMeteoAloft'
 import type { FlightPlanInput, FlightPlanDerived } from './types'
+import { FlightplanMapbox3D, type FlightplanMapbox3DStyle } from './FlightplanMapbox3D'
 
-type BasemapKey = 'topo' | 'osm' | 'hot'
+type BasemapKey = 'topo' | 'osm' | 'hot' | 'mapbox3d-ortho' | 'mapbox3d-topo' | 'mapbox3d-standard' | 'mapbox3d-light'
 
 type MapLayerPreferences = {
   airspaces: boolean
@@ -179,7 +180,7 @@ const defaultMapLayerPreferences: MapLayerPreferences = {
 
 const basemaps: Record<
   BasemapKey,
-  { label: string; url: string; attribution: string }
+  { label: string; url: string | null; attribution: string | null }
 > = {
   topo: {
     label: 'OSM Topografisk',
@@ -198,6 +199,46 @@ const basemaps: Record<
     attribution:
       '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>, style by Humanitarian OpenStreetMap Team hosted by <a href="https://www.openstreetmap.fr/">OpenStreetMap France</a>',
   },
+  'mapbox3d-ortho': {
+    label: '3D Mapbox Orto (Beta)',
+    url: null,
+    attribution: null,
+  },
+  'mapbox3d-topo': {
+    label: '3D Mapbox Topo (Beta)',
+    url: null,
+    attribution: null,
+  },
+  'mapbox3d-standard': {
+    label: '3D Mapbox Standard (Beta)',
+    url: null,
+    attribution: null,
+  },
+  'mapbox3d-light': {
+    label: '3D Mapbox Light (Beta)',
+    url: null,
+    attribution: null,
+  },
+}
+
+function isMapbox3dBasemapKey(value: BasemapKey) {
+  return value.startsWith('mapbox3d-')
+}
+
+function getMapbox3DStyle(value: BasemapKey): FlightplanMapbox3DStyle {
+  if (value === 'mapbox3d-topo') {
+    return 'topo'
+  }
+
+  if (value === 'mapbox3d-standard') {
+    return 'standard'
+  }
+
+  if (value === 'mapbox3d-light') {
+    return 'light'
+  }
+
+  return 'ortho'
 }
 
 function readStoredBasemap(): BasemapKey {
@@ -206,7 +247,19 @@ function readStoredBasemap(): BasemapKey {
   }
 
   const stored = window.localStorage.getItem(mapBasemapStorageKey)
-  return stored === 'topo' || stored === 'osm' || stored === 'hot' ? stored : 'topo'
+  if (stored === 'mapbox3d') {
+    return 'mapbox3d-ortho'
+  }
+
+  return stored === 'topo' ||
+    stored === 'osm' ||
+    stored === 'hot' ||
+    stored === 'mapbox3d-ortho' ||
+    stored === 'mapbox3d-topo' ||
+    stored === 'mapbox3d-standard' ||
+    stored === 'mapbox3d-light'
+    ? stored
+    : 'topo'
 }
 
 const waypointIcon = divIcon({
@@ -2188,6 +2241,7 @@ export function FlightplanMapEditor({
   const pendingAirportWeatherRef = useRef(new Set<string>())
   const mapCanvasRef = useRef<HTMLDivElement | null>(null)
   const [printMapSizeKey, setPrintMapSizeKey] = useState('print-map-initial')
+  const isMapbox3dBasemap = isMapbox3dBasemapKey(basemap)
   const showAirspaces = mapLayerPreferences.airspaces
   const showWeatherOverlays = mapLayerPreferences.weatherOverlays
   const showNotamOverlays = mapLayerPreferences.notamOverlays
@@ -3437,29 +3491,37 @@ export function FlightplanMapEditor({
             </section>
           </aside>
         ) : null}
-        {!printMode && !routeEditingEnabled && !selectedPointInfo && (
+        {!printMode && !isMapbox3dBasemap && !routeEditingEnabled && !selectedPointInfo && (
           <div className="fp-map-empty-hint">
             Utforska kartan. Klicka för "Vad finns här?" eller välj Skapa rutt.
           </div>
         )}
-        {!printMode && routeEditingEnabled && waypoints.length === 0 && (
+        {!printMode && !isMapbox3dBasemap && routeEditingEnabled && waypoints.length === 0 && (
           <div className="fp-map-empty-hint">
             Klicka i kartan för att välja startpunkten
           </div>
         )}
-        {!printMode && routeEditingEnabled && hasPendingStartPoint && (
+        {!printMode && !isMapbox3dBasemap && routeEditingEnabled && hasPendingStartPoint && (
           <div className="fp-map-empty-hint">
             Startpunkt vald. Klicka igen i kartan för nästa waypoint.
           </div>
         )}
-        <MapContainer
-          key={printMode ? printMapSizeKey : 'interactive-map'}
-          center={center}
-          zoom={7}
-          scrollWheelZoom={!printMode}
-          zoomControl={false}
-          className="fp-leaflet-map"
-        >
+        {isMapbox3dBasemap && !printMode ? (
+          <FlightplanMapbox3D
+            airspaces={showAirspaces ? visibleAirspaces : []}
+            mapStyle={getMapbox3DStyle(basemap)}
+            plan={plan}
+            derived={derived}
+          />
+        ) : (
+          <MapContainer
+            key={printMode ? printMapSizeKey : 'interactive-map'}
+            center={center}
+            zoom={7}
+            scrollWheelZoom={!printMode}
+            zoomControl={false}
+            className="fp-leaflet-map"
+          >
           <ZoomControl position="topright" />
           <Pane name={notamMapPane} style={{ zIndex: 525 }} />
           <Pane name="fp-navaid-pane" style={{ zIndex: 530 }} />
@@ -3468,7 +3530,7 @@ export function FlightplanMapEditor({
           <Pane name="fp-airspace-label-pane" style={{ zIndex: 555 }} />
           <Pane name={notamMapHighlightPane} style={{ zIndex: 558 }} />
           <Pane name="fp-airport-pane" style={{ zIndex: 560 }} />
-          <TileLayer attribution={basemaps[basemap].attribution} url={basemaps[basemap].url} />
+          <TileLayer attribution={basemaps[basemap].attribution ?? ''} url={basemaps[basemap].url ?? basemaps.topo.url ?? ''} />
           <MapInstanceHandler onReady={setMapInstance} />
           <InitialViewportHandler
             waypoints={displayWaypoints}
@@ -4208,6 +4270,7 @@ export function FlightplanMapEditor({
             </Marker>
           ))}
         </MapContainer>
+        )}
 
       </div>
     </section>
