@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import {
   CircleMarker,
   Circle,
@@ -58,7 +58,11 @@ import { fetchNotamsForAirports, type AirportNotam } from './notam'
 import { getAllWeatherOverlays, type RouteWeatherOverlay } from './weatherSigmet'
 import type { RouteLegAloftWind } from './openMeteoAloft'
 import type { FlightPlanInput, FlightPlanDerived } from './types'
-import { FlightplanMapbox3D, type FlightplanMapbox3DStyle, type FlightplanMapboxAirportFlightCategory } from './FlightplanMapbox3D'
+import type { FlightplanMapbox3DStyle, FlightplanMapboxAirportFlightCategory } from './FlightplanMapbox3D'
+
+const FlightplanMapbox3D = lazy(async () => ({
+  default: (await import('./FlightplanMapbox3D')).FlightplanMapbox3D,
+}))
 
 type BasemapKey = 'topo' | 'osm' | 'hot' | 'mapbox3d-ortho' | 'mapbox3d-topo' | 'mapbox3d-standard' | 'mapbox3d-light'
 
@@ -3529,24 +3533,27 @@ export function FlightplanMapEditor({
           </div>
         )}
         {isMapbox3dBasemap && !printMode ? (
-          <FlightplanMapbox3D
-            airspaces={showAirspaces ? visibleAirspaces : []}
-            airportFlightCategories={airportFlightCategories}
-            airports={showAirportMarkers ? swedishAirports : []}
-            aloftWinds={showAloftWindArrows ? aloftWinds : []}
-            mapStyle={getMapbox3DStyle(basemap)}
-            navaids={showNavaids ? swedishNavaids : []}
-            notamFeatures={showNotamOverlays ? notamMapFeatures : []}
-            onInspectAirport={inspectAirport}
-            onInspectNavaid={inspectNavaid}
-            onInspectNotamFeature={inspectNotamFeature}
-            onInspectPoint={inspectPoint}
-            onInspectVisualPoint={inspectVisualPoint}
-            plan={plan}
-            derived={derived}
-            visualPoints={showVisualPoints ? visibleVisualPoints : []}
-            weatherOverlays={showWeatherOverlays ? routeWeatherOverlays : []}
-          />
+          <Suspense fallback={<div className="fp-map-empty-hint">Laddar 3D-karta...</div>}>
+            <FlightplanMapbox3D
+              airspaces={showAirspaces ? visibleAirspaces : []}
+              airportFlightCategories={airportFlightCategories}
+              airports={showAirportMarkers ? swedishAirports : []}
+              aloftWinds={showAloftWindArrows ? aloftWinds : []}
+              initialViewport={initialViewport}
+              mapStyle={getMapbox3DStyle(basemap)}
+              navaids={showNavaids ? swedishNavaids : []}
+              notamFeatures={showNotamOverlays ? notamMapFeatures : []}
+              onInspectAirport={inspectAirport}
+              onInspectNavaid={inspectNavaid}
+              onInspectNotamFeature={inspectNotamFeature}
+              onInspectPoint={inspectPoint}
+              onInspectVisualPoint={inspectVisualPoint}
+              plan={plan}
+              derived={derived}
+              visualPoints={showVisualPoints ? visibleVisualPoints : []}
+              weatherOverlays={showWeatherOverlays ? routeWeatherOverlays : []}
+            />
+          </Suspense>
         ) : (
           <MapContainer
             key={printMode ? printMapSizeKey : 'interactive-map'}

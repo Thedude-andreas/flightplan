@@ -37,7 +37,20 @@ type TerrainDiagnostic = {
 export type FlightplanMapbox3DStyle = 'ortho' | 'topo' | 'standard' | 'light'
 export type FlightplanMapboxAirportFlightCategory = 'VMC' | 'MVMC' | 'IMC' | 'UNKNOWN'
 
+type MapboxCamera = {
+  center: [number, number]
+  zoom: number
+  pitch: number
+  bearing: number
+}
+
+type FlightplanMapboxInitialViewport = {
+  center: [number, number]
+  zoom: number
+}
+
 const mapboxAccessToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN?.trim() ?? ''
+const mapboxCameraStorageKey = 'flightplan-mapbox-3d-camera'
 const terrainSourceId = 'mapbox-dem'
 const routeSourceId = 'flightplan-3d-route'
 const routeLayerId = 'flightplan-3d-route-line'
@@ -76,7 +89,12 @@ const fallbackDepartureElevationFt = 100
 const fallbackArrivalElevationFt = 100
 const arrivalTargetHeightFt = 1000
 const terrainExaggeration = 1
-const terrainDemoCenter: [number, number] = [13.08, 63.4]
+const swedenOverviewCamera: MapboxCamera = {
+  center: [16.8, 64.9],
+  zoom: 4.6,
+  pitch: 0,
+  bearing: 0,
+}
 const feetToMeters = 0.3048
 const airspaceFillOpacity = 0.18
 const notamVolumeBaseFt = 0
@@ -664,35 +682,77 @@ function updateOrCreateGeoJsonSource(map: mapboxgl.Map, id: string, data: GeoJso
   })
 }
 
-function fitRoute(map: mapboxgl.Map, plan: FlightPlanInput) {
-  const routeCoordinates = plan.routeLegs.flatMap((leg, index) => (
-    index === 0
-      ? [[leg.from.lon, leg.from.lat], [leg.to.lon, leg.to.lat]]
-      : [[leg.to.lon, leg.to.lat]]
-  ))
+function isFiniteCamera(camera: MapboxCamera) {
+  return Number.isFinite(camera.center[0]) &&
+    Number.isFinite(camera.center[1]) &&
+    Number.isFinite(camera.zoom) &&
+    Number.isFinite(camera.pitch) &&
+    Number.isFinite(camera.bearing)
+}
 
-  if (routeCoordinates.length === 0) {
-    map.easeTo({
-      center: terrainDemoCenter,
-      zoom: 11.5,
-      pitch: 80,
-      bearing: 42,
-      duration: 0,
-    })
+function readStoredMapboxCamera(): MapboxCamera | null {
+  if (typeof window === 'undefined') {
+    return null
+  }
+
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(mapboxCameraStorageKey) ?? 'null') as Partial<MapboxCamera> | null
+    if (
+      !parsed ||
+      !Array.isArray(parsed.center) ||
+      parsed.center.length !== 2 ||
+      typeof parsed.zoom !== 'number' ||
+      typeof parsed.pitch !== 'number' ||
+      typeof parsed.bearing !== 'number'
+    ) {
+      return null
+    }
+
+    const camera: MapboxCamera = {
+      center: [Number(parsed.center[0]), Number(parsed.center[1])],
+      zoom: parsed.zoom,
+      pitch: parsed.pitch,
+      bearing: parsed.bearing,
+    }
+
+    return isFiniteCamera(camera) ? camera : null
+  } catch {
+    return null
+  }
+}
+
+function writeStoredMapboxCamera(camera: MapboxCamera) {
+  if (typeof window === 'undefined' || !isFiniteCamera(camera)) {
     return
   }
 
-  const bounds = routeCoordinates.reduce(
-    (currentBounds, coordinate) => currentBounds.extend(coordinate as [number, number]),
-    new mapboxgl.LngLatBounds(routeCoordinates[0] as [number, number], routeCoordinates[0] as [number, number]),
-  )
+  window.localStorage.setItem(mapboxCameraStorageKey, JSON.stringify(camera))
+}
 
-  map.fitBounds(bounds, {
-    padding: 90,
-    pitch: 68,
-    bearing: -18,
-    duration: 0,
-  })
+function getMapCamera(map: mapboxgl.Map): MapboxCamera {
+  const center = map.getCenter()
+  return {
+    center: [center.lng, center.lat],
+    zoom: map.getZoom(),
+    pitch: map.getPitch(),
+    bearing: map.getBearing(),
+  }
+}
+
+function getInitialMapboxCamera(
+  initialViewport: FlightplanMapboxInitialViewport | null,
+  preferInitialViewport: boolean,
+) {
+  if (preferInitialViewport && initialViewport) {
+    return {
+      center: [initialViewport.center[1], initialViewport.center[0]],
+      zoom: initialViewport.zoom,
+      pitch: 68,
+      bearing: 0,
+    } satisfies MapboxCamera
+  }
+
+  return readStoredMapboxCamera() ?? swedenOverviewCamera
 }
 
 export function FlightplanMapbox3D({
@@ -700,6 +760,7 @@ export function FlightplanMapbox3D({
   airportFlightCategories,
   airports,
   aloftWinds,
+  initialViewport,
   mapStyle,
   navaids,
   notamFeatures,
@@ -717,6 +778,7 @@ export function FlightplanMapbox3D({
   airportFlightCategories: Record<string, FlightplanMapboxAirportFlightCategory>
   airports: SwedishAirport[]
   aloftWinds: RouteLegAloftWind[]
+  initialViewport: FlightplanMapboxInitialViewport | null
   mapStyle: FlightplanMapbox3DStyle
   navaids: SwedishNavaid[]
   notamFeatures: NotamMapOverlayFeature[]
@@ -733,6 +795,7 @@ export function FlightplanMapbox3D({
   const containerRef = useRef<HTMLDivElement | null>(null)
   const mapRef = useRef<mapboxgl.Map | null>(null)
   const terrainErrorCountRef = useRef(0)
+  const hasAppliedInitialViewportRef = useRef(false)
   const suppressNextMapClickRef = useRef(false)
   const [terrainDiagnostic, setTerrainDiagnostic] = useState<TerrainDiagnostic>(getInitialTerrainDiagnostic)
   const routeProfile = useMemo(() => buildRouteProfile(plan, derived), [derived, plan])
@@ -811,19 +874,26 @@ export function FlightplanMapbox3D({
     }
 
     mapboxgl.accessToken = mapboxAccessToken
+    const initialCamera = getInitialMapboxCamera(initialViewport, !hasAppliedInitialViewportRef.current)
+    hasAppliedInitialViewportRef.current = true
     const map = new mapboxgl.Map({
       container: containerRef.current,
       style: mapboxStyleUrls[mapStyle],
       projection: 'mercator',
-      center: terrainDemoCenter,
-      zoom: 11.5,
-      pitch: 80,
-      bearing: 42,
+      center: initialCamera.center,
+      zoom: initialCamera.zoom,
+      pitch: initialCamera.pitch,
+      bearing: initialCamera.bearing,
       antialias: true,
     })
 
     mapRef.current = map
     map.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), 'top-right')
+    const persistCamera = () => writeStoredMapboxCamera(getMapCamera(map))
+    map.on('moveend', persistCamera)
+    map.on('zoomend', persistCamera)
+    map.on('pitchend', persistCamera)
+    map.on('rotateend', persistCamera)
 
     map.on('error', (event) => {
       const message = getMapboxErrorMessage(event.error)
@@ -1263,14 +1333,15 @@ export function FlightplanMapbox3D({
         },
       })
 
-      fitRoute(map, latestMapData.plan)
+      persistCamera()
     })
 
     return () => {
+      persistCamera()
       map.remove()
       mapRef.current = null
     }
-  }, [mapStyle])
+  }, [initialViewport, mapStyle])
 
   useEffect(() => {
     const map = mapRef.current
@@ -1329,7 +1400,6 @@ export function FlightplanMapbox3D({
     if (routeProfile.route) {
       updateOrCreateGeoJsonSource(map, routeSourceId, routeProfile.route)
       updateOrCreateGeoJsonSource(map, tocTodSourceId, routeProfile.markers)
-      fitRoute(map, plan)
     }
   }, [plan, routeProfile])
 
