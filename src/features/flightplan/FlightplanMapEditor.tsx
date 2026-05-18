@@ -58,7 +58,7 @@ import { fetchNotamsForAirports, type AirportNotam } from './notam'
 import { getAllWeatherOverlays, type RouteWeatherOverlay } from './weatherSigmet'
 import type { RouteLegAloftWind } from './openMeteoAloft'
 import type { FlightPlanInput, FlightPlanDerived } from './types'
-import { FlightplanMapbox3D, type FlightplanMapbox3DStyle } from './FlightplanMapbox3D'
+import { FlightplanMapbox3D, type FlightplanMapbox3DStyle, type FlightplanMapboxAirportFlightCategory } from './FlightplanMapbox3D'
 
 type BasemapKey = 'topo' | 'osm' | 'hot' | 'mapbox3d-ortho' | 'mapbox3d-topo' | 'mapbox3d-standard' | 'mapbox3d-light'
 
@@ -2253,6 +2253,21 @@ export function FlightplanMapEditor({
   const showTaf = mapLayerPreferences.taf
   const showAirportWeather = showMetar || showTaf
   const showAirportMarkers = showAirports || showAirportWeather
+  const airportFlightCategories = useMemo<Record<string, FlightplanMapboxAirportFlightCategory>>(() => {
+    if (!showAirportWeather) {
+      return {}
+    }
+
+    const categories: Record<string, FlightplanMapboxAirportFlightCategory> = {}
+    for (const airport of swedishAirports) {
+      if (!airport.icao) {
+        continue
+      }
+
+      categories[airport.icao] = getAirportDisplayFlightRules(airportWeatherByIcao[airport.icao] ?? null, { showMetar, showTaf }).category
+    }
+    return categories
+  }, [airportWeatherByIcao, showAirportWeather, showMetar, showTaf, swedishAirports])
   const enabledLayerCount = Object.values(mapLayerPreferences).filter(Boolean).length
   const notamLayerMeta = notamMapStatus === 'ready'
     ? formatNotamMapCoverageLabel(notamMapCoverage)
@@ -3509,9 +3524,21 @@ export function FlightplanMapEditor({
         {isMapbox3dBasemap && !printMode ? (
           <FlightplanMapbox3D
             airspaces={showAirspaces ? visibleAirspaces : []}
+            airportFlightCategories={airportFlightCategories}
+            airports={showAirportMarkers ? swedishAirports : []}
+            aloftWinds={showAloftWindArrows ? aloftWinds : []}
             mapStyle={getMapbox3DStyle(basemap)}
+            navaids={showNavaids ? swedishNavaids : []}
+            notamFeatures={showNotamOverlays ? notamMapFeatures : []}
+            onInspectAirport={inspectAirport}
+            onInspectNavaid={inspectNavaid}
+            onInspectNotamFeature={inspectNotamFeature}
+            onInspectPoint={inspectPoint}
+            onInspectVisualPoint={inspectVisualPoint}
             plan={plan}
             derived={derived}
+            visualPoints={showVisualPoints ? visibleVisualPoints : []}
+            weatherOverlays={showWeatherOverlays ? routeWeatherOverlays : []}
           />
         ) : (
           <MapContainer
