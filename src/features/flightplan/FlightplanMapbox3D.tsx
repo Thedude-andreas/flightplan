@@ -41,6 +41,7 @@ const routeCasingLayerId = 'flightplan-3d-route-casing'
 const airspaceSourceId = 'flightplan-3d-airspaces'
 const airspaceLayerId = 'flightplan-3d-airspaces'
 const airspaceOutlineLayerId = 'flightplan-3d-airspaces-outline'
+const airspaceBaseOutlineLayerId = 'flightplan-3d-airspaces-base-outline'
 const tocTodSourceId = 'flightplan-3d-toc-tod'
 const tocTodLayerId = 'flightplan-3d-toc-tod'
 const buildingsLayerId = '3d-buildings'
@@ -56,6 +57,7 @@ const arrivalTargetHeightFt = 1000
 const terrainExaggeration = 1
 const terrainDemoCenter: [number, number] = [13.08, 63.4]
 const feetToMeters = 0.3048
+const airspaceFillOpacity = 0.18
 const mapboxStyleUrls: Record<FlightplanMapbox3DStyle, string> = {
   ortho: 'mapbox://styles/mapbox/standard-satellite',
   topo: 'mapbox://styles/mapbox/outdoors-v12',
@@ -98,6 +100,29 @@ function getMapboxErrorMessage(error: unknown) {
   }
 
   return String(error)
+}
+
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+function formatAirspacePopup(properties: mapboxgl.GeoJSONFeature['properties']) {
+  const kind = String(properties?.kind ?? 'Luftrum')
+  const name = String(properties?.name ?? '')
+  const lower = String(properties?.lower ?? '-')
+  const upper = String(properties?.upper ?? '-')
+
+  return `
+    <div class="fp-mapbox3d-popup">
+      <strong>${escapeHtml(kind)}${name ? ` · ${escapeHtml(name)}` : ''}</strong>
+      <span>${escapeHtml(lower)} till ${escapeHtml(upper)}</span>
+    </div>
+  `
 }
 
 function parseAltitudeFt(value: string | null | undefined, fallback: number | null = null) {
@@ -476,8 +501,18 @@ export function FlightplanMapbox3D({
           'fill-extrusion-color': ['get', 'color'],
           'fill-extrusion-base': ['get', 'baseMeters'],
           'fill-extrusion-height': ['get', 'heightMeters'],
-          'fill-extrusion-opacity': 0.18,
+          'fill-extrusion-opacity': airspaceFillOpacity,
           'fill-extrusion-vertical-gradient': false,
+        },
+      })
+      map.addLayer({
+        id: airspaceBaseOutlineLayerId,
+        type: 'line',
+        source: airspaceSourceId,
+        paint: {
+          'line-color': ['get', 'color'],
+          'line-width': ['interpolate', ['linear'], ['zoom'], 6, 1.1, 10, 1.8, 14, 3.2],
+          'line-opacity': 0.72,
         },
       })
       map.addLayer({
@@ -490,9 +525,43 @@ export function FlightplanMapbox3D({
         },
         paint: {
           'line-color': ['get', 'color'],
-          'line-width': 1.3,
-          'line-opacity': 0.8,
+          'line-width': ['interpolate', ['linear'], ['zoom'], 6, 1.4, 10, 2.2, 14, 3.8],
+          'line-opacity': 0.95,
         },
+      })
+      const airspacePopup = new mapboxgl.Popup({
+        closeButton: false,
+        closeOnClick: false,
+        offset: 12,
+      })
+      map.on('mouseenter', airspaceLayerId, () => {
+        map.getCanvas().style.cursor = 'pointer'
+      })
+      map.on('mousemove', airspaceLayerId, (event) => {
+        const feature = event.features?.[0]
+        if (!feature) {
+          return
+        }
+
+        airspacePopup
+          .setLngLat(event.lngLat)
+          .setHTML(formatAirspacePopup(feature.properties))
+          .addTo(map)
+      })
+      map.on('mouseleave', airspaceLayerId, () => {
+        map.getCanvas().style.cursor = ''
+        airspacePopup.remove()
+      })
+      map.on('click', airspaceLayerId, (event) => {
+        const feature = event.features?.[0]
+        if (!feature) {
+          return
+        }
+
+        new mapboxgl.Popup({ offset: 14 })
+          .setLngLat(event.lngLat)
+          .setHTML(formatAirspacePopup(feature.properties))
+          .addTo(map)
       })
 
       if (latestMapData.routeProfile.route) {

@@ -2086,6 +2086,22 @@
   background: rgba(248, 113, 113, 0.18);
 }
 
+.flightplan-page .fp-mapbox3d-popup {
+  display: grid;
+  gap: 4px;
+  color: #0f172a;
+  font-family: 'Space Grotesk', 'Inter', sans-serif;
+}
+
+.flightplan-page .fp-mapbox3d-popup strong {
+  font-size: 0.82rem;
+}
+
+.flightplan-page .fp-mapbox3d-popup span {
+  font-size: 0.78rem;
+  color: #334155;
+}
+
 .flightplan-page.is-map-view .fp-mapbox3d-badge {
   bottom: calc(44px + env(safe-area-inset-bottom));
 }
