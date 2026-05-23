@@ -81,6 +81,10 @@ export type PerformanceInput = {
   availableLandingDistanceM: number
   aerodromeElevationFt: number
   temperatureC: number
+  qnhHpa?: number
+  landingAerodromeElevationFt?: number
+  landingTemperatureC?: number
+  landingQnhHpa?: number
   runwaySurface: 'Asfalt' | 'Gräs'
   runwayCondition: 'Torr' | 'Våt' | 'Mjuk'
   headwindKt: number
@@ -151,6 +155,10 @@ export type FuelDerived = {
 }
 
 export type PerformanceDerived = {
+  pressureAltitudeFt: number
+  densityAltitudeFt: number
+  landingPressureAltitudeFt: number
+  landingDensityAltitudeFt: number
   takeoffPohM: number
   takeoffCorrectedM: number
   takeoffRequiredM: number

@@ -26,10 +26,24 @@ import {
   getSupplementSourceLabel,
   getSupplementValidityLabel,
 } from './features/flightplan/notamRoute'
-import { fetchLfvWeatherBriefing, fetchWeatherForAirports, getAirportsNearRoute, type AirportWeather, type LfvLhpArea } from './features/flightplan/weather'
+import { getSwedishAirports, type SwedishAirport } from './features/flightplan/aviationData'
+import {
+  fetchLfvWeatherBriefing,
+  fetchMetarsForAirports,
+  fetchWeatherForAirports,
+  getAirportsNearPoint,
+  getAirportsNearRoute,
+  parseMetarPerformanceWeather,
+  type AirportMetar,
+  type AirportWeather,
+  type LfvLhpArea,
+  type NearbyAirport,
+} from './features/flightplan/weather'
 import { formatWeatherBriefingText, getRelevantLhpAreas } from './features/flightplan/weatherRoute'
 import { getRouteWeatherMatches } from './features/flightplan/weatherSigmet'
 import { fetchRouteLegAloftWinds, type RouteLegAloftWind } from './features/flightplan/openMeteoAloft'
+import { fetchOpenMeteoElevationFt } from './features/flightplan/openMeteoElevation'
+import { fetchOpenMeteoSurfacePerformanceWeather } from './features/flightplan/openMeteoSurfaceWeather'
 import { calculateRouteLegMagneticVariations } from './features/flightplan/magneticVariation'
 import type { AircraftProfile, FlightPlanInput, RadioNavEntry } from './features/flightplan/types'
 
@@ -144,6 +158,35 @@ type WeatherState =
       lastUpdatedAt: null
       usedStaleCache: boolean
       refreshError: string | null
+    }
+type PerformanceWeatherState =
+  | {
+      status: 'idle'
+      elevationSource: string
+      weatherSource: string
+      metarRawText: null
+      error: null
+    }
+  | {
+      status: 'loading'
+      elevationSource: string
+      weatherSource: string
+      metarRawText: string | null
+      error: null
+    }
+  | {
+      status: 'ready'
+      elevationSource: string
+      weatherSource: string
+      metarRawText: string | null
+      error: null
+    }
+  | {
+      status: 'error'
+      elevationSource: string
+      weatherSource: string
+      metarRawText: string | null
+      error: string
     }
 type NotamState =
   | {
@@ -502,6 +545,86 @@ function isDebugNotamMapNoticeEnabled() {
   return new URLSearchParams(window.location.search).get(debugNotamMapNoticeParam) === '1'
 }
 
+function airportDistanceNm(point: { lat: number; lon: number }, airport: SwedishAirport) {
+  const earthRadiusNm = 3440.065
+  const lat1 = (point.lat * Math.PI) / 180
+  const lat2 = (airport.lat * Math.PI) / 180
+  const dLat = ((airport.lat - point.lat) * Math.PI) / 180
+  const dLon = ((airport.lon - point.lon) * Math.PI) / 180
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2
+
+  return earthRadiusNm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+}
+
+function findStartAirport(point: FlightPlanInput['routeLegs'][number]['from'] | null, departureAerodrome: string) {
+  const airports = getSwedishAirports()
+  const normalizedDeparture = departureAerodrome.trim().toUpperCase()
+  const normalizedPointName = point?.name.trim().toUpperCase() ?? ''
+  const airportByName = airports.find((airport) => {
+    const icao = airport.icao?.trim().toUpperCase()
+    const name = airport.name?.trim().toUpperCase()
+    return Boolean(
+      (normalizedDeparture && (icao === normalizedDeparture || name === normalizedDeparture)) ||
+      (normalizedPointName && (icao === normalizedPointName || name === normalizedPointName)),
+    )
+  })
+
+  if (airportByName) {
+    return airportByName
+  }
+
+  if (!point) {
+    return null
+  }
+
+  const nearest = airports
+    .filter((airport) => airport.icao)
+    .map((airport) => ({
+      airport,
+      distanceNm: airportDistanceNm(point, airport),
+    }))
+    .sort((left, right) => left.distanceNm - right.distanceNm)[0]
+
+  return nearest && nearest.distanceNm <= 0.25 ? nearest.airport : null
+}
+
+function toNearbyAirport(airport: SwedishAirport, point: { lat: number; lon: number }): NearbyAirport | null {
+  if (!airport.icao || !airport.name) {
+    return null
+  }
+
+  return {
+    ...airport,
+    icao: airport.icao,
+    name: airport.name,
+    distanceNm: Math.round(airportDistanceNm(point, airport) * 10) / 10,
+  }
+}
+
+function addMinutesToUtcDateTime(date: string, time: string, minutes: number) {
+  const normalizedDate = date.trim()
+  if (!normalizedDate) {
+    return {
+      date: '',
+      time: '',
+    }
+  }
+
+  const normalizedTime = (time.trim() || '12:00').slice(0, 5)
+  const value = new Date(`${normalizedDate}T${normalizedTime}:00Z`)
+  if (Number.isNaN(value.getTime())) {
+    return {
+      date: normalizedDate,
+      time: normalizedTime,
+    }
+  }
+
+  value.setUTCMinutes(value.getUTCMinutes() + Math.round(minutes))
+  return getUtcDateParts(value)
+}
+
 const selectableAltitudesFt = Array.from({ length: 19 }, (_, index) => 500 + index * 500)
 
 function formatAltitudeOption(altitudeFt: number) {
@@ -647,6 +770,20 @@ export function FlightplanApp({
     lastUpdatedAt: null,
     usedStaleCache: false,
     refreshError: null,
+  })
+  const [performanceWeatherState, setPerformanceWeatherState] = useState<PerformanceWeatherState>({
+    status: 'idle',
+    elevationSource: 'Ej hämtad',
+    weatherSource: 'Ej hämtad',
+    metarRawText: null,
+    error: null,
+  })
+  const [landingPerformanceWeatherState, setLandingPerformanceWeatherState] = useState<PerformanceWeatherState>({
+    status: 'idle',
+    elevationSource: 'Ej hämtad',
+    weatherSource: 'Ej hämtad',
+    metarRawText: null,
+    error: null,
   })
   const [notamRefreshToken, setNotamRefreshToken] = useState(0)
   const handledNotamRefreshTokenRef = useRef(0)
@@ -845,6 +982,44 @@ export function FlightplanApp({
     [plan.radioNav, suggestedRadioNav],
   )
   const nearbyRouteAirports = useMemo(() => getAirportsNearRoute(plan.routeLegs), [plan.routeLegs])
+  const performanceStartPoint = plan.routeLegs[0]?.from ?? null
+  const performanceStartKey = useMemo(
+    () =>
+      JSON.stringify({
+        point: performanceStartPoint
+          ? {
+              lat: Math.round(performanceStartPoint.lat * 100000) / 100000,
+              lon: Math.round(performanceStartPoint.lon * 100000) / 100000,
+              name: performanceStartPoint.name,
+            }
+          : null,
+        departureAerodrome: plan.header.departureAerodrome,
+        date: plan.header.date,
+        plannedStartTime: plan.header.plannedStartTime,
+      }),
+    [performanceStartPoint, plan.header.departureAerodrome, plan.header.date, plan.header.plannedStartTime],
+  )
+  const performanceLandingPoint = plan.routeLegs.at(-1)?.to ?? null
+  const performanceLandingDateTime = useMemo(
+    () => addMinutesToUtcDateTime(plan.header.date, plan.header.plannedStartTime, derived.totals.flightTimeMinutes),
+    [derived.totals.flightTimeMinutes, plan.header.date, plan.header.plannedStartTime],
+  )
+  const performanceLandingKey = useMemo(
+    () =>
+      JSON.stringify({
+        point: performanceLandingPoint
+          ? {
+              lat: Math.round(performanceLandingPoint.lat * 100000) / 100000,
+              lon: Math.round(performanceLandingPoint.lon * 100000) / 100000,
+              name: performanceLandingPoint.name,
+            }
+          : null,
+        destinationAerodrome: plan.header.destinationAerodrome,
+        date: performanceLandingDateTime.date,
+        plannedLandingTime: performanceLandingDateTime.time,
+      }),
+    [performanceLandingDateTime.date, performanceLandingDateTime.time, performanceLandingPoint, plan.header.destinationAerodrome],
+  )
   const relevantLhpAreas = useMemo(
     () => getRelevantLhpAreas(plan.routeLegs, weatherState.lhpAreas),
     [plan.routeLegs, weatherState.lhpAreas],
@@ -998,6 +1173,226 @@ export function FlightplanApp({
   useEffect(() => {
     setActiveTab(initialActiveTab)
   }, [initialActiveTab])
+
+  useEffect(() => {
+    const startAirport = findStartAirport(performanceStartPoint, plan.header.departureAerodrome)
+    const startPoint = performanceStartPoint ?? (startAirport ? { lat: startAirport.lat, lon: startAirport.lon } : null)
+
+    if (!startPoint) {
+      setPerformanceWeatherState({
+        status: 'idle',
+        elevationSource: 'Ange startpunkt',
+        weatherSource: 'Ange startpunkt',
+        metarRawText: null,
+        error: null,
+      })
+      return
+    }
+
+    const controller = new AbortController()
+    const startAirportWeather = startAirport ? toNearbyAirport(startAirport, startPoint) : null
+    const nearestWeatherAirport = startAirportWeather ?? getAirportsNearPoint(startPoint, 50)[0] ?? null
+    const elevationPromise =
+      typeof startAirport?.elevationFt === 'number'
+        ? Promise.resolve({
+            elevationFt: startAirport.elevationFt,
+            source: `Fälthöjd ${startAirport.icao ?? startAirport.name}`,
+          })
+        : fetchOpenMeteoElevationFt(startPoint, controller.signal).then((elevationFt) => ({
+            elevationFt,
+            source: 'Open-Meteo terränghöjd',
+          }))
+    const metarPromise: Promise<AirportMetar | null> = nearestWeatherAirport
+      ? fetchMetarsForAirports([nearestWeatherAirport], controller.signal).then((results) => results[0] ?? null)
+      : Promise.resolve(null)
+    const surfaceWeatherPromise = fetchOpenMeteoSurfacePerformanceWeather(
+      startPoint,
+      plan.header.date,
+      plan.header.plannedStartTime,
+      controller.signal,
+    ).catch(() => null)
+
+    setPerformanceWeatherState({
+      status: 'loading',
+      elevationSource: typeof startAirport?.elevationFt === 'number' ? `Fälthöjd ${startAirport.icao ?? startAirport.name}` : 'Open-Meteo terränghöjd',
+      weatherSource: 'Open-Meteo startväder',
+      metarRawText: null,
+      error: null,
+    })
+
+    Promise.all([elevationPromise, surfaceWeatherPromise, metarPromise])
+      .then(([elevationResult, surfaceWeather, metarResult]) => {
+        if (controller.signal.aborted) {
+          return
+        }
+
+        const parsedWeather = parseMetarPerformanceWeather(metarResult?.metarRawText ?? null)
+        setPlan((current) => {
+          const nextPerformance = {
+            ...current.performance,
+            aerodromeElevationFt: elevationResult.elevationFt,
+            temperatureC: surfaceWeather?.temperatureC ?? parsedWeather.temperatureC ?? current.performance.temperatureC,
+            qnhHpa: surfaceWeather?.qnhHpa ?? parsedWeather.qnhHpa ?? current.performance.qnhHpa,
+          }
+
+          if (
+            nextPerformance.aerodromeElevationFt === current.performance.aerodromeElevationFt &&
+            nextPerformance.temperatureC === current.performance.temperatureC &&
+            nextPerformance.qnhHpa === current.performance.qnhHpa
+          ) {
+            return current
+          }
+
+          return normalizePlanForAircraft({
+            ...current,
+            performance: nextPerformance,
+          })
+        })
+
+        const weatherSource = surfaceWeather
+          ? `Open-Meteo startväder ${surfaceWeather.requestedTime}Z`
+          : metarResult?.metarRawText && nearestWeatherAirport
+            ? `METAR ${nearestWeatherAirport.icao}${nearestWeatherAirport.distanceNm > 0.3 ? ` (${formatNumber(nearestWeatherAirport.distanceNm, 1)} NM från start)` : ''}`
+            : nearestWeatherAirport
+              ? `METAR saknas för ${nearestWeatherAirport.icao}`
+              : 'Ingen METAR inom 50 NM'
+
+        setPerformanceWeatherState({
+          status: 'ready',
+          elevationSource: elevationResult.source,
+          weatherSource,
+          metarRawText: metarResult?.metarRawText ?? null,
+          error: null,
+        })
+      })
+      .catch((error: unknown) => {
+        if (controller.signal.aborted) {
+          return
+        }
+
+        setPerformanceWeatherState({
+          status: 'error',
+          elevationSource: typeof startAirport?.elevationFt === 'number' ? `Fälthöjd ${startAirport.icao ?? startAirport.name}` : 'Open-Meteo terränghöjd',
+          weatherSource: nearestWeatherAirport ? `METAR ${nearestWeatherAirport.icao}` : 'Ingen METAR inom 50 NM',
+          metarRawText: null,
+          error: error instanceof Error ? error.message : 'Kunde inte hämta prestandaväder.',
+        })
+      })
+
+    return () => controller.abort()
+  // performanceStartKey intentionally captures the route/header fields that should refetch DA inputs.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [performanceStartKey])
+
+  useEffect(() => {
+    const landingAirport = findStartAirport(performanceLandingPoint, plan.header.destinationAerodrome)
+    const landingPoint = performanceLandingPoint ?? (landingAirport ? { lat: landingAirport.lat, lon: landingAirport.lon } : null)
+
+    if (!landingPoint || !performanceLandingDateTime.date) {
+      setLandingPerformanceWeatherState({
+        status: 'idle',
+        elevationSource: 'Ange landningspunkt',
+        weatherSource: 'Ange landningspunkt',
+        metarRawText: null,
+        error: null,
+      })
+      return
+    }
+
+    const controller = new AbortController()
+    const landingAirportWeather = landingAirport ? toNearbyAirport(landingAirport, landingPoint) : null
+    const nearestWeatherAirport = landingAirportWeather ?? getAirportsNearPoint(landingPoint, 50)[0] ?? null
+    const elevationPromise =
+      typeof landingAirport?.elevationFt === 'number'
+        ? Promise.resolve({
+            elevationFt: landingAirport.elevationFt,
+            source: `Fälthöjd ${landingAirport.icao ?? landingAirport.name}`,
+          })
+        : fetchOpenMeteoElevationFt(landingPoint, controller.signal).then((elevationFt) => ({
+            elevationFt,
+            source: 'Open-Meteo terränghöjd',
+          }))
+    const metarPromise: Promise<AirportMetar | null> = nearestWeatherAirport
+      ? fetchMetarsForAirports([nearestWeatherAirport], controller.signal).then((results) => results[0] ?? null)
+      : Promise.resolve(null)
+    const surfaceWeatherPromise = fetchOpenMeteoSurfacePerformanceWeather(
+      landingPoint,
+      performanceLandingDateTime.date,
+      performanceLandingDateTime.time,
+      controller.signal,
+    ).catch(() => null)
+
+    setLandingPerformanceWeatherState({
+      status: 'loading',
+      elevationSource: typeof landingAirport?.elevationFt === 'number' ? `Fälthöjd ${landingAirport.icao ?? landingAirport.name}` : 'Open-Meteo terränghöjd',
+      weatherSource: 'Open-Meteo landningsväder',
+      metarRawText: null,
+      error: null,
+    })
+
+    Promise.all([elevationPromise, surfaceWeatherPromise, metarPromise])
+      .then(([elevationResult, surfaceWeather, metarResult]) => {
+        if (controller.signal.aborted) {
+          return
+        }
+
+        const parsedWeather = parseMetarPerformanceWeather(metarResult?.metarRawText ?? null)
+        setPlan((current) => {
+          const nextPerformance = {
+            ...current.performance,
+            landingAerodromeElevationFt: elevationResult.elevationFt,
+            landingTemperatureC: surfaceWeather?.temperatureC ?? parsedWeather.temperatureC ?? current.performance.landingTemperatureC ?? current.performance.temperatureC,
+            landingQnhHpa: surfaceWeather?.qnhHpa ?? parsedWeather.qnhHpa ?? current.performance.landingQnhHpa ?? current.performance.qnhHpa,
+          }
+
+          if (
+            nextPerformance.landingAerodromeElevationFt === current.performance.landingAerodromeElevationFt &&
+            nextPerformance.landingTemperatureC === current.performance.landingTemperatureC &&
+            nextPerformance.landingQnhHpa === current.performance.landingQnhHpa
+          ) {
+            return current
+          }
+
+          return normalizePlanForAircraft({
+            ...current,
+            performance: nextPerformance,
+          })
+        })
+
+        const weatherSource = surfaceWeather
+          ? `Open-Meteo landningsväder ${surfaceWeather.requestedTime}Z`
+          : metarResult?.metarRawText && nearestWeatherAirport
+            ? `METAR ${nearestWeatherAirport.icao}${nearestWeatherAirport.distanceNm > 0.3 ? ` (${formatNumber(nearestWeatherAirport.distanceNm, 1)} NM från landning)` : ''}`
+            : nearestWeatherAirport
+              ? `METAR saknas för ${nearestWeatherAirport.icao}`
+              : 'Ingen METAR inom 50 NM'
+
+        setLandingPerformanceWeatherState({
+          status: 'ready',
+          elevationSource: elevationResult.source,
+          weatherSource,
+          metarRawText: metarResult?.metarRawText ?? null,
+          error: null,
+        })
+      })
+      .catch((error: unknown) => {
+        if (controller.signal.aborted) {
+          return
+        }
+
+        setLandingPerformanceWeatherState({
+          status: 'error',
+          elevationSource: typeof landingAirport?.elevationFt === 'number' ? `Fälthöjd ${landingAirport.icao ?? landingAirport.name}` : 'Open-Meteo terränghöjd',
+          weatherSource: nearestWeatherAirport ? `METAR ${nearestWeatherAirport.icao}` : 'Ingen METAR inom 50 NM',
+          metarRawText: null,
+          error: error instanceof Error ? error.message : 'Kunde inte hämta landningsväder.',
+        })
+      })
+
+    return () => controller.abort()
+  // performanceLandingKey intentionally captures route/header fields that should refetch landing DA inputs.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [performanceLandingKey])
 
   useEffect(() => {
     const shouldLoadWeather = activePanel === 'weather' || activeTab === 'map'
@@ -1533,6 +1928,8 @@ export function FlightplanApp({
                 hasSelectedAircraft={hasSelectedAircraft}
                 onHeaderChange={updateHeader}
                 weatherStatusLabel={weatherStatusLabel}
+                performanceWeatherState={performanceWeatherState}
+                landingPerformanceWeatherState={landingPerformanceWeatherState}
                 aloftWindStatus={aloftWindState}
                 aloftWindAutoFetchEnabled={aloftWindAutoFetchEnabled}
                 onAloftWindAutoFetchChange={setAloftWindAutoFetchEnabled}
@@ -1613,6 +2010,8 @@ export function FlightplanApp({
                 hasSelectedAircraft={hasSelectedAircraft}
                 onHeaderChange={updateHeader}
                 weatherStatusLabel={weatherStatusLabel}
+                performanceWeatherState={performanceWeatherState}
+                landingPerformanceWeatherState={landingPerformanceWeatherState}
                 aloftWindStatus={aloftWindState}
                 aloftWindAutoFetchEnabled={aloftWindAutoFetchEnabled}
                 onAloftWindAutoFetchChange={setAloftWindAutoFetchEnabled}
@@ -1833,6 +2232,10 @@ export function FlightplanApp({
                   <EditorNumber label="Tillgänglig landningssträcka m" value={plan.performance.availableLandingDistanceM} onChange={(value) => updatePerformance('availableLandingDistanceM', value)} />
                   <EditorNumber label="Fälthöjd ft" value={plan.performance.aerodromeElevationFt} onChange={(value) => updatePerformance('aerodromeElevationFt', value)} />
                   <EditorNumber label="Temperatur °C" value={plan.performance.temperatureC} onChange={(value) => updatePerformance('temperatureC', value)} />
+                  <EditorNumber label="QNH hPa" value={plan.performance.qnhHpa ?? 1013} onChange={(value) => updatePerformance('qnhHpa', value)} />
+                  <EditorNumber label="Landning fälthöjd ft" value={plan.performance.landingAerodromeElevationFt ?? plan.performance.aerodromeElevationFt} onChange={(value) => updatePerformance('landingAerodromeElevationFt', value)} />
+                  <EditorNumber label="Landning temp °C" value={plan.performance.landingTemperatureC ?? plan.performance.temperatureC} onChange={(value) => updatePerformance('landingTemperatureC', value)} />
+                  <EditorNumber label="Landning QNH hPa" value={plan.performance.landingQnhHpa ?? plan.performance.qnhHpa ?? 1013} onChange={(value) => updatePerformance('landingQnhHpa', value)} />
                   <EditorNumber label="Motvind + / medvind -" value={plan.performance.headwindKt} onChange={(value) => updatePerformance('headwindKt', value)} />
                   <label>
                     Beläggning
@@ -1856,12 +2259,26 @@ export function FlightplanApp({
                     </select>
                   </label>
                 </div>
-                {hasSelectedAircraft ? (
-                  <div className="fp-stat-block">
-                    <div><span>Startmarginal</span><strong className={derived.performance.takeoffMarginM >= 0 ? 'fp-status-ok' : 'fp-status-warn'}>{formatNumber(derived.performance.takeoffMarginM)} m</strong></div>
-                    <div><span>Landningsmarginal</span><strong className={derived.performance.landingMarginM >= 0 ? 'fp-status-ok' : 'fp-status-warn'}>{formatNumber(derived.performance.landingMarginM)} m</strong></div>
-                  </div>
-                ) : null}
+                <div className="fp-stat-block">
+                  <div><span>Start DA</span><strong>{formatNumber(derived.performance.densityAltitudeFt)} ft</strong></div>
+                  <div><span>Landning DA</span><strong>{formatNumber(derived.performance.landingDensityAltitudeFt)} ft</strong></div>
+                  {hasSelectedAircraft ? (
+                    <>
+                      <div><span>Startmarginal</span><strong className={derived.performance.takeoffMarginM >= 0 ? 'fp-status-ok' : 'fp-status-warn'}>{formatNumber(derived.performance.takeoffMarginM)} m</strong></div>
+                      <div><span>Landningsmarginal</span><strong className={derived.performance.landingMarginM >= 0 ? 'fp-status-ok' : 'fp-status-warn'}>{formatNumber(derived.performance.landingMarginM)} m</strong></div>
+                    </>
+                  ) : null}
+                </div>
+                <p className="fp-performance-source">
+                  {performanceWeatherState.status === 'loading' ? 'Hämtar höjd och METAR...' : null}
+                  {performanceWeatherState.status !== 'loading' ? `${performanceWeatherState.elevationSource}. ${performanceWeatherState.weatherSource}.` : null}
+                  {performanceWeatherState.status === 'error' ? ` ${performanceWeatherState.error}` : null}
+                </p>
+                <p className="fp-performance-source">
+                  Landning: {landingPerformanceWeatherState.status === 'loading' ? 'hämtar höjd och väder...' : null}
+                  {landingPerformanceWeatherState.status !== 'loading' ? `${landingPerformanceWeatherState.elevationSource}. ${landingPerformanceWeatherState.weatherSource}.` : null}
+                  {landingPerformanceWeatherState.status === 'error' ? ` ${landingPerformanceWeatherState.error}` : null}
+                </p>
               </section>
             )}
 
@@ -2518,6 +2935,8 @@ function FlightPlanDocument({
   hasSelectedAircraft,
   onHeaderChange,
   weatherStatusLabel,
+  performanceWeatherState,
+  landingPerformanceWeatherState,
   aloftWindStatus,
   aloftWindAutoFetchEnabled,
   onAloftWindAutoFetchChange,
@@ -2551,6 +2970,8 @@ function FlightPlanDocument({
   hasSelectedAircraft: boolean
   onHeaderChange: (key: keyof FlightPlanInput['header'], value: string) => void
   weatherStatusLabel: string
+  performanceWeatherState: PerformanceWeatherState
+  landingPerformanceWeatherState: PerformanceWeatherState
   aloftWindStatus: AloftWindState
   aloftWindAutoFetchEnabled: boolean
   onAloftWindAutoFetchChange: (enabled: boolean) => void
@@ -2711,11 +3132,25 @@ function FlightPlanDocument({
       <section className="fp-bottom-grid">
         <div className="fp-subtable fp-performance-panel" onClick={() => onSectionSelect('performance')}>
           <div className="fp-subtable-title">STOL-PRESTANDA/VÄDERINFO</div>
+          <div className="fp-metric-row"><span>START DENSITETSHÖJD</span><strong>{formatNumber(derived.performance.densityAltitudeFt)} ft</strong></div>
+          <div className="fp-metric-row"><span>START FÄLTHÖJD / QNH / TEMP</span><strong>{formatNumber(plan.performance.aerodromeElevationFt)} ft · {formatNumber(plan.performance.qnhHpa ?? 1013)} hPa · {formatNumber(plan.performance.temperatureC)}°C</strong></div>
+          <div className="fp-performance-source fp-performance-source--document">
+            {performanceWeatherState.elevationSource}. {performanceWeatherState.weatherSource}.
+          </div>
           {hasSelectedAircraft ? (
             <>
               <div className="fp-metric-row"><span>T/O TILL 50 FOT ENL POH</span><strong>{formatNumber(derived.performance.takeoffPohM)} m</strong></div>
               <div className="fp-metric-row"><span>T/O INKL KORREKTIONER</span><strong>{formatNumber(derived.performance.takeoffCorrectedM)} m</strong></div>
               <div className="fp-metric-row fp-highlight-row"><span>TILLGÄNGLIG STARTSTRÄCKA</span><strong>{formatNumber(plan.performance.availableTakeoffDistanceM)} m</strong></div>
+            </>
+          ) : null}
+          <div className="fp-metric-row"><span>LANDNING DENSITETSHÖJD</span><strong>{formatNumber(derived.performance.landingDensityAltitudeFt)} ft</strong></div>
+          <div className="fp-metric-row"><span>LANDNING FÄLTHÖJD / QNH / TEMP</span><strong>{formatNumber(plan.performance.landingAerodromeElevationFt ?? plan.performance.aerodromeElevationFt)} ft · {formatNumber(plan.performance.landingQnhHpa ?? plan.performance.qnhHpa ?? 1013)} hPa · {formatNumber(plan.performance.landingTemperatureC ?? plan.performance.temperatureC)}°C</strong></div>
+          <div className="fp-performance-source fp-performance-source--document">
+            {landingPerformanceWeatherState.elevationSource}. {landingPerformanceWeatherState.weatherSource}.
+          </div>
+          {hasSelectedAircraft ? (
+            <>
               <div className="fp-metric-row"><span>LDG FR 50 FOT ENL POH</span><strong>{formatNumber(derived.performance.landingPohM)} m</strong></div>
               <div className="fp-metric-row"><span>LDG INKL KORREKTIONER</span><strong>{formatNumber(derived.performance.landingCorrectedM)} m</strong></div>
               <div className="fp-metric-row fp-highlight-row"><span>TILLGÄNGLIG LAND.STRÄCKA</span><strong>{formatNumber(plan.performance.availableLandingDistanceM)} m</strong></div>

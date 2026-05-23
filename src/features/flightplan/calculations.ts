@@ -141,9 +141,21 @@ function computePerformance(
   aircraft: AircraftProfile,
   weightBalance: WeightBalanceDerived,
 ): PerformanceDerived {
+  const qnhHpa = plan.performance.qnhHpa ?? 1013.25
+  const pressureAltitudeFt = plan.performance.aerodromeElevationFt + (1013.25 - qnhHpa) * 30
+  const isaTemperatureC = 15 - 1.98 * (pressureAltitudeFt / 1000)
+  const densityAltitudeFt = pressureAltitudeFt + 120 * (plan.performance.temperatureC - isaTemperatureC)
+  const landingElevationFt = plan.performance.landingAerodromeElevationFt ?? plan.performance.aerodromeElevationFt
+  const landingTemperatureC = plan.performance.landingTemperatureC ?? plan.performance.temperatureC
+  const landingQnhHpa = plan.performance.landingQnhHpa ?? qnhHpa
+  const landingPressureAltitudeFt = landingElevationFt + (1013.25 - landingQnhHpa) * 30
+  const landingIsaTemperatureC = 15 - 1.98 * (landingPressureAltitudeFt / 1000)
+  const landingDensityAltitudeFt = landingPressureAltitudeFt + 120 * (landingTemperatureC - landingIsaTemperatureC)
   const weightFactor = 1 + (weightBalance.towKg - aircraft.emptyWeightKg) / 2000
   const elevationFactor = 1 + plan.performance.aerodromeElevationFt / 5000
   const temperatureFactor = 1 + Math.max(0, plan.performance.temperatureC - 15) * 0.01
+  const landingElevationFactor = 1 + landingElevationFt / 5000
+  const landingTemperatureFactor = 1 + Math.max(0, landingTemperatureC - 15) * 0.01
   const surfaceFactor =
     plan.performance.runwaySurface === 'Gräs'
       ? plan.performance.runwayCondition === 'Mjuk'
@@ -157,11 +169,15 @@ function computePerformance(
   const takeoffPohM = aircraft.performance.takeoff50FtM
   const landingPohM = aircraft.performance.landing50FtM
   const takeoffCorrectedM = takeoffPohM * weightFactor * elevationFactor * temperatureFactor * surfaceFactor * windFactor
-  const landingCorrectedM = landingPohM * weightFactor * elevationFactor * temperatureFactor * surfaceFactor * windFactor
+  const landingCorrectedM = landingPohM * weightFactor * landingElevationFactor * landingTemperatureFactor * surfaceFactor * windFactor
   const takeoffRequiredM = takeoffCorrectedM * 1.33
   const landingRequiredM = landingCorrectedM * 1.43
 
   return {
+    pressureAltitudeFt: round(pressureAltitudeFt),
+    densityAltitudeFt: round(densityAltitudeFt),
+    landingPressureAltitudeFt: round(landingPressureAltitudeFt),
+    landingDensityAltitudeFt: round(landingDensityAltitudeFt),
     takeoffPohM: round(takeoffPohM),
     takeoffCorrectedM: round(takeoffCorrectedM),
     takeoffRequiredM: round(takeoffRequiredM),

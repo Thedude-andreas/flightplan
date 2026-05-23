@@ -108,6 +108,11 @@ export type MetarFlightRules = {
   ceilingFeet: number | null
 }
 
+export type MetarPerformanceWeather = {
+  temperatureC: number | null
+  qnhHpa: number | null
+}
+
 export type LfvWindLevel = {
   label: string
   altitudeFt: number
@@ -242,6 +247,20 @@ export function getAirportsNearRoute(
     .sort((left, right) => left.distanceNm - right.distanceNm || left.icao.localeCompare(right.icao, 'sv'))
 }
 
+export function getAirportsNearPoint(
+  point: { lat: number; lon: number },
+  maxDistanceNm = 50,
+): NearbyAirport[] {
+  return getSwedishAirports()
+    .filter((airport): airport is SwedishAirport & { icao: string; name: string } => Boolean(airport.icao && airport.name))
+    .map((airport) => ({
+      ...airport,
+      distanceNm: round(distanceNm(point.lat, point.lon, airport.lat, airport.lon)),
+    }))
+    .filter((airport) => airport.distanceNm <= maxDistanceNm)
+    .sort((left, right) => left.distanceNm - right.distanceNm || left.icao.localeCompare(right.icao, 'sv'))
+}
+
 type MetarApiResponse = {
   data?: Array<{
     raw_text?: string | null
@@ -322,6 +341,32 @@ function parseMetarCeilingFeet(rawText: string) {
     const nextLayerFeet = Number(match[2]) * 100
     return Math.min(lowest, nextLayerFeet)
   }, Number.POSITIVE_INFINITY)
+}
+
+function parseMetarSignedTemperature(value: string) {
+  return value.startsWith('M') ? -Number(value.slice(1)) : Number(value)
+}
+
+export function parseMetarPerformanceWeather(rawText: string | null): MetarPerformanceWeather {
+  if (!rawText) {
+    return {
+      temperatureC: null,
+      qnhHpa: null,
+    }
+  }
+
+  const temperatureMatch = rawText.match(/(?:^|\s)(M?\d{2})\/(?:M?\d{2}|\/\/)(?=\s|$)/)
+  const qnhMatch = rawText.match(/(?:^|\s)Q(\d{4})(?=\s|$)/)
+  const altimeterMatch = rawText.match(/(?:^|\s)A(\d{4})(?=\s|$)/)
+
+  return {
+    temperatureC: temperatureMatch ? parseMetarSignedTemperature(temperatureMatch[1]) : null,
+    qnhHpa: qnhMatch
+      ? Number(qnhMatch[1])
+      : altimeterMatch
+        ? Math.round((Number(altimeterMatch[1]) / 100) * 33.8639)
+        : null,
+  }
 }
 
 function worseFlightCategory(left: MetarFlightCategory, right: MetarFlightCategory): MetarFlightCategory {

@@ -59,6 +59,7 @@ export type SwedishAirport = {
   name: string | null
   lat: number
   lon: number
+  elevationFt?: number | null
   category: string | null
   detailsInAd2: boolean
 }
@@ -128,6 +129,7 @@ type SwedishAirportsPayload = {
     name: string | null
     category: string | null
     detailsInAd2: boolean
+    elevationFt?: number | null
     arp: {
       lat: number
       lon: number
@@ -179,6 +181,7 @@ function toSwedishAirports(payload: SwedishAirportsPayload): SwedishAirport[] {
     name: airport.name,
     lat: airport.arp.lat,
     lon: airport.arp.lon,
+    elevationFt: airport.elevationFt ?? null,
     category: airport.category,
     detailsInAd2: airport.detailsInAd2,
   }))
@@ -209,6 +212,7 @@ export async function preloadSwedishAviationData() {
           name: airport.name,
           category: airport.category,
           detailsInAd2: airport.detailsInAd2,
+          elevationFt: null,
           arp: {
             lat: airport.lat,
             lon: airport.lon,
