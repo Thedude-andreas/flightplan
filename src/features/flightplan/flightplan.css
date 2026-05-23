@@ -1309,6 +1309,10 @@
   z-index: 5000;
 }
 
+.flightplan-page .fp-map-hud-row--with-open-plan {
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+}
+
 .flightplan-page .fp-map-hud-row > .fp-map-hud {
   position: static;
   max-width: none;
@@ -1326,6 +1330,11 @@
   max-width: none;
 }
 
+.flightplan-page .fp-map-hud-row--with-open-plan .fp-map-hud--top-left.fp-map-hud--editor {
+  width: auto;
+  max-width: min(540px, 100%);
+}
+
 .flightplan-page .fp-map-hud-row .fp-map-hud--top-right {
   position: fixed;
   top: 12px;
@@ -1340,6 +1349,15 @@
   flex-wrap: nowrap;
   align-items: center;
   justify-content: flex-end;
+}
+
+.flightplan-page .fp-map-hud-row .fp-map-hud--top-center {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: center;
+  align-self: start;
+  max-width: 100%;
+  transform: none;
 }
 
 .flightplan-page .fp-map-hud--top-left {
@@ -2990,6 +3008,10 @@
     gap: 0.4rem;
   }
 
+  .flightplan-page.is-map-view .fp-map-hud-row--with-open-plan {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .flightplan-page.is-map-view .fp-map-hud-row .fp-map-hud--top-right {
     top: 10px;
     right: 12px;
@@ -3007,8 +3029,14 @@
   }
 
   .flightplan-page.is-map-view .fp-map-hud--top-center {
-    top: 62px;
     max-width: calc(100% - 20px);
+  }
+
+  .flightplan-page.is-map-view .fp-map-hud-row .fp-map-hud--top-center {
+    grid-column: 1;
+    grid-row: 2;
+    justify-self: start;
+    max-width: 100%;
   }
 
   .flightplan-page.is-map-view .fp-map-controls {

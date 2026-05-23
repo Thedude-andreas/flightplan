@@ -3254,7 +3254,7 @@ export function FlightplanMapEditor({
   return (
     <section className={`fp-map-editor${printMode ? ' fp-map-editor--print' : ''}`}>
       <div className="fp-map-canvas" ref={mapCanvasRef}>
-        {!printMode ? <div className={`fp-map-hud-row ${isMapLayerMenuOpen ? 'fp-map-hud-row--layer-menu-open' : ''}`}>
+        {!printMode ? <div className={`fp-map-hud-row ${isMapLayerMenuOpen ? 'fp-map-hud-row--layer-menu-open' : ''} ${hudTopCenterSlot ? 'fp-map-hud-row--with-open-plan' : ''}`}>
           <div className="fp-map-hud fp-map-hud--top-right">
             <div className="fp-map-controls">
               {hasNotamMapNotice ? (
@@ -3399,8 +3399,8 @@ export function FlightplanMapEditor({
           ) : null}
           </div>
           {hudSlot ? <div className="fp-map-hud fp-map-hud--top-left fp-map-hud--editor">{hudSlot}</div> : null}
+          {hudTopCenterSlot ? <div className="fp-map-hud fp-map-hud--top-center">{hudTopCenterSlot}</div> : null}
         </div> : null}
-        {!printMode && hudTopCenterSlot ? <div className="fp-map-hud fp-map-hud--top-center">{hudTopCenterSlot}</div> : null}
         {!printMode && hudStatusSlot ? <div className="fp-map-hud fp-map-hud--bottom-center fp-map-hud--status">{hudStatusSlot}</div> : null}
         {selectedPointInfo ? (
           <aside className="fp-map-point-info-panel" role="status" aria-live="polite">
