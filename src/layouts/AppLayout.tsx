@@ -1,5 +1,6 @@
 import { Link, Outlet, useLocation } from 'react-router-dom'
 import { AppVersionBadge } from '../shared/components/AppVersionBadge'
+import { BetaDisclaimerDialog } from '../shared/components/BetaDisclaimerDialog'
 
 export function AppLayout() {
   const location = useLocation()
@@ -17,6 +18,7 @@ export function AppLayout() {
         <Outlet />
       </main>
       <AppVersionBadge />
+      <BetaDisclaimerDialog />
     </div>
   )
 }

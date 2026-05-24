@@ -449,6 +449,91 @@
   margin: 0;
 }
 
+.beta-disclaimer {
+  z-index: 1400;
+}
+
+.beta-disclaimer__card {
+  width: min(100%, 680px);
+  max-height: min(760px, calc(100vh - 40px));
+  overflow: auto;
+}
+
+.beta-disclaimer__content {
+  display: grid;
+  gap: 12px;
+}
+
+.beta-disclaimer__card h2 {
+  color: #12202a;
+  font-size: clamp(1.55rem, 4vw, 2.25rem);
+  line-height: 1.08;
+}
+
+.beta-disclaimer__card a {
+  color: #163850;
+  font-weight: 700;
+}
+
+.beta-disclaimer__list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 20px;
+  color: #33434f;
+  line-height: 1.55;
+}
+
+.beta-disclaimer__commits {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid rgba(18, 32, 42, 0.1);
+  border-radius: 14px;
+  background: #f5f8fa;
+}
+
+.beta-disclaimer__commits h3 {
+  margin: 0;
+  color: #12202a;
+  font-size: 1rem;
+}
+
+.beta-disclaimer__commits ol {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.beta-disclaimer__commits li {
+  display: grid;
+  grid-template-columns: 6.5rem minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: baseline;
+  color: #33434f;
+  font-size: 0.92rem;
+  line-height: 1.35;
+}
+
+.beta-disclaimer__commits time {
+  color: #5d6b75;
+  font-variant-numeric: tabular-nums;
+}
+
+.beta-disclaimer__commits span {
+  min-width: 0;
+}
+
+.beta-disclaimer__commits code {
+  padding: 3px 6px;
+  border-radius: 7px;
+  background: rgba(22, 56, 80, 0.08);
+  color: #163850;
+  font-size: 0.78rem;
+}
+
 .dialog-field {
   display: grid;
   gap: 8px;
@@ -523,5 +608,13 @@
   .app-version-badge {
     right: 12px;
     bottom: 12px;
+  }
+
+  .beta-disclaimer__commits li {
+    grid-template-columns: 1fr auto;
+  }
+
+  .beta-disclaimer__commits time {
+    grid-column: 1 / -1;
   }
 }
