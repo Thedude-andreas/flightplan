@@ -55,6 +55,8 @@ const terrainSourceId = 'mapbox-dem'
 const routeSourceId = 'flightplan-3d-route'
 const routeLayerId = 'flightplan-3d-route-line'
 const routeCasingLayerId = 'flightplan-3d-route-casing'
+const routeGateFrameSourceId = 'flightplan-3d-route-gate-frame'
+const routeGateFrameLayerId = 'flightplan-3d-route-gate-frame'
 const airspaceSourceId = 'flightplan-3d-airspaces'
 const airspaceLayerId = 'flightplan-3d-airspaces'
 const airspaceOutlineLayerId = 'flightplan-3d-airspaces-outline'
@@ -97,6 +99,13 @@ const swedenOverviewCamera: MapboxCamera = {
 }
 const feetToMeters = 0.3048
 const airspaceFillOpacity = 0.18
+const routeAccentColor = '#ff35c4'
+const routeGateMinZoom = 10.4
+const routeVisualClearanceMeters = 70
+const routeGateHalfWidthNm = 0.11
+const routeGateHalfHeightMeters = 140
+const routeGatePostHalfSizeNm = 0.0018
+const routeGateRailHalfHeightMeters = 3
 const notamVolumeBaseFt = 0
 const notamVolumeDefaultUpperFt = 5000
 const mapboxStyleUrls: Record<FlightplanMapbox3DStyle, string> = {
@@ -251,6 +260,10 @@ function buildRouteProfile(plan: FlightPlanInput, derived: FlightPlanDerived) {
   if (plan.routeLegs.length === 0 || totalDistanceNm <= 0) {
     return {
       route: null,
+      gates: {
+        type: 'FeatureCollection',
+        features: [],
+      } satisfies GeoJsonFeatureCollection,
       markers: {
         type: 'FeatureCollection',
         features: [],
@@ -312,6 +325,69 @@ function buildRouteProfile(plan: FlightPlanInput, derived: FlightPlanDerived) {
       },
     } satisfies GeoJsonFeature
   })
+  const gateIntervalNm = Math.max(0.6, Math.min(2.5, totalDistanceNm / 90))
+  const gateDistances = Array.from(
+    { length: Math.max(0, Math.floor(totalDistanceNm / gateIntervalNm) - 1) },
+    (_, index) => (index + 1) * gateIntervalNm,
+  )
+  const gateFrameFeatures: GeoJsonFeature[] = []
+
+  for (const [index, distanceNm] of gateDistances.entries()) {
+    const pointIndex = profilePoints.findIndex((point) => point.distanceNm >= distanceNm)
+    const nextPoint = profilePoints[Math.max(1, pointIndex === -1 ? profilePoints.length - 1 : pointIndex)]
+    const previousPoint = profilePoints[Math.max(0, profilePoints.indexOf(nextPoint) - 1)]
+    const position = interpolateRoutePosition(plan, derived, distanceNm) ?? nextPoint
+    const bearingDeg = initialBearingDegrees(previousPoint.lat, previousPoint.lon, nextPoint.lat, nextPoint.lon)
+    const gateBearingDeg = bearingDeg + 90
+    const left = destinationPoint(position.lat, position.lon, gateBearingDeg - 180, routeGateHalfWidthNm)
+    const right = destinationPoint(position.lat, position.lon, gateBearingDeg, routeGateHalfWidthNm)
+    const altitudeFt = profilePoints.reduce((closest, point) => (
+      Math.abs(point.distanceNm - distanceNm) < Math.abs(closest.distanceNm - distanceNm) ? point : closest
+    ), profilePoints[0]).altitudeFt
+    const centerElevationMeters = altitudeFt * feetToMeters + routeVisualClearanceMeters
+    const baseMeters = Math.max(0, centerElevationMeters - routeGateHalfHeightMeters)
+    const heightMeters = centerElevationMeters + routeGateHalfHeightMeters
+
+    gateFrameFeatures.push({
+      type: 'Feature',
+      properties: {
+        id: `route-gate-${index}-bottom`,
+        baseMeters: Math.max(0, baseMeters - routeGateRailHalfHeightMeters),
+        heightMeters: baseMeters + routeGateRailHalfHeightMeters,
+      },
+      geometry: {
+        type: 'Polygon',
+        coordinates: alignedRailPolygonCoordinates(left, right, bearingDeg),
+      },
+    })
+    gateFrameFeatures.push({
+      type: 'Feature',
+      properties: {
+        id: `route-gate-${index}-top`,
+        baseMeters: heightMeters - routeGateRailHalfHeightMeters,
+        heightMeters: heightMeters + routeGateRailHalfHeightMeters,
+      },
+      geometry: {
+        type: 'Polygon',
+        coordinates: alignedRailPolygonCoordinates(left, right, bearingDeg),
+      },
+    })
+
+    for (const [side, point] of [['left', left], ['right', right]] as const) {
+      gateFrameFeatures.push({
+        type: 'Feature',
+        properties: {
+          id: `route-gate-${index}-${side}`,
+          baseMeters: Math.max(0, baseMeters - routeGateRailHalfHeightMeters),
+          heightMeters: heightMeters + routeGateRailHalfHeightMeters,
+        },
+        geometry: {
+          type: 'Polygon',
+          coordinates: alignedPostPolygonCoordinates(point[1], point[0], bearingDeg, gateBearingDeg),
+        },
+      })
+    }
+  }
 
   return {
     route: {
@@ -324,6 +400,10 @@ function buildRouteProfile(plan: FlightPlanInput, derived: FlightPlanDerived) {
         coordinates: profilePoints.map((point) => [point.lon, point.lat]),
       },
     } satisfies GeoJsonFeature,
+    gates: {
+      type: 'FeatureCollection',
+      features: gateFrameFeatures,
+    } satisfies GeoJsonFeatureCollection,
     markers: {
       type: 'FeatureCollection',
       features: markers,
@@ -383,7 +463,7 @@ function buildAirspaceGeoJson(airspaces: SwedishAirspace[]) {
   } satisfies GeoJsonFeatureCollection
 }
 
-function destinationPoint(lat: number, lon: number, bearingDeg: number, distanceNm: number) {
+function destinationPoint(lat: number, lon: number, bearingDeg: number, distanceNm: number): [number, number] {
   const angularDistance = distanceNm / 3440.065
   const bearing = (bearingDeg * Math.PI) / 180
   const lat1 = (lat * Math.PI) / 180
@@ -400,10 +480,50 @@ function destinationPoint(lat: number, lon: number, bearingDeg: number, distance
   return [(lon2 * 180) / Math.PI, (lat2 * 180) / Math.PI]
 }
 
+function initialBearingDegrees(fromLat: number, fromLon: number, toLat: number, toLon: number) {
+  const lat1 = (fromLat * Math.PI) / 180
+  const lat2 = (toLat * Math.PI) / 180
+  const dLon = ((toLon - fromLon) * Math.PI) / 180
+  const y = Math.sin(dLon) * Math.cos(lat2)
+  const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLon)
+  const bearing = (Math.atan2(y, x) * 180) / Math.PI
+
+  return bearing < 0 ? bearing + 360 : bearing
+}
+
 function circlePolygonCoordinates(lat: number, lon: number, radiusNm: number) {
   const points = Array.from({ length: 64 }, (_, index) => destinationPoint(lat, lon, (index / 64) * 360, radiusNm))
   points.push(points[0])
   return [points]
+}
+
+function alignedPostPolygonCoordinates(
+  lat: number,
+  lon: number,
+  routeBearingDeg: number,
+  gateBearingDeg: number,
+) {
+  const frontCenter = destinationPoint(lat, lon, routeBearingDeg, routeGatePostHalfSizeNm)
+  const backCenter = destinationPoint(lat, lon, routeBearingDeg + 180, routeGatePostHalfSizeNm)
+  const frontLeft = destinationPoint(frontCenter[1], frontCenter[0], gateBearingDeg - 180, routeGatePostHalfSizeNm)
+  const frontRight = destinationPoint(frontCenter[1], frontCenter[0], gateBearingDeg, routeGatePostHalfSizeNm)
+  const backRight = destinationPoint(backCenter[1], backCenter[0], gateBearingDeg, routeGatePostHalfSizeNm)
+  const backLeft = destinationPoint(backCenter[1], backCenter[0], gateBearingDeg - 180, routeGatePostHalfSizeNm)
+
+  return [[frontLeft, frontRight, backRight, backLeft, frontLeft]]
+}
+
+function alignedRailPolygonCoordinates(
+  left: [number, number],
+  right: [number, number],
+  routeBearingDeg: number,
+) {
+  const frontLeft = destinationPoint(left[1], left[0], routeBearingDeg, routeGatePostHalfSizeNm)
+  const frontRight = destinationPoint(right[1], right[0], routeBearingDeg, routeGatePostHalfSizeNm)
+  const backRight = destinationPoint(right[1], right[0], routeBearingDeg + 180, routeGatePostHalfSizeNm)
+  const backLeft = destinationPoint(left[1], left[0], routeBearingDeg + 180, routeGatePostHalfSizeNm)
+
+  return [[frontLeft, frontRight, backRight, backLeft, frontLeft]]
 }
 
 function extractVerticalRangeFt(text: string) {
@@ -1272,16 +1392,22 @@ export function FlightplanMapbox3D({
 
       if (latestMapData.routeProfile.route) {
         updateOrCreateGeoJsonSource(map, routeSourceId, latestMapData.routeProfile.route)
+        updateOrCreateGeoJsonSource(map, routeGateFrameSourceId, latestMapData.routeProfile.gates)
         map.addLayer({
           id: routeCasingLayerId,
           type: 'line',
           source: routeSourceId,
+          maxzoom: routeGateMinZoom,
           layout: {
             'line-elevation-reference': 'sea',
             'line-z-offset': [
-              'at-interpolated',
-              ['*', ['line-progress'], ['-', ['length', ['get', 'elevation']], 1]],
-              ['get', 'elevation'],
+              '+',
+              [
+                'at-interpolated',
+                ['*', ['line-progress'], ['-', ['length', ['get', 'elevation']], 1]],
+                ['get', 'elevation'],
+              ],
+              routeVisualClearanceMeters,
             ],
             'line-join': 'round',
             'line-cap': 'round',
@@ -1290,28 +1416,51 @@ export function FlightplanMapbox3D({
             'line-color': '#101828',
             'line-width': 8,
             'line-opacity': 0.9,
+            'line-occlusion-opacity': 1,
           },
         })
         map.addLayer({
           id: routeLayerId,
           type: 'line',
           source: routeSourceId,
+          maxzoom: routeGateMinZoom,
           layout: {
             'line-elevation-reference': 'sea',
             'line-z-offset': [
-              'at-interpolated',
-              ['*', ['line-progress'], ['-', ['length', ['get', 'elevation']], 1]],
-              ['get', 'elevation'],
+              '+',
+              [
+                'at-interpolated',
+                ['*', ['line-progress'], ['-', ['length', ['get', 'elevation']], 1]],
+                ['get', 'elevation'],
+              ],
+              routeVisualClearanceMeters,
             ],
             'line-join': 'round',
             'line-cap': 'round',
           },
           paint: {
-            'line-color': '#00d1ff',
+            'line-color': routeAccentColor,
             'line-emissive-strength': 1,
             'line-width': 4,
+            'line-occlusion-opacity': 1,
           },
         })
+        map.addLayer({
+          id: routeGateFrameLayerId,
+          type: 'fill-extrusion',
+          source: routeGateFrameSourceId,
+          minzoom: routeGateMinZoom,
+          paint: {
+            'fill-extrusion-color': routeAccentColor,
+            'fill-extrusion-base': ['get', 'baseMeters'],
+            'fill-extrusion-height': ['get', 'heightMeters'],
+            'fill-extrusion-opacity': 1,
+            'fill-extrusion-vertical-gradient': false,
+          },
+        })
+        map.moveLayer(routeGateFrameLayerId)
+        map.moveLayer(routeLayerId)
+        map.moveLayer(routeCasingLayerId, routeLayerId)
       }
 
       updateOrCreateGeoJsonSource(map, tocTodSourceId, latestMapData.routeProfile.markers)
@@ -1399,6 +1548,7 @@ export function FlightplanMapbox3D({
 
     if (routeProfile.route) {
       updateOrCreateGeoJsonSource(map, routeSourceId, routeProfile.route)
+      updateOrCreateGeoJsonSource(map, routeGateFrameSourceId, routeProfile.gates)
       updateOrCreateGeoJsonSource(map, tocTodSourceId, routeProfile.markers)
     }
   }, [plan, routeProfile])
