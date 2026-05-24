@@ -2129,6 +2129,20 @@ export function FlightplanApp({
                   </button>
                 </div>
                 <div className="fp-aircraft-picker">
+                  <button
+                    type="button"
+                    className={plan.aircraftRegistration ? '' : 'is-active'}
+                    onClick={() => {
+                      setPlan((current) => normalizePlanForAircraft({
+                        ...current,
+                        aircraftRegistration: '',
+                      }, true))
+                      setActivePanel(null)
+                    }}
+                  >
+                    <strong>Inget flygplan</strong>
+                    <span>Planera utan valt flygplan</span>
+                  </button>
                   {aircraftOptions.map((aircraft) => {
                     const isActive = aircraft.registration === plan.aircraftRegistration
                     return (
@@ -3037,7 +3051,7 @@ function FlightPlanDocument({
           </HeaderField>
           <HeaderField label="Registrering" className="fp-meta-registration">
             <button type="button" className="fp-header-picker" onClick={onOpenAircraftPicker}>
-              <strong>{plan.aircraftRegistration}</strong>
+              <strong>{plan.aircraftRegistration || 'Inget flygplan'}</strong>
             </button>
           </HeaderField>
           <HeaderField label="Typ" className="fp-meta-type"><strong>{hasSelectedAircraft ? derived.aircraft.typeName : ''}</strong></HeaderField>
