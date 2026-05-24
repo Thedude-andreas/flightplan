@@ -7,6 +7,12 @@ import type { NotamMapOverlayFeature } from './notamRoute'
 import type { RouteLegAloftWind } from './openMeteoAloft'
 import type { FlightPlanDerived, FlightPlanInput } from './types'
 import type { RouteWeatherOverlay } from './weatherSigmet'
+import {
+  getAeronauticalAirspaceStyle,
+  getMapboxAirspaceColorExpression,
+  getMapboxAirspaceDashArrayExpression,
+  getMapboxAirspaceFillColorExpression,
+} from './aeronauticalMapSymbols'
 
 type GeoJsonFeature = {
   type: 'Feature'
@@ -416,21 +422,6 @@ function buildRouteProfile(plan: FlightPlanInput, derived: FlightPlanDerived) {
   }
 }
 
-function getAirspaceColor(kind: SwedishAirspace['kind']) {
-  const colors: Record<SwedishAirspace['kind'], string> = {
-    CTR: '#ff9f43',
-    TMA: '#4dabf7',
-    TIA: '#38d9a9',
-    TIZ: '#69db7c',
-    R: '#ff6b6b',
-    D: '#ffa94d',
-    ATZ: '#51cf66',
-    TRA: '#da77f2',
-  }
-
-  return colors[kind] ?? '#4dabf7'
-}
-
 function buildAirspaceGeoJson(airspaces: SwedishAirspace[]) {
   const features: GeoJsonFeature[] = []
 
@@ -440,6 +431,7 @@ function buildAirspaceGeoJson(airspaces: SwedishAirspace[]) {
     if (upperFt == null || upperFt <= lowerFt) {
       continue
     }
+    const style = getAeronauticalAirspaceStyle(airspace.kind)
 
     features.push({
       type: 'Feature',
@@ -451,7 +443,8 @@ function buildAirspaceGeoJson(airspaces: SwedishAirspace[]) {
         upper: airspace.upper,
         baseMeters: Math.max(0, lowerFt * feetToMeters),
         heightMeters: Math.max((lowerFt + 200) * feetToMeters, upperFt * feetToMeters),
-        color: getAirspaceColor(airspace.kind),
+        color: style.strokeColor,
+        fillColor: style.fillColor,
       },
       geometry: airspace.geometry,
     })
@@ -1095,7 +1088,7 @@ export function FlightplanMapbox3D({
         type: 'fill-extrusion',
         source: airspaceSourceId,
         paint: {
-          'fill-extrusion-color': ['get', 'color'],
+          'fill-extrusion-color': getMapboxAirspaceFillColorExpression(),
           'fill-extrusion-base': ['get', 'baseMeters'],
           'fill-extrusion-height': ['get', 'heightMeters'],
           'fill-extrusion-opacity': airspaceFillOpacity,
@@ -1107,9 +1100,10 @@ export function FlightplanMapbox3D({
         type: 'line',
         source: airspaceSourceId,
         paint: {
-          'line-color': ['get', 'color'],
+          'line-color': getMapboxAirspaceColorExpression(),
           'line-width': ['interpolate', ['linear'], ['zoom'], 6, 1.1, 10, 1.8, 14, 3.2],
           'line-opacity': 0.72,
+          'line-dasharray': getMapboxAirspaceDashArrayExpression(),
         },
       })
       map.addLayer({
@@ -1121,9 +1115,10 @@ export function FlightplanMapbox3D({
           'line-z-offset': ['get', 'heightMeters'],
         },
         paint: {
-          'line-color': ['get', 'color'],
+          'line-color': getMapboxAirspaceColorExpression(),
           'line-width': ['interpolate', ['linear'], ['zoom'], 6, 1.4, 10, 2.2, 14, 3.8],
           'line-opacity': 0.95,
+          'line-dasharray': getMapboxAirspaceDashArrayExpression(),
         },
       })
       const airspacePopup = new mapboxgl.Popup({

@@ -59,6 +59,7 @@ import { getAllWeatherOverlays, type RouteWeatherOverlay } from './weatherSigmet
 import type { RouteLegAloftWind } from './openMeteoAloft'
 import type { FlightPlanInput, FlightPlanDerived } from './types'
 import type { FlightplanMapbox3DStyle, FlightplanMapboxAirportFlightCategory } from './FlightplanMapbox3D'
+import { getLeafletAirspacePathOptions } from './aeronauticalMapSymbols'
 
 const FlightplanMapbox3D = lazy(async () => ({
   default: (await import('./FlightplanMapbox3D')).FlightplanMapbox3D,
@@ -395,21 +396,6 @@ const sigmetOverlayPalette = {
   lineColor: '#b44300',
   lineFill: '#ffd0a6',
 } as const
-
-function getAirspacePalette(kind: string | null | undefined) {
-  const palette = {
-    CTR: { color: '#cc5d00', fillColor: '#ffb46b' },
-    TMA: { color: '#005db5', fillColor: '#82b8ff' },
-    TIA: { color: '#0a6b5d', fillColor: '#7ad8c7' },
-    TIZ: { color: '#0f7a38', fillColor: '#8ae69d' },
-    R: { color: '#b11717', fillColor: '#ff8a8a' },
-    D: { color: '#7b3b00', fillColor: '#f0b16b' },
-    ATZ: { color: '#007a4d', fillColor: '#7adca8' },
-    TRA: { color: '#8f1e8f', fillColor: '#e59cf4' },
-  } as const
-
-  return palette[kind as keyof typeof palette] ?? palette.CTR
-}
 
 const notamMapPane = 'fp-notam-pane'
 const notamMapHighlightPane = 'fp-notam-highlight-pane'
@@ -3613,17 +3599,7 @@ export function FlightplanMapEditor({
           {showAirspaces ? (
             <GeoJSON
               data={airspaceGeoJson}
-              style={(feature) => {
-                const current = getAirspacePalette(feature?.properties?.kind)
-
-                return {
-                  color: current.color,
-                  weight: 1.25,
-                  opacity: 0.9,
-                  fillColor: current.fillColor,
-                  fillOpacity: 0.12,
-                }
-              }}
+              style={(feature) => getLeafletAirspacePathOptions(feature?.properties?.kind)}
               onEachFeature={(_feature, layer) => {
                 layer.bindTooltip('', {
                   sticky: true,
@@ -3690,16 +3666,10 @@ export function FlightplanMapEditor({
               key={hoveredAirspaceIds.join('|')}
               data={highlightedAirspaceGeoJson}
               interactive={false}
-              style={(feature) => {
-                const current = getAirspacePalette(feature?.properties?.kind)
-                return {
-                  color: current.color,
-                  weight: 3.2,
-                  opacity: 1,
-                  fillOpacity: 0,
-                  className: 'fp-airspace-highlight-path',
-                }
-              }}
+              style={(feature) => ({
+                ...getLeafletAirspacePathOptions(feature?.properties?.kind, { highlighted: true }),
+                className: 'fp-airspace-highlight-path',
+              })}
             />
           ) : null}
 
