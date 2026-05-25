@@ -62,4 +62,14 @@ export default defineConfig({
     __RECENT_COMMITS__: JSON.stringify(resolveRecentCommits()),
   },
   plugins: [react()],
+  server: {
+    proxy: {
+      '/lfv-wfs': {
+        target: 'https://daim.lfv.se',
+        changeOrigin: true,
+        secure: true,
+        rewrite: (path) => path.replace(/^\/lfv-wfs/, '/geoserver/wfs'),
+      },
+    },
+  },
 })

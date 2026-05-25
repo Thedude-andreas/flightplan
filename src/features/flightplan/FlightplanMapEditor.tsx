@@ -57,6 +57,11 @@ import {
 import { fetchNotamsForAirports, type AirportNotam } from './notam'
 import { getAllWeatherOverlays, type RouteWeatherOverlay } from './weatherSigmet'
 import type { RouteLegAloftWind } from './openMeteoAloft'
+import {
+  fetchSwedishObstacles,
+  getObstacleDisplayType,
+  type SwedishObstacle,
+} from './obstacles'
 import type { FlightPlanInput, FlightPlanDerived } from './types'
 import type { FlightplanMapbox3DStyle, FlightplanMapboxAirportFlightCategory } from './FlightplanMapbox3D'
 import { getLeafletAirspacePathOptions } from './aeronauticalMapSymbols'
@@ -74,6 +79,7 @@ type MapLayerPreferences = {
   aloftWindArrows: boolean
   navaids: boolean
   visualPoints: boolean
+  obstacles: boolean
   airports: boolean
   metar: boolean
   taf: boolean
@@ -122,9 +128,14 @@ type MapPointInfo = {
   airports: PointInfoAirport[]
   navaids: PointInfoNavaid[]
   visualPoints: PointInfoVisualPoint[]
+  obstacles: PointInfoObstacle[]
   notamFeatures: PointInfoNotamFeature[]
 }
 type MapPointInfoDirectObjects = Partial<Pick<MapPointInfo, 'airports' | 'navaids' | 'visualPoints' | 'notamFeatures'>>
+type PointInfoObstacle = {
+  obstacle: SwedishObstacle
+  distanceNm: number
+}
 type PointInfoVisualPoint = {
   id: string
   label: string
@@ -174,10 +185,11 @@ const mapBasemapStorageKey = 'flightplan.basemap.v1'
 const defaultMapLayerPreferences: MapLayerPreferences = {
   airspaces: true,
   weatherOverlays: true,
-  notamOverlays: true,
+  notamOverlays: false,
   aloftWindArrows: true,
   navaids: true,
   visualPoints: true,
+  obstacles: false,
   airports: true,
   metar: true,
   taf: false,
@@ -383,6 +395,8 @@ const navaidMinZoom = 7
 const navaidLabelMinZoom = 9
 const visualPointMinZoom = 10
 const visualPointLabelMinZoom = 11
+const obstacleMinZoom = 8
+const obstacleInspectRadiusNm = 3
 const directionArrowWaypointClearancePx = 22
 const maxVisibleAirspaceLowerFt = 9500
 const notamAreaToPointThresholdPx = 12
@@ -399,6 +413,7 @@ const sigmetOverlayPalette = {
 
 const notamMapPane = 'fp-notam-pane'
 const notamMapHighlightPane = 'fp-notam-highlight-pane'
+const obstacleMapPane = 'fp-obstacle-pane'
 
 function readStoredMapLayerPreferences(): MapLayerPreferences {
   if (typeof window === 'undefined') {
@@ -419,6 +434,7 @@ function readStoredMapLayerPreferences(): MapLayerPreferences {
       aloftWindArrows: typeof parsed.aloftWindArrows === 'boolean' ? parsed.aloftWindArrows : defaultMapLayerPreferences.aloftWindArrows,
       navaids: typeof parsed.navaids === 'boolean' ? parsed.navaids : defaultMapLayerPreferences.navaids,
       visualPoints: typeof parsed.visualPoints === 'boolean' ? parsed.visualPoints : defaultMapLayerPreferences.visualPoints,
+      obstacles: typeof parsed.obstacles === 'boolean' ? parsed.obstacles : defaultMapLayerPreferences.obstacles,
       airports: typeof parsed.airports === 'boolean' ? parsed.airports : defaultMapLayerPreferences.airports,
       metar: typeof parsed.metar === 'boolean' ? parsed.metar : defaultMapLayerPreferences.metar,
       taf: typeof parsed.taf === 'boolean' ? parsed.taf : defaultMapLayerPreferences.taf,
@@ -459,6 +475,37 @@ function MapLayerSwitch({
       </span>
     </button>
   )
+}
+
+function getObstaclePalette(obstacle: SwedishObstacle) {
+  switch (obstacle.category) {
+    case 'wind_turbine':
+      return { color: '#0f766e', fillColor: '#2dd4bf', radius: 4.8 }
+    case 'mast':
+    case 'tower':
+      return { color: '#7c2d12', fillColor: '#f97316', radius: 4.4 }
+    case 'chimney':
+    case 'crane':
+      return { color: '#991b1b', fillColor: '#ef4444', radius: 4.8 }
+    case 'building':
+      return { color: '#475569', fillColor: '#94a3b8', radius: 4.2 }
+    case 'vegetation':
+      return { color: '#166534', fillColor: '#65a30d', radius: 3.8 }
+    case 'powerline_or_pylon':
+      return { color: '#854d0e', fillColor: '#eab308', radius: 4.2 }
+    case 'navaid':
+      return { color: '#4338ca', fillColor: '#818cf8', radius: 4.4 }
+    case 'other':
+      return { color: '#334155', fillColor: '#64748b', radius: 3.8 }
+  }
+}
+
+function formatObstacleHeight(value: number | null, unit: string | null) {
+  if (value == null) {
+    return null
+  }
+
+  return `${Math.round(value)} ${unit ?? 'M'}`
 }
 
 function getOverlayStrokeWeight(
@@ -2014,12 +2061,13 @@ function PrintMapLayoutHandler({
 function MapInstanceHandler({
   onReady,
 }: {
-  onReady: (map: L.Map) => void
+  onReady: (map: L.Map | null) => void
 }) {
   const map = useMap()
 
   useEffect(() => {
     onReady(map)
+    return () => onReady(null)
   }, [map, onReady])
 
   return null
@@ -2228,6 +2276,9 @@ export function FlightplanMapEditor({
   const [openNotamMapNoticeKey, setOpenNotamMapNoticeKey] = useState<string | null>(null)
   const [waypointMarkerLayerVersion, setWaypointMarkerLayerVersion] = useState(0)
   const [airportWeatherByIcao, setAirportWeatherByIcao] = useState<Record<string, AirportMapWeather>>({})
+  const [obstacles, setObstacles] = useState<SwedishObstacle[]>([])
+  const [obstacleStatus, setObstacleStatus] = useState<'idle' | 'loading' | 'error' | 'ready'>('idle')
+  const [obstacleFetchResult, setObstacleFetchResult] = useState<{ totalFeatures: number | null; numberReturned: number | null } | null>(null)
   const [metarStaleCheckTick, setMetarStaleCheckTick] = useState(0)
   const airportWeatherByIcaoRef = useRef(airportWeatherByIcao)
   const suppressNextMapClick = useRef(false)
@@ -2244,6 +2295,7 @@ export function FlightplanMapEditor({
   const showAloftWindArrows = mapLayerPreferences.aloftWindArrows
   const showNavaids = mapLayerPreferences.navaids
   const showVisualPoints = mapLayerPreferences.visualPoints
+  const showObstacles = mapLayerPreferences.obstacles
   const showAirports = mapLayerPreferences.airports
   const showMetar = mapLayerPreferences.metar
   const showTaf = mapLayerPreferences.taf
@@ -2396,8 +2448,41 @@ export function FlightplanMapEditor({
     const paddedBounds = mapBounds.pad(0.1)
     return swedishVisualPoints.filter((point) => paddedBounds.contains([point.lat, point.lon]))
   }, [mapBounds, mapZoom, showVisualPoints, swedishVisualPoints])
+  const visibleObstacles = useMemo(() => {
+    if (!showObstacles || mapZoom < obstacleMinZoom) {
+      return []
+    }
+
+    if (!mapBounds) {
+      return obstacles
+    }
+
+    const paddedBounds = mapBounds.pad(0.08)
+    return obstacles.filter((obstacle) => paddedBounds.contains([obstacle.lat, obstacle.lon]))
+  }, [mapBounds, mapZoom, obstacles, showObstacles])
+  const obstacleLayerMeta = (() => {
+    if (mapZoom < obstacleMinZoom) {
+      return `LFV från zoom ${obstacleMinZoom}`
+    }
+
+    if (obstacleStatus === 'loading') {
+      return 'Hämtar LFV flyghinder...'
+    }
+
+    if (obstacleStatus === 'error') {
+      return 'LFV kunde inte laddas'
+    }
+
+    if (obstacleStatus === 'ready') {
+      const returned = obstacleFetchResult?.numberReturned ?? visibleObstacles.length
+      const total = obstacleFetchResult?.totalFeatures
+      return total != null && returned < total ? `${returned}/${total} i vy` : `${visibleObstacles.length} i vy`
+    }
+
+    return 'LFV OBSE'
+  })()
   const airspaceLabels = useMemo<AirspaceMapLabel[]>(() => {
-    if (!mapBounds || !mapInstance || mapZoom < airspaceLabelMinZoom) {
+    if (isMapbox3dBasemap || !mapBounds || !mapInstance || mapZoom < airspaceLabelMinZoom) {
       return []
     }
 
@@ -2458,7 +2543,7 @@ export function FlightplanMapEditor({
     }
 
     return labels
-  }, [mapBounds, mapInstance, mapZoom, notamMapFeatures, showAirspaces, showNotamOverlays, visibleAirspaces])
+  }, [isMapbox3dBasemap, mapBounds, mapInstance, mapZoom, notamMapFeatures, showAirspaces, showNotamOverlays, visibleAirspaces])
   const isAirspaceLabelHighlighted = (label: AirspaceMapLabel) => {
     if (label.id.startsWith('airspace-')) {
       return hoveredAirspaceIds.includes(label.id.replace(/^airspace-/, ''))
@@ -2484,6 +2569,56 @@ export function FlightplanMapEditor({
   useEffect(() => {
     airportWeatherByIcaoRef.current = airportWeatherByIcao
   }, [airportWeatherByIcao])
+
+  useEffect(() => {
+    if (!showObstacles || !mapBounds || mapZoom < obstacleMinZoom) {
+      setObstacles([])
+      setObstacleFetchResult(null)
+      setObstacleStatus('idle')
+      return
+    }
+
+    const controller = new AbortController()
+    const paddedBounds = mapBounds.pad(0.15)
+    const timeoutId = window.setTimeout(() => {
+      setObstacleStatus('loading')
+      fetchSwedishObstacles(
+        {
+          south: paddedBounds.getSouth(),
+          west: paddedBounds.getWest(),
+          north: paddedBounds.getNorth(),
+          east: paddedBounds.getEast(),
+        },
+        controller.signal,
+      )
+        .then((result) => {
+          if (controller.signal.aborted) {
+            return
+          }
+
+          setObstacles(result.obstacles)
+          setObstacleFetchResult({
+            totalFeatures: result.totalFeatures,
+            numberReturned: result.numberReturned,
+          })
+          setObstacleStatus('ready')
+        })
+        .catch((error) => {
+          if (controller.signal.aborted || (error instanceof DOMException && error.name === 'AbortError')) {
+            return
+          }
+
+          setObstacles([])
+          setObstacleFetchResult(null)
+          setObstacleStatus('error')
+        })
+    }, 450)
+
+    return () => {
+      controller.abort()
+      window.clearTimeout(timeoutId)
+    }
+  }, [mapBounds, mapZoom, showObstacles])
 
   useEffect(() => {
     visibleWeatherAirportsRef.current = visibleWeatherAirports
@@ -2777,6 +2912,19 @@ export function FlightplanMapEditor({
           .sort((left, right) => left.distanceNm - right.distanceNm || left.feature.title.localeCompare(right.feature.title, 'sv'))
           .slice(0, 8)
       : []
+    const nearbyObstacles = showObstacles
+      ? visibleObstacles
+          .map((obstacle) => ({
+            obstacle,
+            distanceNm: distanceNmBetween(lat, lon, obstacle.lat, obstacle.lon),
+          }))
+          .filter((item) => item.distanceNm <= obstacleInspectRadiusNm)
+          .sort((left, right) =>
+            left.distanceNm - right.distanceNm ||
+            getObstacleDisplayType(left.obstacle).localeCompare(getObstacleDisplayType(right.obstacle), 'sv'),
+          )
+          .slice(0, 10)
+      : []
 
     return {
       lat,
@@ -2786,6 +2934,7 @@ export function FlightplanMapEditor({
       airports: directObjects.airports ?? [],
       navaids: directObjects.navaids ?? [],
       visualPoints: directObjects.visualPoints ?? [],
+      obstacles: nearbyObstacles,
       notamFeatures: directObjects.notamFeatures ?? notamFeaturesAtPoint,
     }
   }
@@ -3276,7 +3425,7 @@ export function FlightplanMapEditor({
                     </span>
                     <span className="fp-map-layer-menu__label">Visning</span>
                   </span>
-                  <span className="fp-map-layer-menu__count">{enabledLayerCount}/9</span>
+                  <span className="fp-map-layer-menu__count">{enabledLayerCount}/10</span>
                 </button>
                 {isMapLayerMenuOpen ? (
                 <div className="fp-map-layer-menu__popover" role="menu" aria-label="Kartdata">
@@ -3346,6 +3495,13 @@ export function FlightplanMapEditor({
                     label="Inpassering & vänt"
                     meta={`Entry/exit och VFR holdings från zoom ${visualPointMinZoom}`}
                     onToggle={() => toggleMapLayerPreference('visualPoints')}
+                  />
+                  <MapLayerSwitch
+                    checked={showObstacles}
+                    disabled={obstacleStatus === 'loading'}
+                    label="Flyghinder"
+                    meta={obstacleLayerMeta}
+                    onToggle={() => toggleMapLayerPreference('obstacles')}
                   />
                   <MapLayerSwitch
                     checked={showAirports}
@@ -3486,6 +3642,27 @@ export function FlightplanMapEditor({
               </section>
             ) : null}
 
+            {selectedPointInfo.obstacles.length > 0 ? (
+              <section>
+                <h3>Flyghinder</h3>
+                <ul>
+                  {selectedPointInfo.obstacles.map(({ obstacle, distanceNm }) => (
+                    <li key={obstacle.id}>
+                      <strong>{getObstacleDisplayType(obstacle)}</strong>
+                      {obstacle.name ? <span>{obstacle.name}</span> : null}
+                      <span>{formatDistanceNm(distanceNm)}</span>
+                      {formatObstacleHeight(obstacle.heightValue, obstacle.heightUnit) ? (
+                        <small>Höjd {formatObstacleHeight(obstacle.heightValue, obstacle.heightUnit)}</small>
+                      ) : null}
+                      {formatObstacleHeight(obstacle.mslValue, obstacle.mslUnit) ? (
+                        <small>MSL {formatObstacleHeight(obstacle.mslValue, obstacle.mslUnit)}</small>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ) : null}
+
             <section>
               <h3>NOTAM / AIP SUP</h3>
               {selectedPointInfo.notamFeatures.length > 0 ? (
@@ -3529,6 +3706,14 @@ export function FlightplanMapEditor({
               mapStyle={getMapbox3DStyle(basemap)}
               navaids={showNavaids ? swedishNavaids : []}
               notamFeatures={showNotamOverlays ? notamMapFeatures : []}
+              obstacles={showObstacles ? visibleObstacles : []}
+              onMapViewChange={(view) => {
+                setMapBounds(L.latLngBounds(
+                  [view.bounds.south, view.bounds.west],
+                  [view.bounds.north, view.bounds.east],
+                ))
+                setMapZoom(view.zoom)
+              }}
               onInspectAirport={inspectAirport}
               onInspectNavaid={inspectNavaid}
               onInspectNotamFeature={inspectNotamFeature}
@@ -3554,6 +3739,7 @@ export function FlightplanMapEditor({
           <Pane name={notamMapPane} style={{ zIndex: 525 }} />
           <Pane name="fp-navaid-pane" style={{ zIndex: 530 }} />
           <Pane name="fp-visual-point-pane" style={{ zIndex: 535 }} />
+          <Pane name={obstacleMapPane} style={{ zIndex: 540 }} />
           <Pane name="fp-wind-pane" style={{ zIndex: 545 }} />
           <Pane name="fp-airspace-label-pane" style={{ zIndex: 555 }} />
           <Pane name={notamMapHighlightPane} style={{ zIndex: 558 }} />
@@ -4059,6 +4245,41 @@ export function FlightplanMapEditor({
                   </Tooltip>
                 </CircleMarker>
               </FeatureGroup>
+            )
+          })}
+
+          {visibleObstacles.map((obstacle) => {
+            const palette = getObstaclePalette(obstacle)
+            const obstacleType = getObstacleDisplayType(obstacle)
+            return (
+              <CircleMarker
+                key={obstacle.id}
+                center={[obstacle.lat, obstacle.lon]}
+                pane={obstacleMapPane}
+                radius={palette.radius}
+                pathOptions={{
+                  color: palette.color,
+                  weight: 1.3,
+                  fillColor: palette.fillColor,
+                  fillOpacity: 0.82,
+                }}
+                eventHandlers={{ mouseout: closeLeafletTooltipOnMouseOut }}
+              >
+                <Tooltip direction="top" offset={[0, -6]} opacity={0.95} className="fp-hover-tooltip fp-obstacle-tooltip">
+                  <div className="fp-airport-tooltip fp-obstacle-tooltip__content">
+                    <strong>{obstacle.name ?? obstacleType}</strong>
+                    <span>{obstacleType}</span>
+                    {formatObstacleHeight(obstacle.heightValue, obstacle.heightUnit) ? (
+                      <span>Höjd {formatObstacleHeight(obstacle.heightValue, obstacle.heightUnit)}</span>
+                    ) : null}
+                    {formatObstacleHeight(obstacle.mslValue, obstacle.mslUnit) ? (
+                      <span>MSL {formatObstacleHeight(obstacle.mslValue, obstacle.mslUnit)}</span>
+                    ) : null}
+                    {obstacle.lightingDescription ? <span>Ljus {obstacle.lightingDescription}</span> : null}
+                    {obstacle.cycleId ? <span>LFV {obstacle.cycleId}</span> : null}
+                  </div>
+                </Tooltip>
+              </CircleMarker>
             )
           })}
 

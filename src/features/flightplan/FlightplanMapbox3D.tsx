@@ -4,6 +4,7 @@ import 'mapbox-gl/dist/mapbox-gl.css'
 
 import type { SwedishAirspace, SwedishAirport, SwedishNavaid, SwedishVisualPoint } from './aviationData'
 import type { NotamMapOverlayFeature } from './notamRoute'
+import { getObstacleCategoryLabel, getObstacleDisplayType, type SwedishObstacle } from './obstacles'
 import type { RouteLegAloftWind } from './openMeteoAloft'
 import type { FlightPlanDerived, FlightPlanInput } from './types'
 import type { RouteWeatherOverlay } from './weatherSigmet'
@@ -52,6 +53,16 @@ type MapboxCamera = {
 
 type FlightplanMapboxInitialViewport = {
   center: [number, number]
+  zoom: number
+}
+
+type FlightplanMapboxView = {
+  bounds: {
+    south: number
+    west: number
+    north: number
+    east: number
+  }
   zoom: number
 }
 
@@ -698,11 +709,13 @@ function buildMapPointGeoJson({
   airportFlightCategories,
   airports,
   navaids,
+  obstacles,
   visualPoints,
 }: {
   airportFlightCategories: Record<string, FlightplanMapboxAirportFlightCategory>
   airports: SwedishAirport[]
   navaids: SwedishNavaid[]
+  obstacles: SwedishObstacle[]
   visualPoints: SwedishVisualPoint[]
 }) {
   const features: GeoJsonFeature[] = [
@@ -758,6 +771,31 @@ function buildMapPointGeoJson({
         sortPriority: 20,
       },
       geometry: { type: 'Point', coordinates: [point.lon, point.lat] },
+    })),
+    ...obstacles.map((obstacle) => ({
+      type: 'Feature' as const,
+      properties: {
+        category: 'obstacle',
+        id: obstacle.id,
+        label: getObstacleCategoryLabel(obstacle.category),
+        title: obstacle.name ?? getObstacleDisplayType(obstacle),
+        body: [
+          getObstacleDisplayType(obstacle),
+          obstacle.heightValue != null ? `Höjd ${Math.round(obstacle.heightValue)} ${obstacle.heightUnit ?? 'M'}` : null,
+          obstacle.mslValue != null ? `MSL ${Math.round(obstacle.mslValue)} ${obstacle.mslUnit ?? 'M'}` : null,
+          obstacle.cycleId ? `LFV ${obstacle.cycleId}` : null,
+        ].filter(Boolean).join(' · '),
+        color: obstacle.category === 'wind_turbine'
+          ? '#0f766e'
+          : obstacle.category === 'vegetation'
+            ? '#65a30d'
+            : obstacle.category === 'navaid'
+              ? '#4338ca'
+              : '#ea580c',
+        radius: obstacle.category === 'wind_turbine' ? 4 : 3.6,
+        sortPriority: 25,
+      },
+      geometry: { type: 'Point', coordinates: [obstacle.lon, obstacle.lat] },
     })),
   ]
 
@@ -877,6 +915,8 @@ export function FlightplanMapbox3D({
   mapStyle,
   navaids,
   notamFeatures,
+  obstacles,
+  onMapViewChange,
   onInspectAirport,
   onInspectNavaid,
   onInspectNotamFeature,
@@ -895,6 +935,8 @@ export function FlightplanMapbox3D({
   mapStyle: FlightplanMapbox3DStyle
   navaids: SwedishNavaid[]
   notamFeatures: NotamMapOverlayFeature[]
+  obstacles: SwedishObstacle[]
+  onMapViewChange?: (view: FlightplanMapboxView) => void
   onInspectAirport: (airport: SwedishAirport) => void
   onInspectNavaid: (navaid: SwedishNavaid) => void
   onInspectNotamFeature: (feature: NotamMapOverlayFeature, lat: number, lon: number) => void
@@ -916,8 +958,8 @@ export function FlightplanMapbox3D({
   const notamGeoJson = useMemo(() => buildNotam3DGeoJson(notamFeatures), [notamFeatures])
   const weatherGeoJson = useMemo(() => buildWeather3DGeoJson(weatherOverlays), [weatherOverlays])
   const mapPointGeoJson = useMemo(
-    () => buildMapPointGeoJson({ airportFlightCategories, airports, navaids, visualPoints }),
-    [airportFlightCategories, airports, navaids, visualPoints],
+    () => buildMapPointGeoJson({ airportFlightCategories, airports, navaids, obstacles, visualPoints }),
+    [airportFlightCategories, airports, navaids, obstacles, visualPoints],
   )
   const aloftWindGeoJson = useMemo(() => buildAloftWindGeoJson(aloftWinds), [aloftWinds])
   const airportById = useMemo(() => new Map(airports.map((airport) => [airport.icao ?? `${airport.name}-${airport.lat}-${airport.lon}`, airport])), [airports])
@@ -935,6 +977,7 @@ export function FlightplanMapbox3D({
     onInspectVisualPoint,
     visualPointById,
   })
+  const latestViewChangeRef = useRef(onMapViewChange)
   const latestMapDataRef = useRef({
     airspaceGeoJson,
     aloftWindGeoJson,
@@ -944,6 +987,10 @@ export function FlightplanMapbox3D({
     routeProfile,
     weatherGeoJson,
   })
+
+  useEffect(() => {
+    latestViewChangeRef.current = onMapViewChange
+  }, [onMapViewChange])
 
   useEffect(() => {
     latestMapDataRef.current = {
@@ -1003,8 +1050,28 @@ export function FlightplanMapbox3D({
     mapRef.current = map
     map.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), 'top-right')
     const persistCamera = () => writeStoredMapboxCamera(getMapCamera(map))
-    map.on('moveend', persistCamera)
-    map.on('zoomend', persistCamera)
+    const emitMapView = () => {
+      const bounds = map.getBounds()
+      if (!bounds) {
+        return
+      }
+
+      latestViewChangeRef.current?.({
+        bounds: {
+          south: bounds.getSouth(),
+          west: bounds.getWest(),
+          north: bounds.getNorth(),
+          east: bounds.getEast(),
+        },
+        zoom: map.getZoom(),
+      })
+    }
+    const handleViewChange = () => {
+      persistCamera()
+      emitMapView()
+    }
+    map.on('moveend', handleViewChange)
+    map.on('zoomend', handleViewChange)
     map.on('pitchend', persistCamera)
     map.on('rotateend', persistCamera)
 
@@ -1081,6 +1148,7 @@ export function FlightplanMapbox3D({
       }, labelLayerId)
 
       const latestMapData = latestMapDataRef.current
+      emitMapView()
 
       updateOrCreateGeoJsonSource(map, airspaceSourceId, latestMapData.airspaceGeoJson)
       map.addLayer({
@@ -1276,6 +1344,7 @@ export function FlightplanMapbox3D({
           'text-anchor': 'top',
           'text-allow-overlap': false,
         },
+        filter: ['!=', ['get', 'category'], 'obstacle'],
         paint: {
           'text-color': '#0f172a',
           'text-halo-color': '#ffffff',
