@@ -128,6 +128,32 @@ const metersPerNm = 1852
 const airspaceFillOpacity = 0.18
 const routeAccentColor = '#ff35c4'
 const routeGateMinZoom = 10.4
+const airspaceOutlineOpacity = [
+  'interpolate',
+  ['linear'],
+  ['zoom'],
+  6,
+  0.72,
+  routeGateMinZoom - 0.1,
+  0.72,
+  routeGateMinZoom,
+  0.16,
+  14,
+  0.1,
+] satisfies mapboxgl.ExpressionSpecification
+const airspaceUpperOutlineOpacity = [
+  'interpolate',
+  ['linear'],
+  ['zoom'],
+  6,
+  0.95,
+  routeGateMinZoom - 0.1,
+  0.95,
+  routeGateMinZoom,
+  0.2,
+  14,
+  0.12,
+] satisfies mapboxgl.ExpressionSpecification
 const routeVisualClearanceMeters = 70
 const routeGateHalfWidthNm = 0.11
 const routeGateHalfHeightMeters = 140
@@ -483,8 +509,9 @@ function createRouteGateFrameLayer(initialGates: RouteGateFrame[]): RouteGateCus
   let gates = initialGates
   const gateMaterial = new THREE.MeshBasicMaterial({
     color: routeAccentColor,
-    depthTest: true,
-    depthWrite: true,
+    // Mapbox terrain and draped airspace lines can otherwise mask the route gates.
+    depthTest: false,
+    depthWrite: false,
     toneMapped: false,
   })
 
@@ -516,6 +543,7 @@ function createRouteGateFrameLayer(initialGates: RouteGateFrame[]): RouteGateCus
   return {
     id: routeGateFrameLayerId,
     type: 'custom',
+    slot: 'top',
     renderingMode: '3d',
     onAdd(nextMap, gl) {
       map = nextMap
@@ -545,6 +573,7 @@ function createRouteGateFrameLayer(initialGates: RouteGateFrame[]): RouteGateCus
 
       camera.projectionMatrix = new THREE.Matrix4().fromArray(matrix)
       renderer.resetState()
+      renderer.clearDepth()
       renderer.render(scene, camera)
     },
     setGates(nextGates) {
@@ -1268,7 +1297,7 @@ export function FlightplanMapbox3D({
         paint: {
           'line-color': getMapboxAirspaceColorExpression(),
           'line-width': ['interpolate', ['linear'], ['zoom'], 6, 1.1, 10, 1.8, 14, 3.2],
-          'line-opacity': 0.72,
+          'line-opacity': airspaceOutlineOpacity,
           'line-dasharray': getMapboxAirspaceDashArrayExpression(),
         },
       })
@@ -1283,7 +1312,7 @@ export function FlightplanMapbox3D({
         paint: {
           'line-color': getMapboxAirspaceColorExpression(),
           'line-width': ['interpolate', ['linear'], ['zoom'], 6, 1.4, 10, 2.2, 14, 3.8],
-          'line-opacity': 0.95,
+          'line-opacity': airspaceUpperOutlineOpacity,
           'line-dasharray': getMapboxAirspaceDashArrayExpression(),
         },
       })
@@ -1609,7 +1638,6 @@ export function FlightplanMapbox3D({
         const routeGateLayer = createRouteGateFrameLayer(latestMapData.routeProfile.gates)
         routeGateLayerRef.current = routeGateLayer
         map.addLayer(routeGateLayer)
-        map.moveLayer(routeGateFrameLayerId)
         map.moveLayer(routeLayerId)
         map.moveLayer(routeCasingLayerId, routeLayerId)
       }
@@ -1632,6 +1660,9 @@ export function FlightplanMapbox3D({
           'text-halo-width': 1.3,
         },
       })
+      if (map.getLayer(routeGateFrameLayerId)) {
+        map.moveLayer(routeGateFrameLayerId)
+      }
 
       persistCamera()
     })
