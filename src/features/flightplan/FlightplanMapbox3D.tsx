@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import mapboxgl from 'mapbox-gl'
+import * as THREE from 'three'
 import 'mapbox-gl/dist/mapbox-gl.css'
 
 import type { SwedishAirspace, SwedishAirport, SwedishNavaid, SwedishVisualPoint } from './aviationData'
@@ -31,6 +32,15 @@ type RouteProfilePoint = {
   lon: number
   distanceNm: number
   altitudeFt: number
+}
+
+type RouteGateFrame = {
+  id: string
+  lat: number
+  lon: number
+  gateBearingDeg: number
+  baseMeters: number
+  heightMeters: number
 }
 
 type TerrainStatus = 'checking' | 'ready' | 'degraded' | 'error'
@@ -72,7 +82,6 @@ const terrainSourceId = 'mapbox-dem'
 const routeSourceId = 'flightplan-3d-route'
 const routeLayerId = 'flightplan-3d-route-line'
 const routeCasingLayerId = 'flightplan-3d-route-casing'
-const routeGateFrameSourceId = 'flightplan-3d-route-gate-frame'
 const routeGateFrameLayerId = 'flightplan-3d-route-gate-frame'
 const airspaceSourceId = 'flightplan-3d-airspaces'
 const airspaceLayerId = 'flightplan-3d-airspaces'
@@ -115,14 +124,14 @@ const swedenOverviewCamera: MapboxCamera = {
   bearing: 0,
 }
 const feetToMeters = 0.3048
+const metersPerNm = 1852
 const airspaceFillOpacity = 0.18
 const routeAccentColor = '#ff35c4'
 const routeGateMinZoom = 10.4
 const routeVisualClearanceMeters = 70
 const routeGateHalfWidthNm = 0.11
 const routeGateHalfHeightMeters = 140
-const routeGatePostHalfSizeNm = 0.0018
-const routeGateRailHalfHeightMeters = 3
+const routeGateRibHalfSizeMeters = 3
 const notamVolumeBaseFt = 0
 const notamVolumeDefaultUpperFt = 5000
 const mapboxStyleUrls: Record<FlightplanMapbox3DStyle, string> = {
@@ -277,10 +286,7 @@ function buildRouteProfile(plan: FlightPlanInput, derived: FlightPlanDerived) {
   if (plan.routeLegs.length === 0 || totalDistanceNm <= 0) {
     return {
       route: null,
-      gates: {
-        type: 'FeatureCollection',
-        features: [],
-      } satisfies GeoJsonFeatureCollection,
+      gates: [] satisfies RouteGateFrame[],
       markers: {
         type: 'FeatureCollection',
         features: [],
@@ -347,7 +353,7 @@ function buildRouteProfile(plan: FlightPlanInput, derived: FlightPlanDerived) {
     { length: Math.max(0, Math.floor(totalDistanceNm / gateIntervalNm) - 1) },
     (_, index) => (index + 1) * gateIntervalNm,
   )
-  const gateFrameFeatures: GeoJsonFeature[] = []
+  const gateFrames: RouteGateFrame[] = []
 
   for (const [index, distanceNm] of gateDistances.entries()) {
     const pointIndex = profilePoints.findIndex((point) => point.distanceNm >= distanceNm)
@@ -356,8 +362,6 @@ function buildRouteProfile(plan: FlightPlanInput, derived: FlightPlanDerived) {
     const position = interpolateRoutePosition(plan, derived, distanceNm) ?? nextPoint
     const bearingDeg = initialBearingDegrees(previousPoint.lat, previousPoint.lon, nextPoint.lat, nextPoint.lon)
     const gateBearingDeg = bearingDeg + 90
-    const left = destinationPoint(position.lat, position.lon, gateBearingDeg - 180, routeGateHalfWidthNm)
-    const right = destinationPoint(position.lat, position.lon, gateBearingDeg, routeGateHalfWidthNm)
     const altitudeFt = profilePoints.reduce((closest, point) => (
       Math.abs(point.distanceNm - distanceNm) < Math.abs(closest.distanceNm - distanceNm) ? point : closest
     ), profilePoints[0]).altitudeFt
@@ -365,45 +369,14 @@ function buildRouteProfile(plan: FlightPlanInput, derived: FlightPlanDerived) {
     const baseMeters = Math.max(0, centerElevationMeters - routeGateHalfHeightMeters)
     const heightMeters = centerElevationMeters + routeGateHalfHeightMeters
 
-    gateFrameFeatures.push({
-      type: 'Feature',
-      properties: {
-        id: `route-gate-${index}-bottom`,
-        baseMeters: Math.max(0, baseMeters - routeGateRailHalfHeightMeters),
-        heightMeters: baseMeters + routeGateRailHalfHeightMeters,
-      },
-      geometry: {
-        type: 'Polygon',
-        coordinates: alignedRailPolygonCoordinates(left, right, bearingDeg),
-      },
+    gateFrames.push({
+      id: `route-gate-${index}`,
+      lat: position.lat,
+      lon: position.lon,
+      gateBearingDeg,
+      baseMeters,
+      heightMeters,
     })
-    gateFrameFeatures.push({
-      type: 'Feature',
-      properties: {
-        id: `route-gate-${index}-top`,
-        baseMeters: heightMeters - routeGateRailHalfHeightMeters,
-        heightMeters: heightMeters + routeGateRailHalfHeightMeters,
-      },
-      geometry: {
-        type: 'Polygon',
-        coordinates: alignedRailPolygonCoordinates(left, right, bearingDeg),
-      },
-    })
-
-    for (const [side, point] of [['left', left], ['right', right]] as const) {
-      gateFrameFeatures.push({
-        type: 'Feature',
-        properties: {
-          id: `route-gate-${index}-${side}`,
-          baseMeters: Math.max(0, baseMeters - routeGateRailHalfHeightMeters),
-          heightMeters: heightMeters + routeGateRailHalfHeightMeters,
-        },
-        geometry: {
-          type: 'Polygon',
-          coordinates: alignedPostPolygonCoordinates(point[1], point[0], bearingDeg, gateBearingDeg),
-        },
-      })
-    }
   }
 
   return {
@@ -417,10 +390,7 @@ function buildRouteProfile(plan: FlightPlanInput, derived: FlightPlanDerived) {
         coordinates: profilePoints.map((point) => [point.lon, point.lat]),
       },
     } satisfies GeoJsonFeature,
-    gates: {
-      type: 'FeatureCollection',
-      features: gateFrameFeatures,
-    } satisfies GeoJsonFeatureCollection,
+    gates: gateFrames,
     markers: {
       type: 'FeatureCollection',
       features: markers,
@@ -501,33 +471,160 @@ function circlePolygonCoordinates(lat: number, lon: number, radiusNm: number) {
   return [points]
 }
 
-function alignedPostPolygonCoordinates(
-  lat: number,
-  lon: number,
-  routeBearingDeg: number,
-  gateBearingDeg: number,
-) {
-  const frontCenter = destinationPoint(lat, lon, routeBearingDeg, routeGatePostHalfSizeNm)
-  const backCenter = destinationPoint(lat, lon, routeBearingDeg + 180, routeGatePostHalfSizeNm)
-  const frontLeft = destinationPoint(frontCenter[1], frontCenter[0], gateBearingDeg - 180, routeGatePostHalfSizeNm)
-  const frontRight = destinationPoint(frontCenter[1], frontCenter[0], gateBearingDeg, routeGatePostHalfSizeNm)
-  const backRight = destinationPoint(backCenter[1], backCenter[0], gateBearingDeg, routeGatePostHalfSizeNm)
-  const backLeft = destinationPoint(backCenter[1], backCenter[0], gateBearingDeg - 180, routeGatePostHalfSizeNm)
-
-  return [[frontLeft, frontRight, backRight, backLeft, frontLeft]]
+type RouteGateCustomLayer = mapboxgl.CustomLayerInterface & {
+  setGates: (gates: RouteGateFrame[]) => void
 }
 
-function alignedRailPolygonCoordinates(
-  left: [number, number],
-  right: [number, number],
-  routeBearingDeg: number,
-) {
-  const frontLeft = destinationPoint(left[1], left[0], routeBearingDeg, routeGatePostHalfSizeNm)
-  const frontRight = destinationPoint(right[1], right[0], routeBearingDeg, routeGatePostHalfSizeNm)
-  const backRight = destinationPoint(right[1], right[0], routeBearingDeg + 180, routeGatePostHalfSizeNm)
-  const backLeft = destinationPoint(left[1], left[0], routeBearingDeg + 180, routeGatePostHalfSizeNm)
+function createRouteGateFrameLayer(initialGates: RouteGateFrame[]): RouteGateCustomLayer {
+  let map: mapboxgl.Map | null = null
+  let camera: THREE.Camera | null = null
+  let renderer: THREE.WebGLRenderer | null = null
+  let scene: THREE.Scene | null = null
+  let gates = initialGates
+  const gateMaterial = new THREE.MeshBasicMaterial({
+    color: routeAccentColor,
+    depthTest: true,
+    depthWrite: true,
+    toneMapped: false,
+  })
 
-  return [[frontLeft, frontRight, backRight, backLeft, frontLeft]]
+  function disposeScene() {
+    if (!scene) {
+      return
+    }
+
+    for (const child of [...scene.children]) {
+      if (child instanceof THREE.Mesh) {
+        child.geometry.dispose()
+      }
+      scene.remove(child)
+    }
+  }
+
+  function rebuildScene() {
+    if (!scene) {
+      return
+    }
+
+    disposeScene()
+
+    for (const gate of gates) {
+      addGateFrameMeshes(scene, gate, gateMaterial)
+    }
+  }
+
+  return {
+    id: routeGateFrameLayerId,
+    type: 'custom',
+    renderingMode: '3d',
+    onAdd(nextMap, gl) {
+      map = nextMap
+      camera = new THREE.Camera()
+      scene = new THREE.Scene()
+      renderer = new THREE.WebGLRenderer({
+        canvas: nextMap.getCanvas(),
+        context: gl,
+        antialias: true,
+      })
+      renderer.autoClear = false
+      rebuildScene()
+    },
+    onRemove() {
+      disposeScene()
+      gateMaterial.dispose()
+      renderer?.dispose()
+      map = null
+      camera = null
+      renderer = null
+      scene = null
+    },
+    render(_gl, matrix) {
+      if (!map || !camera || !renderer || !scene || map.getZoom() < routeGateMinZoom) {
+        return
+      }
+
+      camera.projectionMatrix = new THREE.Matrix4().fromArray(matrix)
+      renderer.resetState()
+      renderer.render(scene, camera)
+    },
+    setGates(nextGates) {
+      gates = nextGates
+      rebuildScene()
+      map?.triggerRepaint()
+    },
+  }
+}
+
+function addGateFrameMeshes(
+  scene: THREE.Scene,
+  gate: RouteGateFrame,
+  material: THREE.Material,
+) {
+  const center = mapboxgl.MercatorCoordinate.fromLngLat({ lng: gate.lon, lat: gate.lat }, 0)
+  const centerScale = center.meterInMercatorCoordinateUnits()
+  const ribHalfSize = routeGateRibHalfSizeMeters * centerScale
+  const gateHalfWidth = routeGateHalfWidthNm * metersPerNm * centerScale
+  const gateHeight = Math.max(routeGateRibHalfSizeMeters * 2, gate.heightMeters - gate.baseMeters)
+  const gateLength = gateHalfWidth * 2 + ribHalfSize * 2
+  const postHeight = Math.max(ribHalfSize * 2, (gateHeight - routeGateRibHalfSizeMeters * 2) * centerScale)
+  const postAltitudeCenter = gate.baseMeters + routeGateRibHalfSizeMeters + (postHeight / centerScale) / 2
+  const gateAxisAngle = getMercatorBearingAngle(gate.lat, gate.lon, gate.gateBearingDeg)
+
+  addGateBox(scene, material, {
+    lat: gate.lat,
+    lon: gate.lon,
+    altitudeMeters: gate.heightMeters,
+    rotationZ: gateAxisAngle,
+    size: [gateLength, ribHalfSize * 2, ribHalfSize * 2],
+  })
+  addGateBox(scene, material, {
+    lat: gate.lat,
+    lon: gate.lon,
+    altitudeMeters: gate.baseMeters,
+    rotationZ: gateAxisAngle,
+    size: [gateLength, ribHalfSize * 2, ribHalfSize * 2],
+  })
+
+  for (const bearing of [gate.gateBearingDeg - 180, gate.gateBearingDeg]) {
+    const [lon, lat] = destinationPoint(gate.lat, gate.lon, bearing, routeGateHalfWidthNm)
+    addGateBox(scene, material, {
+      lat,
+      lon,
+      altitudeMeters: postAltitudeCenter,
+      rotationZ: gateAxisAngle,
+      size: [ribHalfSize * 2, ribHalfSize * 2, postHeight],
+    })
+  }
+}
+
+function addGateBox(
+  scene: THREE.Scene,
+  material: THREE.Material,
+  options: {
+    lat: number
+    lon: number
+    altitudeMeters: number
+    rotationZ: number
+    size: [number, number, number]
+  },
+) {
+  const coordinate = mapboxgl.MercatorCoordinate.fromLngLat(
+    { lng: options.lon, lat: options.lat },
+    options.altitudeMeters,
+  )
+  const geometry = new THREE.BoxGeometry(...options.size)
+  const mesh = new THREE.Mesh(geometry, material)
+  mesh.position.set(coordinate.x, coordinate.y, coordinate.z)
+  mesh.rotation.z = options.rotationZ
+  scene.add(mesh)
+}
+
+function getMercatorBearingAngle(lat: number, lon: number, bearingDeg: number) {
+  const origin = mapboxgl.MercatorCoordinate.fromLngLat({ lng: lon, lat }, 0)
+  const [endLon, endLat] = destinationPoint(lat, lon, bearingDeg, 0.01)
+  const end = mapboxgl.MercatorCoordinate.fromLngLat({ lng: endLon, lat: endLat }, 0)
+
+  return Math.atan2(end.y - origin.y, end.x - origin.x)
 }
 
 function extractVerticalRangeFt(text: string) {
@@ -949,6 +1046,7 @@ export function FlightplanMapbox3D({
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const mapRef = useRef<mapboxgl.Map | null>(null)
+  const routeGateLayerRef = useRef<RouteGateCustomLayer | null>(null)
   const terrainErrorCountRef = useRef(0)
   const hasAppliedInitialViewportRef = useRef(false)
   const suppressNextMapClickRef = useRef(false)
@@ -1456,7 +1554,6 @@ export function FlightplanMapbox3D({
 
       if (latestMapData.routeProfile.route) {
         updateOrCreateGeoJsonSource(map, routeSourceId, latestMapData.routeProfile.route)
-        updateOrCreateGeoJsonSource(map, routeGateFrameSourceId, latestMapData.routeProfile.gates)
         map.addLayer({
           id: routeCasingLayerId,
           type: 'line',
@@ -1509,19 +1606,9 @@ export function FlightplanMapbox3D({
             'line-occlusion-opacity': 1,
           },
         })
-        map.addLayer({
-          id: routeGateFrameLayerId,
-          type: 'fill-extrusion',
-          source: routeGateFrameSourceId,
-          minzoom: routeGateMinZoom,
-          paint: {
-            'fill-extrusion-color': routeAccentColor,
-            'fill-extrusion-base': ['get', 'baseMeters'],
-            'fill-extrusion-height': ['get', 'heightMeters'],
-            'fill-extrusion-opacity': 1,
-            'fill-extrusion-vertical-gradient': false,
-          },
-        })
+        const routeGateLayer = createRouteGateFrameLayer(latestMapData.routeProfile.gates)
+        routeGateLayerRef.current = routeGateLayer
+        map.addLayer(routeGateLayer)
         map.moveLayer(routeGateFrameLayerId)
         map.moveLayer(routeLayerId)
         map.moveLayer(routeCasingLayerId, routeLayerId)
@@ -1551,6 +1638,7 @@ export function FlightplanMapbox3D({
 
     return () => {
       persistCamera()
+      routeGateLayerRef.current = null
       map.remove()
       mapRef.current = null
     }
@@ -1612,7 +1700,7 @@ export function FlightplanMapbox3D({
 
     if (routeProfile.route) {
       updateOrCreateGeoJsonSource(map, routeSourceId, routeProfile.route)
-      updateOrCreateGeoJsonSource(map, routeGateFrameSourceId, routeProfile.gates)
+      routeGateLayerRef.current?.setGates(routeProfile.gates)
       updateOrCreateGeoJsonSource(map, tocTodSourceId, routeProfile.markers)
     }
   }, [plan, routeProfile])
