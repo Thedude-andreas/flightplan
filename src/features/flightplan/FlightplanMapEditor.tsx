@@ -3876,6 +3876,7 @@ export function FlightplanMapEditor({
                     <Polygon
                       key={overlay.id}
                       positions={overlay.geometry.points.map((point) => [point.lat, point.lon] as [number, number])}
+                      smoothFactor={0}
                       pathOptions={{
                         color: sigmetOverlayPalette.color,
                         weight: getOverlayStrokeWeight(mapZoom, 'weather-area'),
@@ -3897,6 +3898,7 @@ export function FlightplanMapEditor({
                       positions={overlay.geometry.polygons.map((polygon) => (
                         polygon.map((point) => [point.lat, point.lon] as [number, number])
                       ))}
+                      smoothFactor={0}
                       pathOptions={{
                         color: sigmetOverlayPalette.color,
                         weight: getOverlayStrokeWeight(mapZoom, 'weather-area'),
@@ -3916,6 +3918,7 @@ export function FlightplanMapEditor({
                     <Polyline
                       key={overlay.id}
                       positions={overlay.geometry.points.map((point) => [point.lat, point.lon] as [number, number])}
+                      smoothFactor={0}
                       pathOptions={{
                         color: sigmetOverlayPalette.lineColor,
                         weight: getOverlayStrokeWeight(mapZoom, 'weather-line'),
