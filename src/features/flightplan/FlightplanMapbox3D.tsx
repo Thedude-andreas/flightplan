@@ -801,6 +801,23 @@ function buildWeather3DGeoJson(overlays: RouteWeatherOverlay[]) {
         coordinates.push(first)
       }
       areaFeatures.push({ type: 'Feature', properties, geometry: { type: 'Polygon', coordinates: [coordinates] } })
+    } else if (overlay.geometry.type === 'multipolygon') {
+      areaFeatures.push({
+        type: 'Feature',
+        properties,
+        geometry: {
+          type: 'MultiPolygon',
+          coordinates: overlay.geometry.polygons.map((polygon) => {
+            const coordinates = polygon.map((point) => [point.lon, point.lat])
+            const first = coordinates[0]
+            const last = coordinates[coordinates.length - 1]
+            if (first && last && (first[0] !== last[0] || first[1] !== last[1])) {
+              coordinates.push(first)
+            }
+            return [coordinates]
+          }),
+        },
+      })
     } else if (overlay.geometry.type === 'circle') {
       areaFeatures.push({
         type: 'Feature',

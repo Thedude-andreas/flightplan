@@ -2,6 +2,12 @@ import type { FlightPlanInput } from './types'
 import { expandFirBoundaryDmsSegments } from './firBoundary'
 
 const earthRadiusNm = 3440.065
+const nordicSigmetBounds = {
+  south: 54,
+  north: 72,
+  west: 4,
+  east: 32,
+}
 
 type RoutePoint = {
   lat: number
@@ -35,6 +41,7 @@ type SigmetOverlayGeometry =
   | { type: 'point'; point: RoutePoint }
   | { type: 'polyline'; points: RoutePoint[] }
   | { type: 'polygon'; points: RoutePoint[] }
+  | { type: 'multipolygon'; polygons: RoutePoint[][] }
   | { type: 'circle'; centre: RoutePoint; radiusNm: number }
 
 export type RouteWeatherOverlay = {
@@ -274,6 +281,42 @@ function parseCoordinateComponent(value: string, degreeDigits: number) {
   return sign * (degrees + minutes / 60)
 }
 
+function parseLatitudeReference(value: string) {
+  return parseCoordinateComponent(value.toUpperCase(), 2)
+}
+
+function parseLongitudeReference(value: string) {
+  return parseCoordinateComponent(value.toUpperCase(), 3)
+}
+
+function extractAxisBoundary(rawText: string): SigmetOverlayGeometry | null {
+  const longitudeMatch = rawText.match(/\b(?:N|NE|E|SE|S|SW|W|NW)\s+OF\s+(?:(?:N|NE|E|SE|S|SW|W|NW)\s+OF\s+)?([EW]\d{3,5})\b/i)
+  if (longitudeMatch) {
+    const lon = parseLongitudeReference(longitudeMatch[1])
+    return {
+      type: 'polyline',
+      points: [
+        { lat: nordicSigmetBounds.south, lon },
+        { lat: nordicSigmetBounds.north, lon },
+      ],
+    }
+  }
+
+  const latitudeMatch = rawText.match(/\b(?:N|NE|E|SE|S|SW|W|NW)\s+OF\s+(?:(?:N|NE|E|SE|S|SW|W|NW)\s+OF\s+)?([NS]\d{2,4})\b/i)
+  if (latitudeMatch) {
+    const lat = parseLatitudeReference(latitudeMatch[1])
+    return {
+      type: 'polyline',
+      points: [
+        { lat, lon: nordicSigmetBounds.west },
+        { lat, lon: nordicSigmetBounds.east },
+      ],
+    }
+  }
+
+  return null
+}
+
 function extractCoordinates(rawText: string) {
   const matches = rawText.matchAll(/([NS]\d{2,4})\s*([EW]\d{3,5})/gi)
   const coordinates = Array.from(matches, ([, latValue, lonValue]) => ({
@@ -282,6 +325,37 @@ function extractCoordinates(rawText: string) {
   }))
 
   return expandFirBoundaryDmsSegments(rawText, coordinates)
+}
+
+function isExplicitlyClosed(points: RoutePoint[]) {
+  if (points.length < 4) {
+    return false
+  }
+
+  const first = points[0]
+  const last = points[points.length - 1]
+  return distanceNm(first.lat, first.lon, last.lat, last.lon) <= 0.2
+}
+
+function extractCoordinateGroups(rawText: string) {
+  const coordinates = extractCoordinates(rawText)
+  const groups: RoutePoint[][] = []
+  let current: RoutePoint[] = []
+
+  for (const coordinate of coordinates) {
+    current.push(coordinate)
+
+    if (isExplicitlyClosed(current)) {
+      groups.push(current)
+      current = []
+    }
+  }
+
+  if (current.length > 0) {
+    groups.push(current)
+  }
+
+  return groups
 }
 
 function centroid(points: RoutePoint[]) {
@@ -300,13 +374,15 @@ function isClosedPolygon(points: RoutePoint[], rawText: string) {
     return false
   }
 
-  if (/\bWI\b|\bAPRX\b/i.test(rawText)) {
+  if (isExplicitlyClosed(points)) {
     return true
   }
 
-  const first = points[0]
-  const last = points[points.length - 1]
-  return distanceNm(first.lat, first.lon, last.lat, last.lon) <= 0.2
+  if (/\b(?:N|NE|E|SE|S|SW|W|NW)\s+OF\s+LINE\b|\bWID\s+LINE\b|\bBTN\b/i.test(rawText)) {
+    return false
+  }
+
+  return /\bWI\b|\bAPRX\b/i.test(rawText)
 }
 
 function extractFirCodes(rawText: string) {
@@ -443,21 +519,30 @@ function getWideLineMatch(routeLegs: FlightPlanInput['routeLegs'], rawText: stri
 
 function getBestGeometryMatch(routeLegs: FlightPlanInput['routeLegs'], rawText: string) {
   const coordinates = extractCoordinates(rawText)
-  const polygon = isClosedPolygon(coordinates, rawText) ? coordinates.slice(0, -1) : null
-  const polygonIntersection = polygon && polygon.length >= 3 ? routeIntersectsPolygon(routeLegs, polygon) : null
+  const polygonGroups = extractCoordinateGroups(rawText)
+    .filter((group) => isClosedPolygon(group, rawText))
+    .map((group) => (isExplicitlyClosed(group) ? group.slice(0, -1) : group))
+    .filter((group) => group.length >= 3)
 
-  if (polygonIntersection) {
-    return {
-      coordinates,
-      bestDistance: polygonIntersection,
-      matchKinds: ['polygon'],
+  for (const polygon of polygonGroups) {
+    const polygonIntersection = routeIntersectsPolygon(routeLegs, polygon)
+    if (polygonIntersection) {
+      return {
+        coordinates,
+        bestDistance: polygonIntersection,
+        matchKinds: ['polygon'],
+      }
     }
   }
 
   const coordinateDistances = coordinates.map((point) => routeDistanceForPoint(routeLegs, point))
-  const areaCenter = coordinates.length >= 2 ? centroid(coordinates) : null
+  const areaCenters = polygonGroups.length > 0
+    ? polygonGroups.map((group) => centroid(group)).filter((value): value is RoutePoint => Boolean(value))
+    : coordinates.length >= 2
+      ? [centroid(coordinates)].filter((value): value is RoutePoint => Boolean(value))
+      : []
 
-  if (areaCenter) {
+  for (const areaCenter of areaCenters) {
     coordinateDistances.push(routeDistanceForPoint(routeLegs, areaCenter))
   }
 
@@ -512,6 +597,8 @@ function getFirMatch(routeLegs: FlightPlanInput['routeLegs'], firCodes: string[]
 function buildOverlayGeometry(rawText: string): SigmetOverlayGeometry | null {
   const circleMatch = rawText.match(/\bWI\s+(\d{2,3})(KM|NM)\s+OF\s+(?:TC\s+)?CENTR(?:E|ED ON)\b/i)
   const coordinates = extractCoordinates(rawText)
+  const coordinateGroups = extractCoordinateGroups(rawText)
+  const axisBoundary = extractAxisBoundary(rawText)
 
   if (circleMatch && coordinates[0]) {
     const radiusNm = circleMatch[2].toUpperCase() === 'KM'
@@ -525,6 +612,18 @@ function buildOverlayGeometry(rawText: string): SigmetOverlayGeometry | null {
     }
   }
 
+  const polygonGroups = coordinateGroups
+    .filter((group) => isClosedPolygon(group, rawText))
+    .map((group) => (isExplicitlyClosed(group) ? group.slice(0, -1) : group))
+    .filter((group) => group.length >= 3)
+
+  if (polygonGroups.length > 1) {
+    return {
+      type: 'multipolygon',
+      polygons: polygonGroups,
+    }
+  }
+
   if (coordinates.length === 1) {
     return {
       type: 'point',
@@ -533,9 +632,7 @@ function buildOverlayGeometry(rawText: string): SigmetOverlayGeometry | null {
   }
 
   if (coordinates.length >= 2) {
-    const polygonPoints = isClosedPolygon(coordinates, rawText)
-      ? coordinates.slice(0, -1)
-      : null
+    const polygonPoints = polygonGroups[0] ?? null
 
     if (polygonPoints && polygonPoints.length >= 3) {
       return {
@@ -548,6 +645,10 @@ function buildOverlayGeometry(rawText: string): SigmetOverlayGeometry | null {
       type: 'polyline',
       points: coordinates,
     }
+  }
+
+  if (axisBoundary) {
+    return axisBoundary
   }
 
   return null
@@ -689,9 +790,11 @@ export function getAllWeatherOverlays(
           ? ['radius-centre']
           : geometry.type === 'polygon'
             ? ['polygon']
-            : geometry.type === 'polyline'
-              ? ['coordinates']
-              : ['coordinates']
+            : geometry.type === 'multipolygon'
+              ? ['polygon']
+              : geometry.type === 'polyline'
+                ? ['coordinates']
+                : ['coordinates']
 
       return {
         id: `overlay-${index}-${firCodes[0] ?? 'sigmet'}`,
@@ -703,9 +806,11 @@ export function getAllWeatherOverlays(
           ? 'Cirkulärt område från bulletin'
           : geometry.type === 'polygon'
             ? 'Yta från bulletin'
-            : geometry.type === 'polyline'
-              ? 'Linje från bulletin'
-              : 'Punkt från bulletin',
+            : geometry.type === 'multipolygon'
+              ? 'Flera ytor från bulletin'
+              : geometry.type === 'polyline'
+                ? 'Linje från bulletin'
+                : 'Punkt från bulletin',
         firCodes,
         matchKinds,
         geometry,

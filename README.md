@@ -52,6 +52,15 @@ Create `.deploy.env` from `.deploy.env.example`, then publish with:
 npm run deploy
 ```
 
+Create `.deploy.test.env` from `.deploy.test.env.example` to publish a globally reachable test environment that uses the same Supabase project:
+
+```bash
+npm run deploy:test:check
+npm run deploy:test
+```
+
+The test deploy is separate from production and must use its own `DEPLOY_PATH` and `DEPLOY_PUBLIC_URL`, for example `https://test.vfrplan.se`. Keep `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_AVIATION_DATA_BASE_URL` and `VITE_MAPBOX_ACCESS_TOKEN` aligned with the shared Supabase/Mapbox setup. Set `VITE_PUBLIC_APP_URL` to the test URL so auth emails and reset links return to the test environment.
+
 Required deploy variables live in `./.deploy.env`:
 
 ```bash
@@ -103,6 +112,10 @@ Redirect URLs to configure in Supabase:
 
 - local dev: `http://localhost:5173/verify-email`
 - local reset: `http://localhost:5173/reset-password`
+- test email verification: `https://test.vfrplan.se/verify-email`
+- test password reset: `https://test.vfrplan.se/reset-password`
+- production email verification: `https://vfrplan.se/verify-email`
+- production password reset: `https://vfrplan.se/reset-password`
 - production verify: `https://your-domain/verify-email`
 - production reset: `https://your-domain/reset-password`
 

@@ -7,11 +7,38 @@ ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 cd "$ROOT_DIR"
 
-if [[ -f .deploy.env ]]; then
+deploy_env_file=".deploy.env"
+deploy_args=()
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --env-file)
+      if [[ -z "${2:-}" ]]; then
+        echo "Missing value for --env-file" >&2
+        exit 1
+      fi
+      deploy_env_file="$2"
+      shift 2
+      ;;
+    --check)
+      deploy_args+=("$1")
+      shift
+      ;;
+    *)
+      echo "Unknown deploy argument: $1" >&2
+      exit 1
+      ;;
+  esac
+done
+
+if [[ -f "$deploy_env_file" ]]; then
   set -a
   # shellcheck disable=SC1091
-  . ./.deploy.env
+  . "$deploy_env_file"
   set +a
+else
+  echo "Missing deploy env file: $deploy_env_file" >&2
+  exit 1
 fi
 
 required_vars=(DEPLOY_HOST DEPLOY_PORT DEPLOY_USER DEPLOY_PASS DEPLOY_PATH)
@@ -146,7 +173,9 @@ verify_deploy_git_state() {
 }
 
 verify_host_key
-verify_deploy_git_state
+if [[ "${deploy_args[0]:-}" != "--check" ]]; then
+  verify_deploy_git_state
+fi
 
 resolve_remote_path() {
   run_lftp_script <<EOF
@@ -176,7 +205,7 @@ if [[ -n "${DEPLOY_EXPECTED_PATH_FRAGMENT:-}" && "$remote_path" != *"$DEPLOY_EXP
   exit 1
 fi
 
-if [[ "${1:-}" == "--check" ]]; then
+if [[ "${deploy_args[0]:-}" == "--check" ]]; then
   echo "Deploy target OK: $remote_path"
   exit 0
 fi

@@ -3890,6 +3890,27 @@ export function FlightplanMapEditor({
                   )
                 }
 
+                if (overlay.geometry.type === 'multipolygon') {
+                  return (
+                    <Polygon
+                      key={overlay.id}
+                      positions={overlay.geometry.polygons.map((polygon) => (
+                        polygon.map((point) => [point.lat, point.lon] as [number, number])
+                      ))}
+                      pathOptions={{
+                        color: sigmetOverlayPalette.color,
+                        weight: getOverlayStrokeWeight(mapZoom, 'weather-area'),
+                        fillColor: sigmetOverlayPalette.fillColor,
+                        fillOpacity: 0.16,
+                        dashArray: '6 4',
+                      }}
+                      eventHandlers={{ mouseout: closeLeafletTooltipOnMouseOut }}
+                    >
+                      {tooltipContent}
+                    </Polygon>
+                  )
+                }
+
                 if (overlay.geometry.type === 'polyline') {
                   return (
                     <Polyline
