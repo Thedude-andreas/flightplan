@@ -2,7 +2,7 @@ import { getSupabaseClient } from '../../lib/supabase/client'
 import { getSwedishAirports, type SwedishAirport } from './aviationData'
 import type { FlightPlanInput } from './types'
 
-const METAR_TAF_API_BASE_URL = 'https://skyvok.com/api'
+const AVIATION_WEATHER_API_BASE_URL = 'https://aviationweather.gov/api/data'
 
 export type NearbyAirport = SwedishAirport & {
   icao: string
@@ -261,18 +261,18 @@ export function getAirportsNearPoint(
     .sort((left, right) => left.distanceNm - right.distanceNm || left.icao.localeCompare(right.icao, 'sv'))
 }
 
-type MetarApiResponse = {
-  data?: Array<{
-    raw_text?: string | null
-    obs_time?: string | null
-  }>
+type AviationWeatherMetarEntry = {
+  icaoId?: string | null
+  obsTime?: number | string | null
+  reportTime?: string | null
+  rawOb?: string | null
 }
 
-type TafApiResponse = {
-  data?: {
-    raw_text?: string | null
-    issue_time?: string | null
-  } | null
+type AviationWeatherTafEntry = {
+  icaoId?: string | null
+  issueTime?: string | null
+  bulletinTime?: string | null
+  rawTAF?: string | null
 }
 
 async function fetchJson<T>(url: string, signal: AbortSignal) {
@@ -281,6 +281,80 @@ async function fetchJson<T>(url: string, signal: AbortSignal) {
     throw new Error(`HTTP ${response.status}`)
   }
   return response.json() as Promise<T>
+}
+
+function parseAviationWeatherTimestampToMs(value: string | number | null | undefined) {
+  if (value == null) {
+    return 0
+  }
+
+  if (typeof value === 'number') {
+    return value >= 1e12 ? value : value * 1000
+  }
+
+  const parsed = Date.parse(value)
+  return Number.isNaN(parsed) ? 0 : parsed
+}
+
+function aviationWeatherTimestampToIso(value: string | number | null | undefined) {
+  const ms = parseAviationWeatherTimestampToMs(value)
+  return ms > 0 ? new Date(ms).toISOString() : null
+}
+
+function latestMetarsByIcao(entries: AviationWeatherMetarEntry[]) {
+  const byIcao = new Map<string, AviationWeatherMetarEntry>()
+
+  for (const entry of entries) {
+    const icao = entry.icaoId?.trim().toUpperCase()
+    if (!icao) {
+      continue
+    }
+
+    const current = byIcao.get(icao)
+    if (!current || parseAviationWeatherTimestampToMs(entry.obsTime ?? entry.reportTime) > parseAviationWeatherTimestampToMs(current.obsTime ?? current.reportTime)) {
+      byIcao.set(icao, entry)
+    }
+  }
+
+  return byIcao
+}
+
+function tafsByIcao(entries: AviationWeatherTafEntry[]) {
+  const byIcao = new Map<string, AviationWeatherTafEntry>()
+
+  for (const entry of entries) {
+    const icao = entry.icaoId?.trim().toUpperCase()
+    if (!icao) {
+      continue
+    }
+
+    const current = byIcao.get(icao)
+    if (!current || parseAviationWeatherTimestampToMs(entry.issueTime ?? entry.bulletinTime) > parseAviationWeatherTimestampToMs(current.issueTime ?? current.bulletinTime)) {
+      byIcao.set(icao, entry)
+    }
+  }
+
+  return byIcao
+}
+
+async function fetchAviationWeatherReports<T>(path: 'metar' | 'taf', icaos: string[], signal: AbortSignal): Promise<T[]> {
+  if (icaos.length === 0) {
+    return []
+  }
+
+  const params = new URLSearchParams({
+    ids: icaos.join(','),
+    format: 'json',
+  })
+
+  if (path === 'metar') {
+    params.set('taf', 'false')
+    params.set('hours', '2')
+  } else {
+    params.set('metar', 'false')
+  }
+
+  return fetchJson<T[]>(`${AVIATION_WEATHER_API_BASE_URL}/${path}?${params.toString()}`, signal)
 }
 
 function parseStatuteMilesToMeters(rawValue: string) {
@@ -529,39 +603,7 @@ export function mergeFlightRules(...entries: Array<MetarFlightRules | null | und
   )
 }
 
-async function fetchMetarForAirport(airport: NearbyAirport, signal: AbortSignal): Promise<AirportMetar> {
-  try {
-    const metarResponse = await fetchJson<MetarApiResponse>(`${METAR_TAF_API_BASE_URL}/metar?icao=${airport.icao}`, signal)
-    return {
-      airport,
-      metarRawText: metarResponse.data?.[0]?.raw_text ?? null,
-      metarObservedAt: metarResponse.data?.[0]?.obs_time ?? null,
-    }
-  } catch (error) {
-    if (error instanceof Error && error.message === 'HTTP 404') {
-      return {
-        airport,
-        metarRawText: null,
-        metarObservedAt: null,
-      }
-    }
-
-    throw error
-  }
-}
-
-export async function fetchMetarsForAirports(
-  airports: NearbyAirport[],
-  signal: AbortSignal,
-): Promise<AirportMetar[]> {
-  const settled = await Promise.allSettled(
-    airports.map((airport) => fetchMetarForAirport(airport, signal)),
-  )
-
-  return settled.flatMap((result) => (result.status === 'fulfilled' ? [result.value] : []))
-}
-
-export async function fetchMapWeatherForAirports(
+async function fetchAviationWeatherForAirports(
   airports: NearbyAirport[],
   signal: AbortSignal,
   includeTaf = false,
@@ -570,34 +612,55 @@ export async function fetchMapWeatherForAirports(
     return []
   }
 
+  const icaos = airports.map((airport) => airport.icao)
+  const [metarEntries, tafEntries] = await Promise.all([
+    fetchAviationWeatherReports<AviationWeatherMetarEntry>('metar', icaos, signal),
+    includeTaf ? fetchAviationWeatherReports<AviationWeatherTafEntry>('taf', icaos, signal) : Promise.resolve([]),
+  ])
+  const metars = latestMetarsByIcao(metarEntries)
+  const tafs = tafsByIcao(tafEntries)
+
+  return airports.map((airport) => {
+    const metar = metars.get(airport.icao)
+    const taf = tafs.get(airport.icao)
+
+    return {
+      airport,
+      metarRawText: metar?.rawOb ?? null,
+      metarObservedAt: aviationWeatherTimestampToIso(metar?.obsTime ?? metar?.reportTime),
+      tafRawText: includeTaf ? taf?.rawTAF ?? null : null,
+      tafIssuedAt: includeTaf ? aviationWeatherTimestampToIso(taf?.issueTime ?? taf?.bulletinTime) : null,
+    }
+  })
+}
+
+function mapWeatherBriefingResponseToAirportWeather(
+  airports: NearbyAirport[],
+  response: MapWeatherBriefingResponse,
+  includeTaf: boolean,
+): AirportMapWeather[] {
+  const byIcao = new Map((response.airports ?? []).map((entry) => [entry.icao, entry]))
+
+  return airports.map((airport) => {
+    const entry = byIcao.get(airport.icao)
+    return {
+      airport,
+      metarRawText: entry?.metarRawText ?? null,
+      metarObservedAt: entry?.metarObservedAt ?? null,
+      tafRawText: includeTaf ? entry?.tafRawText ?? null : null,
+      tafIssuedAt: includeTaf ? entry?.tafIssuedAt ?? null : null,
+    }
+  })
+}
+
+async function fetchMapWeatherViaSupabase(
+  airports: NearbyAirport[],
+  signal: AbortSignal,
+  includeTaf: boolean,
+) {
   const supabase = getSupabaseClient()
-
   if (!supabase) {
-    const settled = await Promise.allSettled(
-      airports.map(async (airport) => {
-        const [metarResponse, tafResponse] = await Promise.all([
-          fetchMetarForAirport(airport, signal),
-          includeTaf
-            ? fetchJson<TafApiResponse>(`${METAR_TAF_API_BASE_URL}/taf?icao=${airport.icao}`, signal).catch((error) => {
-                if (error instanceof Error && error.message === 'HTTP 404') {
-                  return null
-                }
-                throw error
-              })
-            : Promise.resolve(null),
-        ])
-
-        return {
-          airport,
-          metarRawText: metarResponse.metarRawText,
-          metarObservedAt: metarResponse.metarObservedAt,
-          tafRawText: tafResponse?.data?.raw_text ?? null,
-          tafIssuedAt: tafResponse?.data?.issue_time ?? null,
-        } satisfies AirportMapWeather
-      }),
-    )
-
-    return settled.flatMap((result) => (result.status === 'fulfilled' ? [result.value] : []))
+    return null
   }
 
   const { data, error } = await supabase.functions.invoke('map-weather-briefing', {
@@ -615,46 +678,46 @@ export async function fetchMapWeatherForAirports(
     throw new Error(error.message)
   }
 
-  const response = data as MapWeatherBriefingResponse
-  const byIcao = new Map((response.airports ?? []).map((entry) => [entry.icao, entry]))
+  return mapWeatherBriefingResponseToAirportWeather(airports, data as MapWeatherBriefingResponse, includeTaf)
+}
 
-  return airports.map((airport) => {
-    const entry = byIcao.get(airport.icao)
-    return {
-      airport,
-      metarRawText: entry?.metarRawText ?? null,
-      metarObservedAt: entry?.metarObservedAt ?? null,
-      tafRawText: includeTaf ? entry?.tafRawText ?? null : null,
-      tafIssuedAt: includeTaf ? entry?.tafIssuedAt ?? null : null,
-    }
-  })
+export async function fetchMetarsForAirports(
+  airports: NearbyAirport[],
+  signal: AbortSignal,
+): Promise<AirportMetar[]> {
+  const results = await fetchMapWeatherForAirports(airports, signal, false)
+  return results.map((result) => ({
+    airport: result.airport,
+    metarRawText: result.metarRawText,
+    metarObservedAt: result.metarObservedAt,
+  }))
+}
+
+export async function fetchMapWeatherForAirports(
+  airports: NearbyAirport[],
+  signal: AbortSignal,
+  includeTaf = false,
+): Promise<AirportMapWeather[]> {
+  if (airports.length === 0) {
+    return []
+  }
+
+  return (await fetchMapWeatherViaSupabase(airports, signal, includeTaf))
+    ?? fetchAviationWeatherForAirports(airports, signal, includeTaf)
 }
 
 export async function fetchWeatherForAirports(
   airports: NearbyAirport[],
   signal: AbortSignal,
 ): Promise<AirportWeather[]> {
-  return Promise.all(
-    airports.map(async (airport) => {
-      const [metarResponse, tafResponse] = await Promise.all([
-        fetchMetarForAirport(airport, signal),
-        fetchJson<TafApiResponse>(`${METAR_TAF_API_BASE_URL}/taf?icao=${airport.icao}`, signal).catch((error) => {
-          if (error instanceof Error && error.message === 'HTTP 404') {
-            return null
-          }
-          throw error
-        }),
-      ])
-
-      return {
-        airport,
-        metarRawText: metarResponse.metarRawText,
-        metarObservedAt: metarResponse.metarObservedAt,
-        tafRawText: tafResponse?.data?.raw_text ?? null,
-        tafIssuedAt: tafResponse?.data?.issue_time ?? null,
-      }
-    }),
-  )
+  const results = await fetchMapWeatherForAirports(airports, signal, true)
+  return results.map((result) => ({
+    airport: result.airport,
+    metarRawText: result.metarRawText,
+    metarObservedAt: result.metarObservedAt,
+    tafRawText: result.tafRawText,
+    tafIssuedAt: result.tafIssuedAt,
+  }))
 }
 
 export async function fetchLfvWeatherBriefing(forceRefresh = false) {
