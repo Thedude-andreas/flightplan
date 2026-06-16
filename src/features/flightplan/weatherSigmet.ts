@@ -740,36 +740,6 @@ export function getRouteWeatherMatches(
     .sort((left, right) => left.progressNm - right.progressNm || left.distanceNm - right.distanceNm)
 }
 
-export function getRouteWeatherOverlays(
-  routeLegs: FlightPlanInput['routeLegs'],
-  sectionText: string | null,
-  maxDistanceNm = 50,
-): RouteWeatherOverlay[] {
-  if (routeLegs.length === 0 || !sectionText) {
-    return []
-  }
-
-  return splitSigmetEntries(sectionText)
-    .map((entry, index) => {
-      const match = buildRouteWeatherEntry(routeLegs, entry, index, maxDistanceNm)
-      if (!match) {
-        return null
-      }
-
-      const overlayGeometry = buildOverlayGeometry(entry)
-      if (!overlayGeometry) {
-        return null
-      }
-
-      return {
-        ...match,
-        geometry: overlayGeometry,
-      }
-    })
-    .filter((value): value is RouteWeatherOverlay => Boolean(value))
-    .sort((left, right) => left.progressNm - right.progressNm || left.distanceNm - right.distanceNm)
-}
-
 export function getAllWeatherOverlays(
   sectionText: string | null,
 ): RouteWeatherOverlay[] {

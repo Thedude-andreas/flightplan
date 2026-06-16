@@ -146,7 +146,7 @@ function normalizeSwedishPlaces(payload: SwedishPlacesPayload): SwedishPlace[] {
     .filter((place) => Number.isFinite(place.lat) && Number.isFinite(place.lon))
 }
 
-export function preloadSwedishPlaces() {
+function preloadSwedishPlaces() {
   if (swedishPlaces.length > 0 || placesLoadPromise) {
     return placesLoadPromise ?? Promise.resolve()
   }

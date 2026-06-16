@@ -91,7 +91,7 @@ function normalizeTypeText(...values: Array<string | null>) {
     .toLowerCase()
 }
 
-export function classifyObstacle(typeDescription: string | null, nationalTypeDescription: string | null): ObstacleCategory {
+function classifyObstacle(typeDescription: string | null, nationalTypeDescription: string | null): ObstacleCategory {
   const text = normalizeTypeText(typeDescription, nationalTypeDescription)
 
   if (/\bwind\b|\bvindkraft/.test(text)) return 'wind_turbine'

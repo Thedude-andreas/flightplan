@@ -297,7 +297,6 @@ Place updates regenerate:
 
 - `data/aviation/se/normalized/places.se.json`
 - `public/vfrplan-data/places.se.json`
-- `src/features/flightplan/generated/places.se.ts`
 
 Do not hand-edit generated files. Re-run the scripts instead.
 
@@ -329,10 +328,10 @@ The repo now includes:
 
 The workflow is designed to:
 
-- refresh LFV-derived aviation data
-- validate the output
-- build a markdown diff report
-- open or update a PR instead of pushing data directly to live
+- run nightly and on manual dispatch
+- submit candidate aviation data to Supabase Storage
+- send the configured approver an approval email
+- publish the candidate as current only after approval
 
 Place-name updates are intentionally excluded from the nightly workflow. Run `npm run aviation:se:places` manually when you want to refresh the Swedish gazetteer.
 

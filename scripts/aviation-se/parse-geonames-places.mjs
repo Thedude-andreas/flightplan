@@ -5,7 +5,6 @@ import { resolve } from 'node:path'
 const rawDir = resolve('data/aviation/se/raw/geonames')
 const zipPath = resolve(rawDir, 'SE.zip')
 const outputDir = resolve('data/aviation/se/normalized')
-const generatedDir = resolve('src/features/flightplan/generated')
 const publicDataDir = resolve('public/vfrplan-data')
 const KIND_CODE = {
   settlement: 's',
@@ -144,7 +143,6 @@ function dedupePlaces(entries) {
 
 function writeOutputs(places) {
   mkdirSync(outputDir, { recursive: true })
-  mkdirSync(generatedDir, { recursive: true })
   mkdirSync(publicDataDir, { recursive: true })
 
   const clientPlaces = places.map((place) => ({
@@ -172,19 +170,6 @@ function writeOutputs(places) {
 
   writeFileSync(resolve(outputDir, 'places.se.json'), `${JSON.stringify(normalizedOutput, null, 2)}\n`)
   writeFileSync(resolve(publicDataDir, 'places.se.json'), JSON.stringify(compactClientPlaces))
-  writeFileSync(
-    resolve(generatedDir, 'places.se.ts'),
-    `export type SwedishPlaceKind = 'settlement' | 'lake' | 'water' | 'island' | 'mountain'
-
-export type SwedishPlace = {
-  name: string
-  lat: number
-  lon: number
-  kind: SwedishPlaceKind
-  importance: number
-}
-`,
-  )
 }
 
 function main() {

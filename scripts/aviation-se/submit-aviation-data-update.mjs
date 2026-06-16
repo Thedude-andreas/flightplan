@@ -19,7 +19,6 @@ const generatedFiles = [
   ...dataFiles.map((fileName) => `public/vfrplan-data/${fileName}`),
   'src/features/flightplan/generated/airports.se.ts',
   'src/features/flightplan/generated/airspaces.se.ts',
-  'src/features/flightplan/generated/places.se.ts',
   'src/features/flightplan/generated/radio-nav.se.ts',
   'src/features/flightplan/generated/visual-points.se.ts',
 ]

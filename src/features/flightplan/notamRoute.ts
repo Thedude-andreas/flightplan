@@ -1229,15 +1229,6 @@ export function buildNotamMapOverlayResult(
   }
 }
 
-export function buildNotamMapOverlayFeatures(
-  enRouteText: string | null,
-  warningsText: string | null,
-  supplements: NotamSupplement[],
-  flightDate: string,
-): NotamMapOverlayFeature[] {
-  return buildNotamMapOverlayResult(enRouteText, warningsText, supplements, flightDate).features
-}
-
 export function createEmptyNotamMapCoverageCheck(): NotamMapCoverageCheck {
   return createEmptyCoverage()
 }

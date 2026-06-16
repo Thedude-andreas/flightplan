@@ -110,7 +110,6 @@ Place gazetteer output:
 
 - `normalized/places.se.json`
 - `public/vfrplan-data/places.se.json`
-- `src/features/flightplan/generated/places.se.ts`
 
 Index builder output:
 
@@ -164,8 +163,8 @@ Important behavior:
 
 - Data comes from `https://download.geonames.org/export/dump/SE.zip`
 - The parser keeps a reduced Swedish gazetteer for `settlement`, `lake`, `water`, `island` and `mountain`
-- The generated TypeScript file only contains the reduced fields needed by the client
-- Generated place files should never be edited manually
+- The client uses the compact `public/vfrplan-data/places.se.json` output
+- Generated place JSON files should never be edited manually
 
 Typical command:
 

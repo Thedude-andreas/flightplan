@@ -1,7 +1,5 @@
 import type { AircraftProfile as LegacyAircraftProfile } from '../flightplan/types'
 import type {
-  AircraftConflict,
-  AircraftConflictChoice,
   AircraftProfile,
   AircraftRegistrySnapshot,
   AircraftSourceKind,
@@ -91,7 +89,7 @@ export function createMeasurement(
   }
 }
 
-export function createCanonicalMeasurement(value: number, unit: MeasurementUnit): MeasurementValue {
+function createCanonicalMeasurement(value: number, unit: MeasurementUnit): MeasurementValue {
   return {
     value: roundValue(value, unit === 'mm' ? 0 : 1),
     unit,
@@ -302,121 +300,6 @@ export function applyRegistrySnapshot(profile: AircraftProfile, snapshot: Aircra
   if (snapshot.maxTakeoffWeightKg && !nextProfile.weightBalance.maxTakeoffWeight) {
     nextProfile.weightBalance.maxTakeoffWeight = createCanonicalMeasurement(snapshot.maxTakeoffWeightKg, 'kg')
   }
-
-  return nextProfile
-}
-
-function readValueAtPath(profile: AircraftProfile, path: string): string {
-  switch (path) {
-    case 'identity.manufacturer':
-      return profile.identity.manufacturer
-    case 'identity.model':
-      return profile.identity.model
-    case 'identity.serialNumber':
-      return profile.identity.serialNumber
-    case 'identity.yearOfManufacture':
-      return profile.identity.yearOfManufacture != null ? String(profile.identity.yearOfManufacture) : ''
-    case 'identity.registeredOwner':
-      return profile.identity.registeredOwner
-    case 'weightBalance.maxTakeoffWeight':
-      return formatMeasurement(profile.weightBalance.maxTakeoffWeight, 'kg')
-    default:
-      return ''
-  }
-}
-
-export function buildRegistryConflicts(profile: AircraftProfile, snapshot: AircraftRegistrySnapshot) {
-  const candidates: Array<{ path: string; label: string; registryValue: string }> = [
-    { path: 'identity.manufacturer', label: 'Tillverkare', registryValue: snapshot.manufacturer },
-    { path: 'identity.model', label: 'Modell', registryValue: snapshot.model },
-    { path: 'identity.serialNumber', label: 'Serienummer', registryValue: snapshot.serialNumber },
-    {
-      path: 'identity.yearOfManufacture',
-      label: 'Tillverkningsår',
-      registryValue: snapshot.yearOfManufacture != null ? String(snapshot.yearOfManufacture) : '',
-    },
-    {
-      path: 'identity.registeredOwner',
-      label: 'Registrerad ägare',
-      registryValue: snapshot.registeredOwners[0] ?? snapshot.registeredOperator ?? '',
-    },
-    {
-      path: 'weightBalance.maxTakeoffWeight',
-      label: 'Max startvikt',
-      registryValue: snapshot.maxTakeoffWeightKg != null ? `${roundValue(snapshot.maxTakeoffWeightKg, 1)} kg` : '',
-    },
-  ]
-
-  const conflicts = candidates.flatMap((candidate) => {
-    const importValue = readValueAtPath(profile, candidate.path)
-    if (!candidate.registryValue || !importValue || candidate.registryValue === importValue) {
-      return []
-    }
-
-    const existing = profile.conflicts.find((conflict) => conflict.fieldPath === candidate.path)
-    return [{
-      id: existing?.id ?? randomId('conflict'),
-      fieldPath: candidate.path,
-      label: candidate.label,
-      registryValue: candidate.registryValue,
-      importValue,
-      selectedSource: existing?.selectedSource ?? null,
-      resolvedAt: existing?.resolvedAt ?? null,
-    } satisfies AircraftConflict]
-  })
-
-  return conflicts
-}
-
-export function resolveConflict(
-  profile: AircraftProfile,
-  conflictId: string,
-  choice: AircraftConflictChoice,
-) {
-  const conflict = profile.conflicts.find((item) => item.id === conflictId)
-  if (!conflict) {
-    return profile
-  }
-
-  const nextProfile = { ...profile }
-  const selectedValue = choice === 'registry' ? conflict.registryValue : conflict.importValue
-
-  switch (conflict.fieldPath) {
-    case 'identity.manufacturer':
-      nextProfile.identity = { ...nextProfile.identity, manufacturer: selectedValue }
-      break
-    case 'identity.model':
-      nextProfile.identity = { ...nextProfile.identity, model: selectedValue }
-      break
-    case 'identity.serialNumber':
-      nextProfile.identity = { ...nextProfile.identity, serialNumber: selectedValue }
-      break
-    case 'identity.yearOfManufacture':
-      nextProfile.identity = {
-        ...nextProfile.identity,
-        yearOfManufacture: selectedValue ? Number(selectedValue) : null,
-      }
-      break
-    case 'identity.registeredOwner':
-      nextProfile.identity = { ...nextProfile.identity, registeredOwner: selectedValue }
-      break
-    case 'weightBalance.maxTakeoffWeight':
-      nextProfile.weightBalance = {
-        ...nextProfile.weightBalance,
-        maxTakeoffWeight: selectedValue
-          ? createCanonicalMeasurement(Number(selectedValue.replace(/[^\d.,-]/g, '').replace(',', '.')), 'kg')
-          : null,
-      }
-      break
-    default:
-      break
-  }
-
-  nextProfile.conflicts = nextProfile.conflicts.map((item) =>
-    item.id === conflictId
-      ? { ...item, selectedSource: choice, resolvedAt: new Date().toISOString() }
-      : item,
-  )
 
   return nextProfile
 }

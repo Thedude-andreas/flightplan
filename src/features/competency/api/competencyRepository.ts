@@ -71,7 +71,7 @@ export async function getCurrentCompetencyPermission() {
   return data ? mapPermission(data) : null
 }
 
-export async function listCompetencyDepartments() {
+async function listCompetencyDepartments() {
   const supabase = requireClient()
   const { data, error } = await supabase
     .from('competency_departments')
@@ -128,7 +128,7 @@ type GroupRow = {
     | null
 }
 
-export async function listCompetencyGroups() {
+async function listCompetencyGroups() {
   const supabase = requireClient()
   const { data, error } = await supabase
     .from('competency_groups')
@@ -233,7 +233,7 @@ export async function replaceCompetencyGroupManagers(groupId: string, userIds: s
   }
 }
 
-export async function listCompetencyProfiles() {
+async function listCompetencyProfiles() {
   const supabase = requireClient()
   const { data, error } = await supabase
     .from('profiles')
@@ -251,7 +251,7 @@ export async function listCompetencyProfiles() {
   })) satisfies CompetencyProfileOption[]
 }
 
-export async function listCompetencyPermissionEntries() {
+async function listCompetencyPermissionEntries() {
   const supabase = requireClient()
   const { data, error } = await supabase
     .from('competency_user_permissions')
@@ -307,7 +307,7 @@ export async function deleteCompetencyPermission(userId: string) {
   }
 }
 
-export async function listCompetencyCourses() {
+async function listCompetencyCourses() {
   const supabase = requireClient()
   const { data, error } = await supabase
     .from('competency_courses')
@@ -369,7 +369,7 @@ export async function saveCompetencyCourse(input: Omit<CompetencyCourse, 'id'> &
   }
 }
 
-export async function listCompetencyMembers() {
+async function listCompetencyMembers() {
   const supabase = requireClient()
   const { data, error } = await supabase
     .from('competency_members')
@@ -464,7 +464,7 @@ export async function archiveCompetencyMember(id: string) {
   }
 }
 
-export async function listCompetencyTrainingEvents() {
+async function listCompetencyTrainingEvents() {
   const supabase = requireClient()
   const { data, error } = await supabase
     .from('competency_training_events')

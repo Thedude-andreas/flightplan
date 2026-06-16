@@ -45,21 +45,6 @@ export async function signOut() {
   }
 }
 
-export async function resendVerificationEmail(email: string) {
-  const supabase = requireClient()
-  const { error } = await supabase.auth.resend({
-    type: 'signup',
-    email,
-    options: {
-      emailRedirectTo: getPublicAppUrl('/verify-email'),
-    },
-  })
-
-  if (error) {
-    throw error
-  }
-}
-
 export async function requestPasswordReset(email: string) {
   const supabase = requireClient()
   const { error } = await supabase.auth.resetPasswordForEmail(email, {

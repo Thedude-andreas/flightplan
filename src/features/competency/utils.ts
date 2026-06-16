@@ -6,7 +6,7 @@ import type {
   CompetencyTrainingEvent,
 } from './types'
 
-export function startOfToday() {
+function startOfToday() {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   return today
