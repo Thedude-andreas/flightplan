@@ -1,4 +1,10 @@
-import { getSwedishAirports, getSwedishNavaids, type SwedishAirport } from './aviationData'
+import {
+  getSwedishAirports,
+  getSwedishAirspaces,
+  getSwedishNavaids,
+  type SwedishAirport,
+  type SwedishAirspace,
+} from './aviationData'
 import type { NearbyAirport } from './weather'
 import { expandFirBoundaryDmsSegments } from './firBoundary'
 import type { FlightPlanInput } from './types'
@@ -231,38 +237,43 @@ function parseCoordinateComponent(value: string, degreeDigits: number) {
   return sign * (degrees + minutes / 60 + seconds / 3600)
 }
 
+function inferLongitudeDegreeDigits(value: string, expectedIntegerDigits: number) {
+  const integerPart = value.slice(0, -1).split('.')[0] ?? ''
+  return integerPart.length === expectedIntegerDigits - 1 ? 2 : 3
+}
+
 function extractCoordinates(rawText: string) {
   const normalized = stripNotamPdfPageArtifacts(rawText).replace(/\u00a0/g, ' ')
 
   const pairs: RoutePoint[] = []
-  const pushPair = (latValue: string, lonValue: string) => {
+  const pushPair = (latValue: string, lonValue: string, lonDegreeDigits = 3) => {
     pairs.push({
       lat: parseCoordinateComponent(latValue.toUpperCase(), 2),
-      lon: parseCoordinateComponent(lonValue.toUpperCase(), 3),
+      lon: parseCoordinateComponent(lonValue.toUpperCase(), lonDegreeDigits),
     })
   }
 
-  const withSpace = [...normalized.matchAll(/(\d{6}(?:\.\d+)?[NS])\s+(\d{7}(?:\.\d+)?[EW])/gi)]
+  const withSpace = [...normalized.matchAll(/(\d{6}(?:\.\d+)?[NS])\s+(\d{6,7}(?:\.\d+)?[EW])/gi)]
   for (const match of withSpace) {
     if (match[1] && match[2]) {
-      pushPair(match[1], match[2])
+      pushPair(match[1], match[2], inferLongitudeDegreeDigits(match[2], 7))
     }
   }
 
   if (pairs.length === 0) {
-    const glued = [...normalized.matchAll(/(\d{6}(?:\.\d+)?[NS])(\d{7}(?:\.\d+)?[EW])/gi)]
+    const glued = [...normalized.matchAll(/(\d{6}(?:\.\d+)?[NS])(\d{6,7}(?:\.\d+)?[EW])/gi)]
     for (const match of glued) {
       if (match[1] && match[2]) {
-        pushPair(match[1], match[2])
+        pushPair(match[1], match[2], inferLongitudeDegreeDigits(match[2], 7))
       }
     }
   }
 
   if (pairs.length === 0) {
-    const short = [...normalized.matchAll(/(\d{4}(?:\.\d+)?[NS])\s+(\d{5}(?:\.\d+)?[EW])/gi)]
+    const short = [...normalized.matchAll(/(\d{4}(?:\.\d+)?[NS])\s*(\d{4,5}(?:\.\d+)?[EW])/gi)]
     for (const match of short) {
       if (match[1] && match[2]) {
-        pushPair(match[1], match[2])
+        pushPair(match[1], match[2], inferLongitudeDegreeDigits(match[2], 5))
       }
     }
   }
@@ -303,6 +314,26 @@ function getMentionedSwedishAirports(rawText: string) {
       const rightIndex = normalized.indexOf(right.icao.toUpperCase())
       return leftIndex - rightIndex || left.icao.localeCompare(right.icao, 'sv')
     })
+}
+
+function getAirspaceDesignators(airspace: SwedishAirspace) {
+  const source = `${airspace.name ?? ''} ${airspace.location ?? ''}`
+  return Array.from(new Set(
+    [...source.matchAll(/\bES\s*([DR])\s*(\d{2,4}[A-Z]?)\b/gi)]
+      .map((match) => `ES${match[1].toUpperCase()}${match[2].toUpperCase()}`),
+  ))
+}
+
+function getMentionedSwedishAirspaces(rawText: string) {
+  const compactText = normalizeForMatch(stripNotamPdfPageArtifacts(rawText)).replace(/\s+/g, '')
+
+  return getSwedishAirspaces()
+    .map((airspace) => ({
+      airspace,
+      designators: getAirspaceDesignators(airspace),
+    }))
+    .filter(({ designators }) => designators.some((designator) => compactText.includes(designator)))
+    .map(({ airspace }) => airspace)
 }
 
 function normalizeSplitEntry(entry: string) {
@@ -963,6 +994,45 @@ function pushAirportPointFeatures(
   }
 }
 
+function airspaceGeometryOuterRings(airspace: SwedishAirspace) {
+  if (airspace.geometry.type === 'Polygon') {
+    return [airspace.geometry.coordinates[0] ?? []]
+  }
+
+  return airspace.geometry.coordinates.map((polygon) => polygon[0] ?? [])
+}
+
+function pushAirspacePolygonFeatures(
+  features: NotamMapOverlayFeature[],
+  airspaces: SwedishAirspace[],
+  rawText: string,
+  source: NotamMapOverlayFeature['source'],
+  idPrefix: string,
+  supplementMeta?: { id: string; url: string | null },
+) {
+  for (const airspace of airspaces) {
+    for (const [index, ring] of airspaceGeometryOuterRings(airspace).entries()) {
+      if (ring.length < 3) {
+        continue
+      }
+
+      const designator = getAirspaceDesignators(airspace)[0] ?? airspace.name ?? airspace.id
+      features.push({
+        id: `${idPrefix}-airspace-${airspace.id}-${index}`,
+        source,
+        sourceEntryId: idPrefix,
+        label: `${notamMapSourceLabel(source)} · ${designator}`,
+        title: deriveTitle(rawText),
+        rawText,
+        kind: 'polygon',
+        positions: ring.map(([lon, lat]) => [lat, lon] as [number, number]),
+        supplementId: supplementMeta?.id,
+        supplementUrl: supplementMeta?.url,
+      })
+    }
+  }
+}
+
 function splitSupplementGeometrySections(rawText: string) {
   const normalized = rawText.replace(/\u00a0/g, ' ').trim()
   const sectionStarts = new Map<number, string>()
@@ -1088,6 +1158,13 @@ function pushGeometryFromCoordinateText(
 ) {
   const coords = extractCoordinates(rawText)
   if (coords.length === 0) {
+    const mentionedAirspaces = getMentionedSwedishAirspaces(rawText)
+    if (mentionedAirspaces.length > 0) {
+      updateCoverage(coverage, source, true, null)
+      pushAirspacePolygonFeatures(features, mentionedAirspaces, rawText, source, idPrefix, supplementMeta)
+      return
+    }
+
     const mentionedAirports = source === 'aip-sup' ? getMentionedSwedishAirports(rawText) : []
     if (mentionedAirports.length > 0) {
       updateCoverage(coverage, source, true, null)
