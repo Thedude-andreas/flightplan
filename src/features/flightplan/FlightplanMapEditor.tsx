@@ -1531,6 +1531,40 @@ function notamFeatureInspectDistanceNm(feature: NotamMapOverlayFeature, lat: num
   return distanceToPoint <= notamPointInspectRadiusNm ? distanceToPoint : null
 }
 
+function notamFeatureHoverDistanceNm(feature: NotamMapOverlayFeature, lat: number, lon: number) {
+  if (feature.kind === 'circle' && feature.radiusNm != null) {
+    const [centerLat, centerLon] = feature.positions[0] ?? []
+    if (centerLat == null || centerLon == null) {
+      return null
+    }
+
+    const distanceToCenter = distanceNmBetween(lat, lon, centerLat, centerLon)
+    return distanceToCenter <= feature.radiusNm ? 0 : null
+  }
+
+  if (feature.kind === 'polygon') {
+    if (feature.positions.length < 3) {
+      return null
+    }
+
+    const polygon = [feature.positions.map(([positionLat, positionLon]) => [positionLon, positionLat])]
+    return pointInPolygon(lat, lon, polygon) ? 0 : null
+  }
+
+  if (feature.kind === 'polyline') {
+    const distanceToLine = distanceToNotamLineNm(lat, lon, feature.positions)
+    return distanceToLine != null && distanceToLine <= notamLineInspectRadiusNm ? distanceToLine : null
+  }
+
+  const [pointLat, pointLon] = feature.positions[0] ?? []
+  if (pointLat == null || pointLon == null) {
+    return null
+  }
+
+  const distanceToPoint = distanceNmBetween(lat, lon, pointLat, pointLon)
+  return distanceToPoint <= notamPointInspectRadiusNm ? distanceToPoint : null
+}
+
 function airspaceContainsPoint(
   airspace: SwedishAirspace,
   lat: number,
@@ -2357,7 +2391,7 @@ export function FlightplanMapEditor({
   const [activeSegmentInsertIndex, setActiveSegmentInsertIndex] = useState<number | null>(null)
   const activeSegmentInsertIndexRef = useRef<number | null>(null)
   const [hoveredAirspaceIds, setHoveredAirspaceIds] = useState<string[]>([])
-  const [hoveredNotamFeature, setHoveredNotamFeature] = useState<NotamMapOverlayFeature | null>(null)
+  const [hoveredNotamFeatures, setHoveredNotamFeatures] = useState<NotamMapOverlayFeature[]>([])
   const [airportNotamByIcao, setAirportNotamByIcao] = useState<Record<string, AirportNotamLookup>>({})
   const [openNotamMapNoticeKey, setOpenNotamMapNoticeKey] = useState<string | null>(null)
   const [waypointMarkerLayerVersion, setWaypointMarkerLayerVersion] = useState(0)
@@ -2637,7 +2671,7 @@ export function FlightplanMapEditor({
       return hoveredAirspaceIds.includes(label.id.replace(/^airspace-/, ''))
     }
 
-    return hoveredNotamFeature != null && label.id === `notam-${hoveredNotamFeature.id}`
+    return hoveredNotamFeatures.some((feature) => label.id === `notam-${feature.id}`)
   }
   const visibleWeatherAirportKey = useMemo(
     () => visibleWeatherAirports.map((airport) => airport.icao).sort((left, right) => left.localeCompare(right, 'sv')).join(','),
@@ -2973,12 +3007,8 @@ export function FlightplanMapEditor({
     })
   }, [airportWeatherByIcao])
 
-  const buildPointInfo = (
-    lat: number,
-    lon: number,
-    directObjects: MapPointInfoDirectObjects = {},
-  ): MapPointInfo => {
-    const matchingAirspaces = visibleAirspaces
+  const getAirspacesAtPoint = (lat: number, lon: number) =>
+    visibleAirspaces
       .filter((airspace) => airspaceContainsPoint(airspace, lat, lon))
       .map((airspace) => ({
         id: airspace.id,
@@ -2990,16 +3020,48 @@ export function FlightplanMapEditor({
       }))
       .sort((a, b) => compareAirspaceAltitude(b.upper, a.upper) || compareAirspaceAltitude(b.lower, a.lower))
 
-    const notamFeaturesAtPoint = showNotamOverlays
+  const getNotamFeatureMatchesAtPoint = (lat: number, lon: number) =>
+    showNotamOverlays
       ? notamMapFeatures
-          .map((feature) => {
-            const distanceNm = notamFeatureInspectDistanceNm(feature, lat, lon)
-            return distanceNm == null ? null : { feature, distanceNm }
-          })
-          .filter((item): item is PointInfoNotamFeature => Boolean(item))
-          .sort((left, right) => left.distanceNm - right.distanceNm || left.feature.title.localeCompare(right.feature.title, 'sv'))
-          .slice(0, 8)
+        .map((feature) => {
+          const distanceNm = notamFeatureInspectDistanceNm(feature, lat, lon)
+          return distanceNm == null ? null : { feature, distanceNm }
+        })
+        .filter((item): item is PointInfoNotamFeature => Boolean(item))
+        .sort((left, right) => left.distanceNm - right.distanceNm || left.feature.title.localeCompare(right.feature.title, 'sv'))
       : []
+
+  const getNotamHoverFeaturesAtPoint = (lat: number, lon: number, fallbackFeature?: NotamMapOverlayFeature) => {
+    const matches = showNotamOverlays
+      ? notamMapFeatures
+        .map((feature) => {
+          const distanceNm = notamFeatureHoverDistanceNm(feature, lat, lon)
+          return distanceNm == null ? null : { feature, distanceNm }
+        })
+        .filter((item): item is PointInfoNotamFeature => Boolean(item))
+        .sort((left, right) => left.distanceNm - right.distanceNm || left.feature.title.localeCompare(right.feature.title, 'sv'))
+        .map((item) => item.feature)
+      : []
+
+    if (
+      fallbackFeature &&
+      fallbackFeature.kind !== 'polygon' &&
+      fallbackFeature.kind !== 'circle' &&
+      !matches.some((feature) => feature.id === fallbackFeature.id)
+    ) {
+      matches.unshift(fallbackFeature)
+    }
+
+    return matches
+  }
+
+  const buildPointInfo = (
+    lat: number,
+    lon: number,
+    directObjects: MapPointInfoDirectObjects = {},
+  ): MapPointInfo => {
+    const matchingAirspaces = getAirspacesAtPoint(lat, lon)
+    const notamFeaturesAtPoint = getNotamFeatureMatchesAtPoint(lat, lon).slice(0, 8)
     const nearbyObstacles = showObstacles
       ? visibleObstacles
           .map((obstacle) => ({
@@ -3189,13 +3251,14 @@ export function FlightplanMapEditor({
     }))
   }
 
-  const showNotamInfoPanel = (feature: NotamMapOverlayFeature) => {
+  const showNotamInfoPanel = (feature: NotamMapOverlayFeature, lat: number, lon: number) => {
     if (notamPanelHideTimeoutRef.current != null) {
       window.clearTimeout(notamPanelHideTimeoutRef.current)
       notamPanelHideTimeoutRef.current = null
     }
 
-    setHoveredNotamFeature(feature)
+    setHoveredAirspaceIds(getAirspacesAtPoint(lat, lon).map((airspace) => airspace.id))
+    setHoveredNotamFeatures(getNotamHoverFeaturesAtPoint(lat, lon, feature))
   }
 
   const scheduleHideNotamInfoPanel = (featureId: string) => {
@@ -3204,10 +3267,18 @@ export function FlightplanMapEditor({
     }
 
     notamPanelHideTimeoutRef.current = window.setTimeout(() => {
-      setHoveredNotamFeature((current) => (current?.id === featureId ? null : current))
+      setHoveredNotamFeatures((current) => (current.some((feature) => feature.id === featureId) ? [] : current))
+      setHoveredAirspaceIds([])
       notamPanelHideTimeoutRef.current = null
     }, 180)
   }
+
+  const getNotamFeatureEventHandlers = (feature: NotamMapOverlayFeature) => ({
+    mouseover: (event: LeafletMouseEvent) => showNotamInfoPanel(feature, event.latlng.lat, event.latlng.lng),
+    mousemove: (event: LeafletMouseEvent) => showNotamInfoPanel(feature, event.latlng.lat, event.latlng.lng),
+    mouseout: () => scheduleHideNotamInfoPanel(feature.id),
+    click: inspectNotamLeafletPoint(feature),
+  })
 
   const shouldSuppressClick = () => {
     if (!suppressNextMapClick.current) {
@@ -3888,30 +3959,24 @@ export function FlightplanMapEditor({
                       layer.closeTooltip()
                     }
                     setHoveredAirspaceIds([])
+                    setHoveredNotamFeatures([])
                     return
                   }
 
-                  const matchingAirspaces = visibleAirspaces
-                    .filter((airspace) => airspaceContainsPoint(airspace, pointer.latlng.lat, pointer.latlng.lng))
-                    .map((airspace) => ({
-                      id: airspace.id,
-                      kind: airspace.kind,
-                      name: airspace.name,
-                      positionIndicator: airspace.positionIndicator,
-                      lower: airspace.lower,
-                      upper: airspace.upper,
-                    }))
-                    .sort((a, b) => compareAirspaceAltitude(b.upper, a.upper) || compareAirspaceAltitude(b.lower, a.lower))
+                  const matchingAirspaces = getAirspacesAtPoint(pointer.latlng.lat, pointer.latlng.lng)
+                  const matchingNotamFeatures = getNotamHoverFeaturesAtPoint(pointer.latlng.lat, pointer.latlng.lng)
 
                   if (matchingAirspaces.length === 0) {
                     if (layer.isTooltipOpen()) {
                       layer.closeTooltip()
                     }
                     setHoveredAirspaceIds([])
+                    setHoveredNotamFeatures(matchingNotamFeatures)
                     return
                   }
 
                   setHoveredAirspaceIds(matchingAirspaces.map((airspace) => airspace.id))
+                  setHoveredNotamFeatures(matchingNotamFeatures)
                   layer.setTooltipContent(formatAirspaceTooltipContent(matchingAirspaces))
                   if (!layer.isTooltipOpen()) {
                     layer.openTooltip(pointer.latlng)
@@ -3920,6 +3985,7 @@ export function FlightplanMapEditor({
                 layer.on('mouseout', () => {
                   layer.closeTooltip()
                   setHoveredAirspaceIds([])
+                  setHoveredNotamFeatures([])
                 })
                 layer.on('click', (event) => {
                   const clicked = event as LeafletMouseEvent
@@ -4074,11 +4140,7 @@ export function FlightplanMapEditor({
                         icon={createNotamMapSymbolIcon(feature.source)}
                         keyboard={false}
                         zIndexOffset={80}
-                        eventHandlers={{
-                          mouseover: () => showNotamInfoPanel(feature),
-                          mouseout: () => scheduleHideNotamInfoPanel(feature.id),
-                          click: inspectNotamLeafletPoint(feature),
-                        }}
+                        eventHandlers={getNotamFeatureEventHandlers(feature)}
                       />
                     )
                   }
@@ -4090,11 +4152,7 @@ export function FlightplanMapEditor({
                       center={[lat, lon]}
                       radius={feature.radiusNm * 1852}
                       pathOptions={notamMapPathOptions(feature.source, 'area', mapZoom)}
-                      eventHandlers={{
-                        mouseover: () => showNotamInfoPanel(feature),
-                        mouseout: () => scheduleHideNotamInfoPanel(feature.id),
-                        click: inspectNotamLeafletPoint(feature),
-                      }}
+                      eventHandlers={getNotamFeatureEventHandlers(feature)}
                     />
                   )
                 }
@@ -4110,11 +4168,7 @@ export function FlightplanMapEditor({
                         icon={createNotamMapSymbolIcon(feature.source)}
                         keyboard={false}
                         zIndexOffset={80}
-                        eventHandlers={{
-                          mouseover: () => showNotamInfoPanel(feature),
-                          mouseout: () => scheduleHideNotamInfoPanel(feature.id),
-                          click: inspectNotamLeafletPoint(feature),
-                        }}
+                        eventHandlers={getNotamFeatureEventHandlers(feature)}
                       />
                     )
                   }
@@ -4125,11 +4179,7 @@ export function FlightplanMapEditor({
                       pane={notamMapPane}
                       positions={feature.positions}
                       pathOptions={notamMapPathOptions(feature.source, 'area', mapZoom)}
-                      eventHandlers={{
-                        mouseover: () => showNotamInfoPanel(feature),
-                        mouseout: () => scheduleHideNotamInfoPanel(feature.id),
-                        click: inspectNotamLeafletPoint(feature),
-                      }}
+                      eventHandlers={getNotamFeatureEventHandlers(feature)}
                     />
                   )
                 }
@@ -4141,11 +4191,7 @@ export function FlightplanMapEditor({
                       pane={notamMapPane}
                       positions={feature.positions}
                       pathOptions={notamMapPathOptions(feature.source, 'line', mapZoom)}
-                      eventHandlers={{
-                        mouseover: () => showNotamInfoPanel(feature),
-                        mouseout: () => scheduleHideNotamInfoPanel(feature.id),
-                        click: inspectNotamLeafletPoint(feature),
-                      }}
+                      eventHandlers={getNotamFeatureEventHandlers(feature)}
                     />
                   )
                 }
@@ -4159,18 +4205,18 @@ export function FlightplanMapEditor({
                     icon={createNotamMapSymbolIcon(feature.source)}
                     keyboard={false}
                     zIndexOffset={80}
-                    eventHandlers={{
-                      mouseover: () => showNotamInfoPanel(feature),
-                      mouseout: () => scheduleHideNotamInfoPanel(feature.id),
-                      click: inspectNotamLeafletPoint(feature),
-                    }}
+                    eventHandlers={getNotamFeatureEventHandlers(feature)}
                   />
                 )
               })
             : null}
 
-          {showNotamOverlays && hoveredNotamFeature && !shouldCollapseNotamAreaToPoint(hoveredNotamFeature, mapInstance, mapZoom)
-            ? (() => {
+          {showNotamOverlays
+            ? hoveredNotamFeatures.map((hoveredNotamFeature) => {
+                if (shouldCollapseNotamAreaToPoint(hoveredNotamFeature, mapInstance, mapZoom)) {
+                  return null
+                }
+
                 const pathOptions = {
                   ...notamMapPathOptions(
                     hoveredNotamFeature.source,
@@ -4226,7 +4272,7 @@ export function FlightplanMapEditor({
                 }
 
                 return null
-              })()
+              })
             : null}
 
           {showAloftWindArrows
