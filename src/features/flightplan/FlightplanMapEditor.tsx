@@ -149,6 +149,7 @@ type AirspaceMapLabel = {
   label: string
   position: [number, number]
   variant: string
+  priority: number
 }
 type AirportNotamLookup =
   | { status: 'idle' }
@@ -389,6 +390,10 @@ function formatDistanceNm(value: number) {
 const routeLineWeight = 6
 const airspaceLabelMinZoom = 8
 const airspaceLabelMinSizePx = 120
+const mapLabelCollisionPaddingPx = 6
+const airspaceMapLabelMaxWidthPx = 180
+const airspaceMapLabelAverageCharWidthPx = 7
+const airspaceMapLabelLineHeightPx = 13
 const airportLabelMinZoom = 8
 const airportMarkerRadiusPx = 4
 const navaidMinZoom = 7
@@ -1304,6 +1309,87 @@ function getAirspaceGeometryLabelPosition(
   return positions
     .filter((position): position is [number, number] => Boolean(position))
     .sort((left, right) => L.latLng(left).distanceTo(mapCenter) - L.latLng(right).distanceTo(mapCenter))[0] ?? null
+}
+
+function getAirspaceLabelPriority(airspace: SwedishAirspace) {
+  if (airspace.kind === 'R' || airspace.kind === 'D') {
+    return 55
+  }
+
+  if (airspace.kind === 'TRA') {
+    return 50
+  }
+
+  return 35
+}
+
+function getNotamLabelPriority(feature: NotamMapOverlayFeature) {
+  if (feature.source === 'aip-sup') {
+    return 100
+  }
+
+  if (feature.source === 'notam-warning') {
+    return 95
+  }
+
+  return 90
+}
+
+function estimateAirspaceMapLabelSize(label: string) {
+  const sourceLines = label.split(/\n+/).map((line) => line.trim()).filter(Boolean)
+  const lines = sourceLines.length > 0 ? sourceLines : [label]
+  let width = 0
+  let lineCount = 0
+
+  for (const line of lines) {
+    const estimatedLineWidth = Math.max(28, Math.ceil(line.length * airspaceMapLabelAverageCharWidthPx))
+    width = Math.max(width, Math.min(airspaceMapLabelMaxWidthPx, estimatedLineWidth))
+    lineCount += Math.max(1, Math.ceil(estimatedLineWidth / airspaceMapLabelMaxWidthPx))
+  }
+
+  return {
+    width,
+    height: lineCount * airspaceMapLabelLineHeightPx,
+  }
+}
+
+function airspaceMapLabelRect(label: AirspaceMapLabel, map: L.Map) {
+  const point = map.latLngToContainerPoint(label.position)
+  const size = estimateAirspaceMapLabelSize(label.label)
+  return {
+    left: point.x - size.width / 2 - mapLabelCollisionPaddingPx,
+    right: point.x + size.width / 2 + mapLabelCollisionPaddingPx,
+    top: point.y - size.height / 2 - mapLabelCollisionPaddingPx,
+    bottom: point.y + size.height / 2 + mapLabelCollisionPaddingPx,
+  }
+}
+
+function labelRectsOverlap(
+  left: { left: number; right: number; top: number; bottom: number },
+  right: { left: number; right: number; top: number; bottom: number },
+) {
+  return left.left < right.right && left.right > right.left && left.top < right.bottom && left.bottom > right.top
+}
+
+function removeCollidingAirspaceMapLabels(labels: AirspaceMapLabel[], map: L.Map) {
+  const placed: Array<{ label: AirspaceMapLabel; rect: ReturnType<typeof airspaceMapLabelRect> }> = []
+
+  for (const label of [...labels].sort((left, right) => (
+    right.priority - left.priority ||
+    left.label.length - right.label.length ||
+    left.id.localeCompare(right.id, 'sv')
+  ))) {
+    const rect = airspaceMapLabelRect(label, map)
+    if (placed.some((entry) => labelRectsOverlap(rect, entry.rect))) {
+      continue
+    }
+
+    placed.push({ label, rect })
+  }
+
+  return placed
+    .map((entry) => entry.label)
+    .sort((left, right) => labels.indexOf(left) - labels.indexOf(right))
 }
 
 function getNotamAreaLabelPosition(
@@ -2509,6 +2595,7 @@ export function FlightplanMapEditor({
           label,
           position,
           variant: `airspace-${airspace.kind.toLowerCase()}`,
+          priority: getAirspaceLabelPriority(airspace),
         })
       }
     }
@@ -2538,11 +2625,12 @@ export function FlightplanMapEditor({
           label: getNotamAreaLabelText(feature),
           position,
           variant: `notam-${feature.source}`,
+          priority: getNotamLabelPriority(feature),
         })
       }
     }
 
-    return labels
+    return removeCollidingAirspaceMapLabels(labels, mapInstance)
   }, [isMapbox3dBasemap, mapBounds, mapInstance, mapZoom, notamMapFeatures, showAirspaces, showNotamOverlays, visibleAirspaces])
   const isAirspaceLabelHighlighted = (label: AirspaceMapLabel) => {
     if (label.id.startsWith('airspace-')) {
