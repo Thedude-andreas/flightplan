@@ -5,7 +5,7 @@ import 'mapbox-gl/dist/mapbox-gl.css'
 
 import type { SwedishAirspace, SwedishAirport, SwedishNavaid, SwedishVisualPoint } from './aviationData'
 import type { NotamMapOverlayFeature } from './notamRoute'
-import { getObstacleCategoryLabel, getObstacleDisplayType, type SwedishObstacle } from './obstacles'
+import { getObstacleDisplayType, type SwedishObstacle } from './obstacles'
 import type { RouteLegAloftWind } from './openMeteoAloft'
 import type { FlightPlanDerived, FlightPlanInput } from './types'
 import type { RouteWeatherOverlay } from './weatherSigmet'
@@ -41,6 +41,15 @@ type RouteGateFrame = {
   gateBearingDeg: number
   baseMeters: number
   heightMeters: number
+}
+
+type Obstacle3DObject = {
+  id: string
+  lat: number
+  lon: number
+  radiusMeters: number
+  heightMeters: number
+  color: string
 }
 
 type TerrainStatus = 'checking' | 'ready' | 'degraded' | 'error'
@@ -85,6 +94,7 @@ const routeCasingLayerId = 'flightplan-3d-route-casing'
 const routeGateFrameLayerId = 'flightplan-3d-route-gate-frame'
 const airspaceSourceId = 'flightplan-3d-airspaces'
 const airspaceLayerId = 'flightplan-3d-airspaces'
+const airspaceHitLayerId = 'flightplan-3d-airspaces-hit'
 const airspaceOutlineLayerId = 'flightplan-3d-airspaces-outline'
 const airspaceBaseOutlineLayerId = 'flightplan-3d-airspaces-base-outline'
 const airspaceHighlightLayerId = 'flightplan-3d-airspaces-highlight'
@@ -107,6 +117,11 @@ const mapPointSourceId = 'flightplan-3d-map-points'
 const mapPointLayerId = 'flightplan-3d-map-points'
 const airportWeatherLabelLayerId = 'flightplan-3d-airport-weather-labels'
 const mapPointLabelLayerId = 'flightplan-3d-map-point-labels'
+const obstacleVolumeSourceId = 'flightplan-3d-obstacle-volumes'
+const obstacleVolumeLayerId = 'flightplan-3d-obstacle-volumes'
+const obstacleVolumeOutlineLayerId = 'flightplan-3d-obstacle-volumes-outline'
+const obstacleVolumeRenderLayerId = 'flightplan-3d-obstacle-volumes-render'
+const obstacleVolumeMinZoom = 8
 const aloftWindSourceId = 'flightplan-3d-aloft-winds'
 const aloftWindLayerId = 'flightplan-3d-aloft-winds'
 const tocTodSourceId = 'flightplan-3d-toc-tod'
@@ -131,6 +146,7 @@ const swedenOverviewCamera: MapboxCamera = {
 const feetToMeters = 0.3048
 const metersPerNm = 1852
 const airspaceFillOpacity = 0.18
+const notamVolumeFillOpacity = 0.22
 const routeAccentColor = '#ff35c4'
 const routeGateMinZoom = 10.4
 const airspaceOutlineOpacity = [
@@ -508,8 +524,64 @@ function circlePolygonCoordinates(lat: number, lon: number, radiusNm: number) {
   return [points]
 }
 
+function obstacleUnitToMeters(value: number | null, unit: string | null) {
+  if (value == null || !Number.isFinite(value)) {
+    return null
+  }
+
+  const normalizedUnit = unit?.trim().toUpperCase() ?? 'M'
+  if (normalizedUnit === 'FT' || normalizedUnit === 'FEET') {
+    return value * feetToMeters
+  }
+
+  return value
+}
+
+function getObstacle3DColor(obstacle: SwedishObstacle) {
+  if (obstacle.category === 'wind_turbine') {
+    return '#0f766e'
+  }
+
+  if (obstacle.category === 'vegetation') {
+    return '#65a30d'
+  }
+
+  if (obstacle.category === 'navaid') {
+    return '#4338ca'
+  }
+
+  return '#ea580c'
+}
+
+function getObstacle3DRadiusMeters(obstacle: SwedishObstacle) {
+  if (obstacle.category === 'wind_turbine') {
+    return 34
+  }
+
+  if (obstacle.category === 'building') {
+    return 24
+  }
+
+  if (obstacle.category === 'vegetation') {
+    return 20
+  }
+
+  return 14
+}
+
+function obstacleFootprintCoordinates(lat: number, lon: number, radiusMeters: number) {
+  const radiusNm = radiusMeters / metersPerNm
+  const points = Array.from({ length: 12 }, (_, index) => destinationPoint(lat, lon, (index / 12) * 360, radiusNm))
+  points.push(points[0])
+  return [points]
+}
+
 type RouteGateCustomLayer = mapboxgl.CustomLayerInterface & {
   setGates: (gates: RouteGateFrame[]) => void
+}
+
+type ObstacleVolumeCustomLayer = mapboxgl.CustomLayerInterface & {
+  setObstacles: (obstacles: Obstacle3DObject[]) => void
 }
 
 function createRouteGateFrameLayer(initialGates: RouteGateFrame[]): RouteGateCustomLayer {
@@ -595,6 +667,104 @@ function createRouteGateFrameLayer(initialGates: RouteGateFrame[]): RouteGateCus
   }
 }
 
+function createObstacleVolumeLayer(initialObstacles: Obstacle3DObject[]): ObstacleVolumeCustomLayer {
+  let map: mapboxgl.Map | null = null
+  let camera: THREE.Camera | null = null
+  let renderer: THREE.WebGLRenderer | null = null
+  let scene: THREE.Scene | null = null
+  let obstacles = initialObstacles
+  const materials = new Map<string, THREE.MeshBasicMaterial>()
+
+  function getMaterial(color: string) {
+    const existing = materials.get(color)
+    if (existing) {
+      return existing
+    }
+
+    const material = new THREE.MeshBasicMaterial({
+      color,
+      transparent: true,
+      opacity: 0.9,
+      depthTest: false,
+      depthWrite: false,
+      toneMapped: false,
+    })
+    materials.set(color, material)
+    return material
+  }
+
+  function disposeScene() {
+    if (!scene) {
+      return
+    }
+
+    for (const child of [...scene.children]) {
+      if (child instanceof THREE.Mesh) {
+        child.geometry.dispose()
+      }
+      scene.remove(child)
+    }
+  }
+
+  function rebuildScene() {
+    if (!scene) {
+      return
+    }
+
+    disposeScene()
+
+    for (const obstacle of obstacles) {
+      addObstacleCylinderMesh(scene, obstacle, getMaterial(obstacle.color))
+    }
+  }
+
+  return {
+    id: obstacleVolumeRenderLayerId,
+    type: 'custom',
+    slot: 'top',
+    renderingMode: '3d',
+    onAdd(nextMap, gl) {
+      map = nextMap
+      camera = new THREE.Camera()
+      scene = new THREE.Scene()
+      renderer = new THREE.WebGLRenderer({
+        canvas: nextMap.getCanvas(),
+        context: gl,
+        antialias: true,
+      })
+      renderer.autoClear = false
+      rebuildScene()
+    },
+    onRemove() {
+      disposeScene()
+      for (const material of materials.values()) {
+        material.dispose()
+      }
+      materials.clear()
+      renderer?.dispose()
+      map = null
+      camera = null
+      renderer = null
+      scene = null
+    },
+    render(_gl, matrix) {
+      if (!map || !camera || !renderer || !scene || map.getZoom() < obstacleVolumeMinZoom) {
+        return
+      }
+
+      camera.projectionMatrix = new THREE.Matrix4().fromArray(matrix)
+      renderer.resetState()
+      renderer.clearDepth()
+      renderer.render(scene, camera)
+    },
+    setObstacles(nextObstacles) {
+      obstacles = nextObstacles
+      rebuildScene()
+      map?.triggerRepaint()
+    },
+  }
+}
+
 function addGateFrameMeshes(
   scene: THREE.Scene,
   gate: RouteGateFrame,
@@ -656,6 +826,29 @@ function addGateBox(
   const mesh = new THREE.Mesh(geometry, material)
   mesh.position.set(coordinate.x, coordinate.y, coordinate.z)
   mesh.rotation.z = options.rotationZ
+  scene.add(mesh)
+}
+
+function addObstacleCylinderMesh(
+  scene: THREE.Scene,
+  obstacle: Obstacle3DObject,
+  material: THREE.Material,
+) {
+  const heightMeters = Math.max(12, obstacle.heightMeters)
+  const coordinate = mapboxgl.MercatorCoordinate.fromLngLat(
+    { lng: obstacle.lon, lat: obstacle.lat },
+    heightMeters / 2,
+  )
+  const scale = coordinate.meterInMercatorCoordinateUnits()
+  const geometry = new THREE.CylinderGeometry(
+    obstacle.radiusMeters * scale,
+    obstacle.radiusMeters * scale,
+    heightMeters * scale,
+    14,
+  )
+  const mesh = new THREE.Mesh(geometry, material)
+  mesh.position.set(coordinate.x, coordinate.y, coordinate.z)
+  mesh.rotation.x = Math.PI / 2
   scene.add(mesh)
 }
 
@@ -863,13 +1056,11 @@ function buildMapPointGeoJson({
   airportFlightCategories,
   airports,
   navaids,
-  obstacles,
   visualPoints,
 }: {
   airportFlightCategories: Record<string, FlightplanMapboxAirportFlightCategory>
   airports: SwedishAirport[]
   navaids: SwedishNavaid[]
-  obstacles: SwedishObstacle[]
   visualPoints: SwedishVisualPoint[]
 }) {
   const features: GeoJsonFeature[] = [
@@ -926,34 +1117,54 @@ function buildMapPointGeoJson({
       },
       geometry: { type: 'Point', coordinates: [point.lon, point.lat] },
     })),
-    ...obstacles.map((obstacle) => ({
+  ]
+
+  return { type: 'FeatureCollection', features } satisfies GeoJsonFeatureCollection
+}
+
+function buildObstacle3DGeoJson(obstacles: SwedishObstacle[]) {
+  const features = obstacles.map((obstacle) => {
+    const obstacleHeightMeters = obstacleUnitToMeters(obstacle.heightValue, obstacle.heightUnit) ?? 60
+    const baseMeters = 0
+    const heightMeters = Math.max(12, obstacleHeightMeters)
+    const color = getObstacle3DColor(obstacle)
+
+    return {
       type: 'Feature' as const,
       properties: {
         category: 'obstacle',
         id: obstacle.id,
-        label: getObstacleCategoryLabel(obstacle.category),
         title: obstacle.name ?? getObstacleDisplayType(obstacle),
         body: [
           getObstacleDisplayType(obstacle),
           obstacle.heightValue != null ? `Höjd ${Math.round(obstacle.heightValue)} ${obstacle.heightUnit ?? 'M'}` : null,
           obstacle.mslValue != null ? `MSL ${Math.round(obstacle.mslValue)} ${obstacle.mslUnit ?? 'M'}` : null,
+          obstacle.lightingDescription ? `Ljus ${obstacle.lightingDescription}` : null,
           obstacle.cycleId ? `LFV ${obstacle.cycleId}` : null,
         ].filter(Boolean).join(' · '),
-        color: obstacle.category === 'wind_turbine'
-          ? '#0f766e'
-          : obstacle.category === 'vegetation'
-            ? '#65a30d'
-            : obstacle.category === 'navaid'
-              ? '#4338ca'
-              : '#ea580c',
-        radius: obstacle.category === 'wind_turbine' ? 4 : 3.6,
-        sortPriority: 25,
+        color,
+        baseMeters,
+        heightMeters,
       },
-      geometry: { type: 'Point', coordinates: [obstacle.lon, obstacle.lat] },
-    })),
-  ]
+      geometry: {
+        type: 'Polygon',
+        coordinates: obstacleFootprintCoordinates(obstacle.lat, obstacle.lon, getObstacle3DRadiusMeters(obstacle)),
+      },
+    }
+  })
 
   return { type: 'FeatureCollection', features } satisfies GeoJsonFeatureCollection
+}
+
+function buildObstacle3DObjects(obstacles: SwedishObstacle[]) {
+  return obstacles.map((obstacle) => ({
+    id: obstacle.id,
+    lat: obstacle.lat,
+    lon: obstacle.lon,
+    radiusMeters: getObstacle3DRadiusMeters(obstacle),
+    heightMeters: Math.max(12, obstacleUnitToMeters(obstacle.heightValue, obstacle.heightUnit) ?? 60),
+    color: getObstacle3DColor(obstacle),
+  })) satisfies Obstacle3DObject[]
 }
 
 function buildAloftWindGeoJson(aloftWinds: RouteLegAloftWind[]) {
@@ -1104,6 +1315,7 @@ export function FlightplanMapbox3D({
   const containerRef = useRef<HTMLDivElement | null>(null)
   const mapRef = useRef<mapboxgl.Map | null>(null)
   const routeGateLayerRef = useRef<RouteGateCustomLayer | null>(null)
+  const obstacleVolumeLayerRef = useRef<ObstacleVolumeCustomLayer | null>(null)
   const terrainErrorCountRef = useRef(0)
   const hasAppliedInitialViewportRef = useRef(false)
   const suppressNextMapClickRef = useRef(false)
@@ -1113,9 +1325,11 @@ export function FlightplanMapbox3D({
   const notamGeoJson = useMemo(() => buildNotam3DGeoJson(notamFeatures), [notamFeatures])
   const weatherGeoJson = useMemo(() => buildWeather3DGeoJson(weatherOverlays), [weatherOverlays])
   const mapPointGeoJson = useMemo(
-    () => buildMapPointGeoJson({ airportFlightCategories, airports, navaids, obstacles, visualPoints }),
-    [airportFlightCategories, airports, navaids, obstacles, visualPoints],
+    () => buildMapPointGeoJson({ airportFlightCategories, airports, navaids, visualPoints }),
+    [airportFlightCategories, airports, navaids, visualPoints],
   )
+  const obstacleGeoJson = useMemo(() => buildObstacle3DGeoJson(obstacles), [obstacles])
+  const obstacleObjects = useMemo(() => buildObstacle3DObjects(obstacles), [obstacles])
   const aloftWindGeoJson = useMemo(() => buildAloftWindGeoJson(aloftWinds), [aloftWinds])
   const airportById = useMemo(() => new Map(airports.map((airport) => [airport.icao ?? `${airport.name}-${airport.lat}-${airport.lon}`, airport])), [airports])
   const navaidById = useMemo(() => new Map(navaids.map((navaid) => [navaid.id, navaid])), [navaids])
@@ -1138,6 +1352,8 @@ export function FlightplanMapbox3D({
     aloftWindGeoJson,
     mapPointGeoJson,
     notamGeoJson,
+    obstacleGeoJson,
+    obstacleObjects,
     plan,
     routeProfile,
     weatherGeoJson,
@@ -1153,11 +1369,13 @@ export function FlightplanMapbox3D({
       aloftWindGeoJson,
       mapPointGeoJson,
       notamGeoJson,
+      obstacleGeoJson,
+      obstacleObjects,
       plan,
       routeProfile,
       weatherGeoJson,
     }
-  }, [airspaceGeoJson, aloftWindGeoJson, mapPointGeoJson, notamGeoJson, plan, routeProfile, weatherGeoJson])
+  }, [airspaceGeoJson, aloftWindGeoJson, mapPointGeoJson, notamGeoJson, obstacleGeoJson, obstacleObjects, plan, routeProfile, weatherGeoJson])
 
   useEffect(() => {
     latestInspectRef.current = {
@@ -1204,6 +1422,8 @@ export function FlightplanMapbox3D({
 
     mapRef.current = map
     map.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), 'top-right')
+    let viewRefreshFrameId: number | null = null
+    let viewRefreshTimeoutId: number | null = null
     const persistCamera = () => writeStoredMapboxCamera(getMapCamera(map))
     const emitMapView = () => {
       const bounds = map.getBounds()
@@ -1225,10 +1445,29 @@ export function FlightplanMapbox3D({
       persistCamera()
       emitMapView()
     }
+    const refreshMapView = () => {
+      if (viewRefreshFrameId != null) {
+        window.cancelAnimationFrame(viewRefreshFrameId)
+      }
+
+      viewRefreshFrameId = window.requestAnimationFrame(() => {
+        viewRefreshFrameId = null
+        map.resize()
+        emitMapView()
+      })
+    }
     map.on('moveend', handleViewChange)
     map.on('zoomend', handleViewChange)
     map.on('pitchend', persistCamera)
     map.on('rotateend', persistCamera)
+    map.once('load', refreshMapView)
+    map.once('idle', refreshMapView)
+    refreshMapView()
+    viewRefreshTimeoutId = window.setTimeout(refreshMapView, 160)
+    const resizeObserver = typeof ResizeObserver === 'undefined'
+      ? null
+      : new ResizeObserver(refreshMapView)
+    resizeObserver?.observe(containerRef.current)
 
     map.on('error', (event) => {
       const message = getMapboxErrorMessage(event.error)
@@ -1319,6 +1558,15 @@ export function FlightplanMapbox3D({
         },
       })
       map.addLayer({
+        id: airspaceHitLayerId,
+        type: 'fill',
+        source: airspaceSourceId,
+        paint: {
+          'fill-color': '#000000',
+          'fill-opacity': 0.001,
+        },
+      })
+      map.addLayer({
         id: airspaceBaseOutlineLayerId,
         type: 'line',
         source: airspaceSourceId,
@@ -1372,13 +1620,13 @@ export function FlightplanMapbox3D({
           'line-dasharray': getMapboxAirspaceDashArrayExpression(),
         },
       })
-      map.on('mouseenter', airspaceLayerId, () => {
+      map.on('mouseenter', airspaceHitLayerId, () => {
         map.getCanvas().style.cursor = 'pointer'
       })
-      map.on('mouseleave', airspaceLayerId, () => {
+      map.on('mouseleave', airspaceHitLayerId, () => {
         map.getCanvas().style.cursor = ''
       })
-      map.on('click', airspaceLayerId, (event) => {
+      map.on('click', airspaceHitLayerId, (event) => {
         const feature = event.features?.[0]
         if (!feature) {
           return
@@ -1396,7 +1644,7 @@ export function FlightplanMapbox3D({
           'fill-extrusion-color': ['get', 'color'],
           'fill-extrusion-base': ['get', 'baseMeters'],
           'fill-extrusion-height': ['get', 'heightMeters'],
-          'fill-extrusion-opacity': 0.22,
+          'fill-extrusion-opacity': notamVolumeFillOpacity,
           'fill-extrusion-vertical-gradient': false,
         },
       })
@@ -1505,6 +1753,43 @@ export function FlightplanMapbox3D({
         },
       })
 
+      updateOrCreateGeoJsonSource(map, obstacleVolumeSourceId, latestMapData.obstacleGeoJson)
+      map.addLayer({
+        id: obstacleVolumeLayerId,
+        type: 'fill-extrusion',
+        source: obstacleVolumeSourceId,
+        slot: 'top',
+        minzoom: obstacleVolumeMinZoom,
+        paint: {
+          'fill-extrusion-color': ['get', 'color'],
+          'fill-extrusion-base': ['get', 'baseMeters'],
+          'fill-extrusion-height': ['get', 'heightMeters'],
+          'fill-extrusion-base-alignment': 'terrain',
+          'fill-extrusion-height-alignment': 'terrain',
+          'fill-extrusion-opacity': 0.001,
+          'fill-extrusion-vertical-gradient': true,
+        },
+      })
+      map.addLayer({
+        id: obstacleVolumeOutlineLayerId,
+        type: 'line',
+        source: obstacleVolumeSourceId,
+        slot: 'top',
+        minzoom: obstacleVolumeMinZoom,
+        layout: {
+          'line-elevation-reference': 'ground',
+          'line-z-offset': ['get', 'heightMeters'],
+        },
+        paint: {
+          'line-color': ['get', 'color'],
+          'line-width': ['interpolate', ['linear'], ['zoom'], 8, 1.2, 13, 2.4],
+          'line-opacity': 0,
+        },
+      })
+      const obstacleRenderLayer = createObstacleVolumeLayer(latestMapData.obstacleObjects)
+      obstacleVolumeLayerRef.current = obstacleRenderLayer
+      map.addLayer(obstacleRenderLayer)
+
       updateOrCreateGeoJsonSource(map, mapPointSourceId, latestMapData.mapPointGeoJson)
       map.addLayer({
         id: mapPointLayerId,
@@ -1581,6 +1866,7 @@ export function FlightplanMapbox3D({
       const popupLayers = [
         weatherAreaLayerId,
         weatherLineLayerId,
+        obstacleVolumeLayerId,
         mapPointLayerId,
         airportWeatherLabelLayerId,
         aloftWindLayerId,
@@ -1650,7 +1936,7 @@ export function FlightplanMapbox3D({
       }
 
       const hoverHighlightLayers = [
-        airspaceLayerId,
+        airspaceHitLayerId,
         notamVolumeLayerId,
         notamLineLayerId,
         notamPointLayerId,
@@ -1780,11 +2066,20 @@ export function FlightplanMapbox3D({
       }
 
       persistCamera()
+      emitMapView()
     })
 
     return () => {
+      if (viewRefreshFrameId != null) {
+        window.cancelAnimationFrame(viewRefreshFrameId)
+      }
+      if (viewRefreshTimeoutId != null) {
+        window.clearTimeout(viewRefreshTimeoutId)
+      }
+      resizeObserver?.disconnect()
       persistCamera()
       routeGateLayerRef.current = null
+      obstacleVolumeLayerRef.current = null
       map.remove()
       mapRef.current = null
     }
@@ -1828,6 +2123,16 @@ export function FlightplanMapbox3D({
 
     updateOrCreateGeoJsonSource(map, mapPointSourceId, mapPointGeoJson)
   }, [mapPointGeoJson])
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map?.isStyleLoaded()) {
+      return
+    }
+
+    updateOrCreateGeoJsonSource(map, obstacleVolumeSourceId, obstacleGeoJson)
+    obstacleVolumeLayerRef.current?.setObstacles(obstacleObjects)
+  }, [obstacleGeoJson, obstacleObjects])
 
   useEffect(() => {
     const map = mapRef.current
