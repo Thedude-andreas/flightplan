@@ -711,14 +711,14 @@ function createObstacleVolumeLayer(initialObstacles: Obstacle3DObject[]): Obstac
   }
 
   function rebuildScene() {
-    if (!scene) {
+    if (!map || !scene) {
       return
     }
 
     disposeScene()
 
     for (const obstacle of obstacles) {
-      addObstacleCylinderMesh(scene, obstacle, getMaterial(obstacle.color))
+      addObstacleCylinderMesh(map, scene, obstacle, getMaterial(obstacle.color))
     }
   }
 
@@ -834,14 +834,19 @@ function addGateBox(
 }
 
 function addObstacleCylinderMesh(
+  map: mapboxgl.Map,
   scene: THREE.Scene,
   obstacle: Obstacle3DObject,
   material: THREE.Material,
 ) {
   const heightMeters = Math.max(12, obstacle.heightMeters)
+  const terrainElevationMeters = map.queryTerrainElevation(
+    { lng: obstacle.lon, lat: obstacle.lat },
+    { exaggerated: false },
+  ) ?? 0
   const coordinate = mapboxgl.MercatorCoordinate.fromLngLat(
     { lng: obstacle.lon, lat: obstacle.lat },
-    heightMeters / 2,
+    terrainElevationMeters + heightMeters / 2,
   )
   const scale = coordinate.meterInMercatorCoordinateUnits()
   const geometry = new THREE.CylinderGeometry(
@@ -1477,6 +1482,9 @@ export function FlightplanMapbox3D({
       persistCamera()
       emitMapView()
     }
+    const refreshObstacleTerrain = () => {
+      obstacleVolumeLayerRef.current?.setObstacles(latestMapDataRef.current.obstacleObjects)
+    }
     const refreshMapView = () => {
       if (viewRefreshFrameId != null) {
         window.cancelAnimationFrame(viewRefreshFrameId)
@@ -1492,6 +1500,7 @@ export function FlightplanMapbox3D({
     map.on('zoomend', handleViewChange)
     map.on('pitchend', persistCamera)
     map.on('rotateend', persistCamera)
+    map.on('idle', refreshObstacleTerrain)
     map.once('load', refreshMapView)
     map.once('idle', refreshMapView)
     map.once('render', refreshMapView)
@@ -2130,6 +2139,7 @@ export function FlightplanMapbox3D({
       persistCamera()
       routeGateLayerRef.current = null
       obstacleVolumeLayerRef.current = null
+      map.off('idle', refreshObstacleTerrain)
       map.remove()
       mapRef.current = null
     }
