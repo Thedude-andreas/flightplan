@@ -997,7 +997,13 @@
 .flightplan-page .fp-panel-card h2,
 .flightplan-page .fp-panel-card .fp-panel-eyebrow { color: #151515; }
 .flightplan-page .fp-panel-header { display: flex; justify-content: space-between; gap: 1rem; align-items: start; margin-bottom: 1rem; }
-.flightplan-page .fp-overlay-actions { display: flex; gap: 0.75rem; }
+.flightplan-page .fp-overlay-actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
 .flightplan-page .fp-aircraft-picker {
   display: grid;
   gap: 0.85rem;
@@ -2555,6 +2561,42 @@
 
 .flightplan-page .fp-map-layer-switch[aria-checked="true"] .fp-map-layer-switch__thumb {
   transform: translateX(18px);
+}
+
+.flightplan-page .fp-map-layer-subtoggle {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.25rem;
+  margin: -0.45rem 0 0.2rem 0.35rem;
+  padding: 0.25rem;
+  border: 1px solid rgba(22, 56, 80, 0.14);
+  border-radius: 8px;
+  background: rgba(232, 240, 255, 0.42);
+}
+
+.flightplan-page .fp-map-layer-subtoggle.is-disabled {
+  opacity: 0.48;
+}
+
+.flightplan-page .fp-map-layer-subtoggle button {
+  min-height: 2rem;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #51473a;
+  font-family: 'Space Grotesk', 'Inter', sans-serif;
+  font-size: 0.76rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.flightplan-page .fp-map-layer-subtoggle button:disabled {
+  cursor: not-allowed;
+}
+
+.flightplan-page .fp-map-layer-subtoggle button.is-active {
+  background: #151515;
+  color: #fff;
 }
 
 .flightplan-page .fp-notam-map-symbol {

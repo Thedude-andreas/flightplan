@@ -41,6 +41,15 @@ export type RelevantNotamSupplement = NotamSupplement & {
   hasGeometry: boolean
 }
 
+export type NotamValidityMode = 'flight-day' | 'all-future'
+
+export type NotamValidityFilter = {
+  mode: NotamValidityMode
+  flightDate: string
+  flightEndDate?: string
+  todayDate: string
+}
+
 function normalizeDisplayText(value: string) {
   return value
     .replace(/\s*–\s*/g, ' – ')
@@ -628,7 +637,103 @@ function getBestGeometryMatch(routeLegs: FlightPlanInput['routeLegs'], rawText: 
 }
 
 function parseIsoDate(value: string | null) {
-  return value ? new Date(`${value}T00:00:00Z`) : null
+  if (!value) {
+    return null
+  }
+
+  const parsed = new Date(`${value}T00:00:00Z`)
+  return Number.isNaN(parsed.getTime()) ? null : parsed
+}
+
+function addUtcDays(value: Date, days: number) {
+  const next = new Date(value)
+  next.setUTCDate(next.getUTCDate() + days)
+  return next
+}
+
+function parseNotamDateTime(value: string) {
+  const match = value.match(/(\d{1,2})\s+([A-Z]{3})\s+(\d{4})\s+(\d{2}):?(\d{2})/i)
+  if (!match) {
+    return null
+  }
+
+  const monthIndex = [
+    'JAN',
+    'FEB',
+    'MAR',
+    'APR',
+    'MAY',
+    'JUN',
+    'JUL',
+    'AUG',
+    'SEP',
+    'OCT',
+    'NOV',
+    'DEC',
+  ].indexOf(match[2].toUpperCase())
+
+  if (monthIndex < 0) {
+    return null
+  }
+
+  const parsed = new Date(Date.UTC(
+    Number(match[3]),
+    monthIndex,
+    Number(match[1]),
+    Number(match[4]),
+    Number(match[5]),
+  ))
+
+  return Number.isNaN(parsed.getTime()) ? null : parsed
+}
+
+function getNotamValidityPeriod(rawText: string) {
+  const normalized = sanitizeNotamSourceText(rawText).replace(/\s+/g, ' ')
+  const fromMatch = normalized.match(/\bFROM:\s*(\d{1,2}\s+[A-Z]{3}\s+\d{4}\s+\d{2}:?\d{2})/i)
+  const toMatch = normalized.match(/\bTO:\s*(\d{1,2}\s+[A-Z]{3}\s+\d{4}\s+\d{2}:?\d{2})(?:\s+EST)?|\bTO:\s*(PERM|UFN)/i)
+
+  return {
+    validFrom: fromMatch ? parseNotamDateTime(fromMatch[1]) : null,
+    validTo: toMatch?.[1] ? parseNotamDateTime(toMatch[1]) : null,
+  }
+}
+
+function doesPeriodOverlapDateRange(validFrom: Date | null, validTo: Date | null, startDate: string, endDate = startDate) {
+  const rangeStart = parseIsoDate(startDate)
+  const parsedEndDate = parseIsoDate(endDate) ? endDate : startDate
+  const rangeEndStart = parseIsoDate(parsedEndDate)
+  if (!rangeStart || !rangeEndStart) {
+    return true
+  }
+
+  const rangeEndExclusive = addUtcDays(rangeEndStart, 1)
+  return (!validTo || validTo > rangeStart) && (!validFrom || validFrom < rangeEndExclusive)
+}
+
+function isPeriodCurrentOrFuture(validTo: Date | null, todayDate: string) {
+  const todayStart = parseIsoDate(todayDate)
+  return !todayStart || !validTo || validTo > todayStart
+}
+
+function isNotamEntryVisibleForValidityFilter(rawText: string, filter: NotamValidityFilter) {
+  const period = getNotamValidityPeriod(rawText)
+
+  if (filter.mode === 'flight-day') {
+    return doesPeriodOverlapDateRange(period.validFrom, period.validTo, filter.flightDate, filter.flightEndDate)
+  }
+
+  return isPeriodCurrentOrFuture(period.validTo, filter.todayDate)
+}
+
+export function filterNotamTextByValidityMode(sectionText: string | null, filter: NotamValidityFilter) {
+  const entries = splitSectionEntries(sectionText)
+  const visibleEntries = entries.filter((entry) => isNotamEntryVisibleForValidityFilter(entry, filter))
+
+  if (entries.length === 0) {
+    return sectionText
+  }
+
+  return visibleEntries.length > 0 ? visibleEntries.map((entry) => `+ ${entry}`).join('\n\n') : null
 }
 
 export function getSupplementValidityLabel(supplement: NotamSupplement) {
@@ -646,33 +751,25 @@ export function getSupplementSourceLabel(supplement: NotamSupplement) {
   return supplement.source === 'eaip-datasource' ? 'LFV eSUP' : 'NOTAM-referens'
 }
 
-function isSupplementValidOnDate(supplement: NotamSupplement, flightDate: string) {
-  if (!flightDate) {
+function isSupplementVisibleForValidityFilter(supplement: NotamSupplement, filter: NotamValidityFilter) {
+  if (filter.mode === 'all-future') {
+    return isPeriodCurrentOrFuture(parseIsoDate(supplement.validTo), filter.todayDate)
+  }
+
+  if (!filter.flightDate) {
     return true
   }
 
-  const flight = parseIsoDate(flightDate)
   const validFrom = parseIsoDate(supplement.validFrom)
   const validTo = parseIsoDate(supplement.validTo)
 
-  if (!flight) {
-    return true
-  }
-
-  if (validFrom && flight < validFrom) {
-    return false
-  }
-
-  if (validTo && flight > validTo) {
-    return false
-  }
-
-  return true
+  return doesPeriodOverlapDateRange(validFrom, validTo, filter.flightDate, filter.flightEndDate)
 }
 
 export function getRouteNotamMatches(
   routeLegs: FlightPlanInput['routeLegs'],
   sectionText: string | null,
+  validityFilter?: NotamValidityFilter,
   maxDistanceNm = 50,
 ): RouteNotamMatch[] {
   if (routeLegs.length === 0 || !sectionText) {
@@ -680,6 +777,7 @@ export function getRouteNotamMatches(
   }
 
   return splitSectionEntries(sectionText)
+    .filter((entry) => !validityFilter || isNotamEntryVisibleForValidityFilter(entry, validityFilter))
     .map((entry, index) => {
       const geometry = getBestGeometryMatch(routeLegs, entry)
       const matchedNavaids = matchNearbyNavaids(routeLegs, entry, maxDistanceNm)
@@ -726,7 +824,7 @@ export function getRouteNotamMatches(
 
 export function getRelevantSupplements(
   routeLegs: FlightPlanInput['routeLegs'],
-  flightDate: string,
+  validityFilter: NotamValidityFilter,
   supplements: NotamSupplement[],
   matches: RouteNotamMatch[],
   nearbyAirports: NearbyAirport[],
@@ -745,7 +843,7 @@ export function getRelevantSupplements(
   }
 
   return supplements
-    .filter((supplement) => isSupplementValidOnDate(supplement, flightDate))
+    .filter((supplement) => isSupplementVisibleForValidityFilter(supplement, validityFilter))
     .map((supplement) => {
       const rawText = supplement.rawText ?? supplement.title
       const geometry = getBestGeometryMatch(routeLegs, rawText)
@@ -1304,21 +1402,27 @@ export function buildNotamMapOverlayResult(
   enRouteText: string | null,
   warningsText: string | null,
   supplements: NotamSupplement[],
-  flightDate: string,
+  validityFilter: NotamValidityFilter,
 ): NotamMapOverlayResult {
   const features: NotamMapOverlayFeature[] = []
   const coverage = createEmptyCoverage()
 
   for (const [index, entry] of splitSectionEntries(enRouteText).entries()) {
+    if (!isNotamEntryVisibleForValidityFilter(entry, validityFilter)) {
+      continue
+    }
     pushGeometryFromCoordinateText(features, coverage, entry, 'notam-enroute', `enr-${index}`)
   }
 
   for (const [index, entry] of splitSectionEntries(warningsText).entries()) {
+    if (!isNotamEntryVisibleForValidityFilter(entry, validityFilter)) {
+      continue
+    }
     pushGeometryFromCoordinateText(features, coverage, entry, 'notam-warning', `nav-${index}`)
   }
 
   for (const supplement of supplements) {
-    if (!isSupplementValidOnDate(supplement, flightDate)) {
+    if (!isSupplementVisibleForValidityFilter(supplement, validityFilter)) {
       continue
     }
 

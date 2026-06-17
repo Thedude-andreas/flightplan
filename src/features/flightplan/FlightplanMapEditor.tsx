@@ -53,6 +53,7 @@ import {
   formatNotamText,
   type NotamMapCoverageCheck,
   type NotamMapOverlayFeature,
+  type NotamValidityMode,
 } from './notamRoute'
 import { fetchNotamsForAirports, type AirportNotam } from './notam'
 import { getAllWeatherOverlays, type RouteWeatherOverlay } from './weatherSigmet'
@@ -490,6 +491,39 @@ function MapLayerSwitch({
         <span className="fp-map-layer-switch__thumb" />
       </span>
     </button>
+  )
+}
+
+function NotamValidityModeToggle({
+  disabled,
+  mode,
+  onChange,
+}: {
+  disabled: boolean
+  mode: NotamValidityMode
+  onChange: (mode: NotamValidityMode) => void
+}) {
+  return (
+    <div className={`fp-map-layer-subtoggle ${disabled ? 'is-disabled' : ''}`} aria-label="Tidsfilter för NOTAM och AIP SUP">
+      <button
+        type="button"
+        className={mode === 'flight-day' ? 'is-active' : ''}
+        disabled={disabled}
+        aria-pressed={mode === 'flight-day'}
+        onClick={() => onChange('flight-day')}
+      >
+        Aktuellt dygn
+      </button>
+      <button
+        type="button"
+        className={mode === 'all-future' ? 'is-active' : ''}
+        disabled={disabled}
+        aria-pressed={mode === 'all-future'}
+        onClick={() => onChange('all-future')}
+      >
+        Alla
+      </button>
+    </div>
   )
 }
 
@@ -2356,6 +2390,8 @@ export function FlightplanMapEditor({
   notamMapNotice = null,
   notamMapNoticeLinks = [],
   notamMapStatus = 'idle',
+  notamValidityMode = 'flight-day',
+  onNotamValidityModeChange,
   hudSlot,
   hudTopCenterSlot,
   hudStatusSlot,
@@ -2377,6 +2413,8 @@ export function FlightplanMapEditor({
   notamMapNotice?: string | null
   notamMapNoticeLinks?: NotamMapNoticeLink[]
   notamMapStatus?: 'idle' | 'loading' | 'error' | 'ready'
+  notamValidityMode?: NotamValidityMode
+  onNotamValidityModeChange?: (mode: NotamValidityMode) => void
   hudSlot?: ReactNode
   hudTopCenterSlot?: ReactNode
   hudStatusSlot?: ReactNode
@@ -3645,6 +3683,11 @@ export function FlightplanMapEditor({
                     label="NOTAM / AIP SUP"
                     meta={notamLayerMeta}
                     onToggle={() => toggleMapLayerPreference('notamOverlays')}
+                  />
+                  <NotamValidityModeToggle
+                    disabled={!showNotamOverlays || !onNotamValidityModeChange}
+                    mode={notamValidityMode}
+                    onChange={(mode) => onNotamValidityModeChange?.(mode)}
                   />
                   <MapLayerSwitch
                     checked={showAloftWindArrows}

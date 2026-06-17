@@ -20,11 +20,13 @@ import { isSupabaseConfigured } from './lib/supabase/client'
 import {
   buildNotamMapOverlayResult,
   createEmptyNotamMapCoverageCheck,
+  filterNotamTextByValidityMode,
   formatNotamText,
   getRelevantSupplements,
   getRouteNotamMatches,
   getSupplementSourceLabel,
   getSupplementValidityLabel,
+  type NotamValidityMode,
 } from './features/flightplan/notamRoute'
 import { getSwedishAirports, type SwedishAirport } from './features/flightplan/aviationData'
 import {
@@ -787,6 +789,7 @@ export function FlightplanApp({
   })
   const [notamRefreshToken, setNotamRefreshToken] = useState(0)
   const handledNotamRefreshTokenRef = useRef(0)
+  const [notamValidityMode, setNotamValidityMode] = useState<NotamValidityMode>('flight-day')
   const [notamState, setNotamState] = useState<NotamState>({
     status: 'idle',
     results: [],
@@ -1024,28 +1027,58 @@ export function FlightplanApp({
     () => getRelevantLhpAreas(plan.routeLegs, weatherState.lhpAreas),
     [plan.routeLegs, weatherState.lhpAreas],
   )
+  const notamBriefingValidityFilter = useMemo(
+    () => ({
+      mode: 'flight-day' as const,
+      flightDate: plan.header.date,
+      flightEndDate: performanceLandingDateTime.date,
+      todayDate: getUtcDateParts(new Date(currentTimeMs)).date,
+    }),
+    [currentTimeMs, performanceLandingDateTime.date, plan.header.date],
+  )
+  const notamMapValidityFilter = useMemo(
+    () => ({
+      mode: notamValidityMode,
+      flightDate: plan.header.date,
+      flightEndDate: performanceLandingDateTime.date,
+      todayDate: getUtcDateParts(new Date(currentTimeMs)).date,
+    }),
+    [currentTimeMs, notamValidityMode, performanceLandingDateTime.date, plan.header.date],
+  )
+  const filteredNotamResults = useMemo(
+    () =>
+      notamState.results.map((entry) => {
+        const rawText = filterNotamTextByValidityMode(entry.rawText, notamBriefingValidityFilter)
+        return {
+          ...entry,
+          rawText,
+          hasNotams: Boolean(rawText),
+        }
+      }),
+    [notamBriefingValidityFilter, notamState.results],
+  )
   const routeWeatherMatches = useMemo(
     () => getRouteWeatherMatches(plan.routeLegs, weatherState.sigmetText),
     [plan.routeLegs, weatherState.sigmetText],
   )
   const routeEnRouteMatches = useMemo(
-    () => getRouteNotamMatches(plan.routeLegs, notamState.enRouteText),
-    [plan.routeLegs, notamState.enRouteText],
+    () => getRouteNotamMatches(plan.routeLegs, notamState.enRouteText, notamBriefingValidityFilter),
+    [notamBriefingValidityFilter, notamState.enRouteText, plan.routeLegs],
   )
   const routeWarningMatches = useMemo(
-    () => getRouteNotamMatches(plan.routeLegs, notamState.warningsText),
-    [plan.routeLegs, notamState.warningsText],
+    () => getRouteNotamMatches(plan.routeLegs, notamState.warningsText, notamBriefingValidityFilter),
+    [notamBriefingValidityFilter, notamState.warningsText, plan.routeLegs],
   )
   const relevantSupplements = useMemo(
     () =>
       getRelevantSupplements(
         plan.routeLegs,
-        plan.header.date,
+        notamBriefingValidityFilter,
         notamState.supplements,
         [...routeEnRouteMatches, ...routeWarningMatches],
         nearbyRouteAirports,
       ),
-    [nearbyRouteAirports, notamState.supplements, plan.header.date, plan.routeLegs, routeEnRouteMatches, routeWarningMatches],
+    [nearbyRouteAirports, notamBriefingValidityFilter, notamState.supplements, plan.routeLegs, routeEnRouteMatches, routeWarningMatches],
   )
 
   const notamMapOverlay = useMemo(
@@ -1055,7 +1088,7 @@ export function FlightplanApp({
             notamState.enRouteText,
             notamState.warningsText,
             notamState.supplements,
-            plan.header.date,
+            notamMapValidityFilter,
           )
         : {
             features: [],
@@ -1066,7 +1099,7 @@ export function FlightplanApp({
       notamState.enRouteText,
       notamState.warningsText,
       notamState.supplements,
-      plan.header.date,
+      notamMapValidityFilter,
     ],
   )
   const notamMapFeatures = notamMapOverlay.features
@@ -1984,6 +2017,8 @@ export function FlightplanApp({
                 notamMapNotice={notamMapNotice}
                 notamMapNoticeLinks={notamMapNoticeLinks}
                 notamMapStatus={notamState.status}
+                notamValidityMode={notamValidityMode}
+                onNotamValidityModeChange={setNotamValidityMode}
                 hudSlot={mapHudContent}
                 hudTopCenterSlot={mapTopCenterHudContent}
                 hudStatusSlot={mapHudStatusSlot}
@@ -2080,6 +2115,8 @@ export function FlightplanApp({
                   notamMapNotice={notamMapNotice}
                   notamMapNoticeLinks={notamMapNoticeLinks}
                   notamMapStatus={notamState.status}
+                  notamValidityMode={notamValidityMode}
+                  onNotamValidityModeChange={setNotamValidityMode}
                   routeEditingEnabled={false}
                   onRouteLegsChange={() => {}}
                   printMode
@@ -2526,7 +2563,7 @@ export function FlightplanApp({
                       ) : (
                         <div className="fp-weather-list fp-weather-list--embedded">
                           {nearbyRouteAirports.map((airport) => {
-                            const entry = notamState.results.find((result) => result.icao === airport.icao)
+                            const entry = filteredNotamResults.find((result) => result.icao === airport.icao)
                             return (
                               <article key={airport.icao} className="fp-weather-card fp-weather-card--nested">
                                 <div className="fp-weather-card__header">
@@ -2634,7 +2671,7 @@ export function FlightplanApp({
                       <div className="fp-weather-card__header">
                         <div>
                           <h3>AIP SUP</h3>
-                          <p>Giltiga på {plan.header.date || 'flygdatum'} och inom 50 NM från färdlinjen</p>
+                          <p>Giltiga under flygdygnet och inom 50 NM från färdlinjen</p>
                         </div>
                         <strong>{relevantSupplements.length}</strong>
                       </div>
@@ -2642,7 +2679,7 @@ export function FlightplanApp({
                         <p className="fp-weather-empty-state">
                           {notamState.status === 'loading'
                             ? 'Läser giltiga LFV eSUP...'
-                            : 'Ingen giltig AIP SUP inom 50 NM matchades mot flygdatum och färdlinje.'}
+                            : 'Ingen giltig AIP SUP inom 50 NM matchades mot flygdygnet och färdlinjen.'}
                         </p>
                       ) : (
                         <div className="fp-notam-supplements">
