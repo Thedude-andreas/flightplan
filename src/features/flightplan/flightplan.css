@@ -2746,6 +2746,23 @@
   color: #794600;
 }
 
+.flightplan-page .fp-holding-pattern-marker {
+  background: transparent;
+  border: 0;
+}
+
+.flightplan-page .fp-holding-pattern-marker svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: #000;
+  stroke-width: 3.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 1px 0 #fff) drop-shadow(0 -1px 0 #fff) drop-shadow(1px 0 0 #fff) drop-shadow(-1px 0 0 #fff) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.32));
+}
+
 .flightplan-page .fp-airspace-map-label {
   background: transparent;
   border: 0;

@@ -52,6 +52,12 @@ type Obstacle3DObject = {
   color: string
 }
 
+type HoldingPattern3DObject = {
+  id: string
+  lat: number
+  lon: number
+}
+
 type TerrainStatus = 'checking' | 'ready' | 'degraded' | 'error'
 
 type TerrainDiagnostic = {
@@ -121,6 +127,7 @@ const mapPointSourceId = 'flightplan-3d-map-points'
 const mapPointLayerId = 'flightplan-3d-map-points'
 const airportWeatherLabelLayerId = 'flightplan-3d-airport-weather-labels'
 const mapPointLabelLayerId = 'flightplan-3d-map-point-labels'
+const holdingPatternLayerId = 'flightplan-3d-holding-patterns'
 const obstacleVolumeSourceId = 'flightplan-3d-obstacle-volumes'
 const obstacleVolumeLayerId = 'flightplan-3d-obstacle-volumes'
 const obstacleVolumeOutlineLayerId = 'flightplan-3d-obstacle-volumes-outline'
@@ -183,6 +190,10 @@ const routeVisualClearanceMeters = 70
 const routeGateHalfWidthNm = 0.11
 const routeGateHalfHeightMeters = 140
 const routeGateRibHalfSizeMeters = 3
+const visualPointMinZoom = 10
+const holdingPatternAltitudeFt = 1000
+const holdingPatternRadiusMeters = 475
+const holdingPatternTubeMeters = 12
 const notamVolumeBaseFt = 0
 const notamVolumeDefaultUpperFt = 5000
 const mapboxStyleUrls: Record<FlightplanMapbox3DStyle, string> = {
@@ -588,6 +599,10 @@ type ObstacleVolumeCustomLayer = mapboxgl.CustomLayerInterface & {
   setObstacles: (obstacles: Obstacle3DObject[]) => void
 }
 
+type HoldingPatternCustomLayer = mapboxgl.CustomLayerInterface & {
+  setHoldings: (holdings: HoldingPattern3DObject[]) => void
+}
+
 function createRouteGateFrameLayer(initialGates: RouteGateFrame[]): RouteGateCustomLayer {
   let map: mapboxgl.Map | null = null
   let camera: THREE.Camera | null = null
@@ -665,6 +680,90 @@ function createRouteGateFrameLayer(initialGates: RouteGateFrame[]): RouteGateCus
     },
     setGates(nextGates) {
       gates = nextGates
+      rebuildScene()
+      map?.triggerRepaint()
+    },
+  }
+}
+
+function createHoldingPatternLayer(initialHoldings: HoldingPattern3DObject[]): HoldingPatternCustomLayer {
+  let map: mapboxgl.Map | null = null
+  let camera: THREE.Camera | null = null
+  let renderer: THREE.WebGLRenderer | null = null
+  let scene: THREE.Scene | null = null
+  let holdings = initialHoldings
+  const material = new THREE.MeshBasicMaterial({
+    color: '#000000',
+    transparent: true,
+    opacity: 0.95,
+    depthTest: false,
+    depthWrite: false,
+    toneMapped: false,
+  })
+
+  function disposeScene() {
+    if (!scene) {
+      return
+    }
+
+    for (const child of [...scene.children]) {
+      if (child instanceof THREE.Mesh) {
+        child.geometry.dispose()
+      }
+      scene.remove(child)
+    }
+  }
+
+  function rebuildScene() {
+    if (!scene) {
+      return
+    }
+
+    disposeScene()
+
+    for (const holding of holdings) {
+      addHoldingPatternMesh(scene, holding, material)
+    }
+  }
+
+  return {
+    id: holdingPatternLayerId,
+    type: 'custom',
+    slot: 'top',
+    renderingMode: '3d',
+    onAdd(nextMap, gl) {
+      map = nextMap
+      camera = new THREE.Camera()
+      scene = new THREE.Scene()
+      renderer = new THREE.WebGLRenderer({
+        canvas: nextMap.getCanvas(),
+        context: gl,
+        antialias: true,
+      })
+      renderer.autoClear = false
+      rebuildScene()
+    },
+    onRemove() {
+      disposeScene()
+      material.dispose()
+      renderer?.dispose()
+      map = null
+      camera = null
+      renderer = null
+      scene = null
+    },
+    render(_gl, matrix) {
+      if (!map || !camera || !renderer || !scene || map.getZoom() < visualPointMinZoom) {
+        return
+      }
+
+      camera.projectionMatrix = new THREE.Matrix4().fromArray(matrix)
+      renderer.resetState()
+      renderer.clearDepth()
+      renderer.render(scene, camera)
+    },
+    setHoldings(nextHoldings) {
+      holdings = nextHoldings
       rebuildScene()
       map?.triggerRepaint()
     },
@@ -831,6 +930,46 @@ function addGateBox(
   mesh.position.set(coordinate.x, coordinate.y, coordinate.z)
   mesh.rotation.z = options.rotationZ
   scene.add(mesh)
+}
+
+function addHoldingPatternMesh(
+  scene: THREE.Scene,
+  holding: HoldingPattern3DObject,
+  material: THREE.Material,
+) {
+  const coordinate = mapboxgl.MercatorCoordinate.fromLngLat(
+    { lng: holding.lon, lat: holding.lat },
+    holdingPatternAltitudeFt * feetToMeters,
+  )
+  const scale = coordinate.meterInMercatorCoordinateUnits()
+  const radius = holdingPatternRadiusMeters * scale
+  const tubeRadius = holdingPatternTubeMeters * scale
+  const points = Array.from({ length: 57 }, (_, index) => {
+    const angle = THREE.MathUtils.degToRad((300 * index) / 56)
+    return new THREE.Vector3(
+      Math.cos(angle) * radius,
+      -Math.sin(angle) * radius,
+      0,
+    )
+  })
+  const path = new THREE.CatmullRomCurve3(points)
+  const ringGeometry = new THREE.TubeGeometry(path, 64, tubeRadius, 8, false)
+  const ring = new THREE.Mesh(ringGeometry, material)
+  ring.position.set(coordinate.x, coordinate.y, coordinate.z)
+  scene.add(ring)
+
+  const arrowTip = points[points.length - 1]
+  const arrowPrevious = points[points.length - 3]
+  const arrowDirection = new THREE.Vector2(
+    arrowTip.x - arrowPrevious.x,
+    arrowTip.y - arrowPrevious.y,
+  ).normalize()
+  const arrowLength = radius * 0.34
+  const arrowGeometry = new THREE.ConeGeometry(arrowLength * 0.36, arrowLength, 4)
+  const arrow = new THREE.Mesh(arrowGeometry, material)
+  arrow.position.set(coordinate.x + arrowTip.x, coordinate.y + arrowTip.y, coordinate.z)
+  arrow.rotation.z = Math.atan2(-arrowDirection.x, arrowDirection.y)
+  scene.add(arrow)
 }
 
 function addObstacleCylinderMesh(
@@ -1116,6 +1255,7 @@ function buildMapPointGeoJson({
       type: 'Feature' as const,
       properties: {
         category: 'visual-point',
+        kind: point.kind,
         id: point.id,
         label: point.name ?? point.positionIndicator ?? 'VFR',
         title: point.name ?? point.positionIndicator ?? 'VFR-punkt',
@@ -1129,6 +1269,16 @@ function buildMapPointGeoJson({
   ]
 
   return { type: 'FeatureCollection', features } satisfies GeoJsonFeatureCollection
+}
+
+function buildHoldingPattern3DObjects(visualPoints: SwedishVisualPoint[]) {
+  return visualPoints
+    .filter((point) => point.kind === 'holding')
+    .map((point) => ({
+      id: point.id,
+      lat: point.lat,
+      lon: point.lon,
+    }))
 }
 
 function buildObstacle3DGeoJson(obstacles: SwedishObstacle[]) {
@@ -1346,6 +1496,7 @@ export function FlightplanMapbox3D({
   const containerRef = useRef<HTMLDivElement | null>(null)
   const mapRef = useRef<mapboxgl.Map | null>(null)
   const routeGateLayerRef = useRef<RouteGateCustomLayer | null>(null)
+  const holdingPatternLayerRef = useRef<HoldingPatternCustomLayer | null>(null)
   const obstacleVolumeLayerRef = useRef<ObstacleVolumeCustomLayer | null>(null)
   const terrainErrorCountRef = useRef(0)
   const hasAppliedInitialViewportRef = useRef(false)
@@ -1361,6 +1512,7 @@ export function FlightplanMapbox3D({
     () => buildMapPointGeoJson({ airportFlightCategories, airports, navaids, visualPoints }),
     [airportFlightCategories, airports, navaids, visualPoints],
   )
+  const holdingPatternObjects = useMemo(() => buildHoldingPattern3DObjects(visualPoints), [visualPoints])
   const activeObstacles = showObstacles ? mapboxObstacles : []
   const obstacleGeoJson = useMemo(() => buildObstacle3DGeoJson(activeObstacles), [activeObstacles])
   const obstacleObjects = useMemo(() => buildObstacle3DObjects(activeObstacles), [activeObstacles])
@@ -1384,6 +1536,7 @@ export function FlightplanMapbox3D({
   const latestMapDataRef = useRef({
     airspaceGeoJson,
     aloftWindGeoJson,
+    holdingPatternObjects,
     mapPointGeoJson,
     notamGeoJson,
     obstacleGeoJson,
@@ -1401,6 +1554,7 @@ export function FlightplanMapbox3D({
     latestMapDataRef.current = {
       airspaceGeoJson,
       aloftWindGeoJson,
+      holdingPatternObjects,
       mapPointGeoJson,
       notamGeoJson,
       obstacleGeoJson,
@@ -1409,7 +1563,7 @@ export function FlightplanMapbox3D({
       routeProfile,
       weatherGeoJson,
     }
-  }, [airspaceGeoJson, aloftWindGeoJson, mapPointGeoJson, notamGeoJson, obstacleGeoJson, obstacleObjects, plan, routeProfile, weatherGeoJson])
+  }, [airspaceGeoJson, aloftWindGeoJson, holdingPatternObjects, mapPointGeoJson, notamGeoJson, obstacleGeoJson, obstacleObjects, plan, routeProfile, weatherGeoJson])
 
   useEffect(() => {
     latestInspectRef.current = {
@@ -1847,6 +2001,7 @@ export function FlightplanMapbox3D({
         id: mapPointLayerId,
         type: 'circle',
         source: mapPointSourceId,
+        filter: ['!', ['all', ['==', ['get', 'category'], 'visual-point'], ['==', ['get', 'kind'], 'holding']]],
         layout: {
           'circle-sort-key': ['get', 'sortPriority'],
         },
@@ -1858,6 +2013,9 @@ export function FlightplanMapbox3D({
           'circle-opacity': 0.95,
         },
       })
+      const holdingPatternLayer = createHoldingPatternLayer(latestMapData.holdingPatternObjects)
+      holdingPatternLayerRef.current = holdingPatternLayer
+      map.addLayer(holdingPatternLayer)
       map.addLayer({
         id: airportWeatherLabelLayerId,
         type: 'symbol',
@@ -1921,6 +2079,7 @@ export function FlightplanMapbox3D({
         obstacleVolumeLayerId,
         mapPointLayerId,
         airportWeatherLabelLayerId,
+        mapPointLabelLayerId,
         aloftWindLayerId,
       ]
       for (const layerId of popupLayers) {
@@ -1949,7 +2108,7 @@ export function FlightplanMapbox3D({
           const id = String(properties?.id ?? '')
           const category = String(properties?.category ?? '')
           const latestInspect = latestInspectRef.current
-          const isMapPointInteraction = layerId === mapPointLayerId || layerId === airportWeatherLabelLayerId
+          const isMapPointInteraction = layerId === mapPointLayerId || layerId === airportWeatherLabelLayerId || layerId === mapPointLabelLayerId
 
           if (isMapPointInteraction && category === 'airport') {
             const airport = latestInspect.airportById.get(id)
@@ -2138,6 +2297,7 @@ export function FlightplanMapbox3D({
       resizeObserver?.disconnect()
       persistCamera()
       routeGateLayerRef.current = null
+      holdingPatternLayerRef.current = null
       obstacleVolumeLayerRef.current = null
       map.off('idle', refreshObstacleTerrain)
       map.remove()
@@ -2213,6 +2373,15 @@ export function FlightplanMapbox3D({
 
     updateOrCreateGeoJsonSource(map, mapPointSourceId, mapPointGeoJson)
   }, [mapPointGeoJson])
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map?.isStyleLoaded()) {
+      return
+    }
+
+    holdingPatternLayerRef.current?.setHoldings(holdingPatternObjects)
+  }, [holdingPatternObjects])
 
   useEffect(() => {
     const map = mapRef.current

@@ -401,6 +401,8 @@ const navaidMinZoom = 7
 const navaidLabelMinZoom = 9
 const visualPointMinZoom = 10
 const visualPointLabelMinZoom = 11
+const holdingPatternBaseIconSizePx = 34
+const holdingPatternDiameterMeters = 950
 const obstacleMinZoom = 8
 const obstacleInspectRadiusNm = 3
 const directionArrowWaypointClearancePx = 22
@@ -1134,6 +1136,33 @@ function createVisualRoutePoint(point: SwedishVisualPoint) {
     lon: point.lon,
     name: getVisualPointDisplayLabel(point),
   }
+}
+
+function getMetersPerPixelAtZoom(lat: number, zoom: number) {
+  return (156543.03392 * Math.cos((lat * Math.PI) / 180)) / 2 ** zoom
+}
+
+function getHoldingPatternIconSizePx(lat: number, zoom: number) {
+  const metersPerPixel = getMetersPerPixelAtZoom(lat, zoom)
+  if (!Number.isFinite(metersPerPixel) || metersPerPixel <= 0) {
+    return holdingPatternBaseIconSizePx
+  }
+
+  return Math.max(holdingPatternBaseIconSizePx, Math.round(holdingPatternDiameterMeters / metersPerPixel))
+}
+
+function createHoldingPatternIcon(sizePx: number) {
+  return divIcon({
+    className: 'fp-holding-pattern-marker',
+    iconSize: [sizePx, sizePx],
+    iconAnchor: [sizePx / 2, sizePx / 2],
+    html: `
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path d="M3 12a9 9 0 1 0 9-9 9.7 9.7 0 0 0-6.7 2.7L3 8" />
+        <path d="M3 3v5h5" />
+      </svg>
+    `,
+  })
 }
 
 function parseAirspaceAltitudeFeet(value: string | null) {
@@ -2610,17 +2639,20 @@ export function FlightplanMapEditor({
       }))
   }, [mapBounds, showAirportMarkers, swedishAirports])
   const visibleVisualPoints = useMemo(() => {
-    if (!showVisualPoints || mapZoom < visualPointMinZoom) {
+    const visualPointViewportBounds = isMapbox3dBasemap ? mapbox3dBounds : mapBounds
+    const visualPointViewportZoom = isMapbox3dBasemap ? mapbox3dZoom : mapZoom
+
+    if (!showVisualPoints || visualPointViewportZoom < visualPointMinZoom) {
       return []
     }
 
-    if (!mapBounds) {
+    if (!visualPointViewportBounds) {
       return swedishVisualPoints
     }
 
-    const paddedBounds = mapBounds.pad(0.1)
+    const paddedBounds = visualPointViewportBounds.pad(0.1)
     return swedishVisualPoints.filter((point) => paddedBounds.contains([point.lat, point.lon]))
-  }, [mapBounds, mapZoom, showVisualPoints, swedishVisualPoints])
+  }, [isMapbox3dBasemap, mapBounds, mapZoom, mapbox3dBounds, mapbox3dZoom, showVisualPoints, swedishVisualPoints])
   const visibleObstacles = useMemo(() => {
     if (!showObstacles || obstacleViewportZoom < obstacleMinZoom) {
       return []
@@ -4434,25 +4466,50 @@ export function FlightplanMapEditor({
                     zIndexOffset={105}
                   />
                 ) : null}
-                <CircleMarker
-                  center={[point.lat, point.lon]}
-                  pane="fp-visual-point-pane"
-                  radius={palette.radius}
-                  pathOptions={{
-                    color: palette.color,
-                    weight: 1.45,
-                    fillColor: palette.fillColor,
-                    fillOpacity: 0.95,
-                  }}
-                  eventHandlers={{
-                    click: (event) => {
-                      event.originalEvent.preventDefault()
-                      event.originalEvent.stopPropagation()
-                      addVisualPointToEnd(point)
-                    },
-                    mouseout: closeLeafletTooltipOnMouseOut,
-                  }}
-                >
+                {point.kind === 'holding' ? (
+                  <Marker
+                    position={[point.lat, point.lon]}
+                    icon={createHoldingPatternIcon(getHoldingPatternIconSizePx(point.lat, mapZoom))}
+                    pane="fp-visual-point-pane"
+                    eventHandlers={{
+                      click: (event) => {
+                        event.originalEvent.preventDefault()
+                        event.originalEvent.stopPropagation()
+                        addVisualPointToEnd(point)
+                      },
+                      mouseout: closeLeafletTooltipOnMouseOut,
+                    }}
+                  >
+                    <Tooltip direction="top" offset={[0, -getHoldingPatternIconSizePx(point.lat, mapZoom) / 2]} opacity={0.95} className="fp-hover-tooltip fp-visual-point-tooltip">
+                      <div className="fp-airport-tooltip fp-visual-point-tooltip__content">
+                        <strong>{label}</strong>
+                        <span>{getVisualPointKindLabel(point.kind)}{point.positionIndicator ? ` · ${point.positionIndicator}` : ''}</span>
+                        {point.name && point.name !== label ? <span>{point.name}</span> : null}
+                        {point.comment ? <span>{point.comment}</span> : null}
+                        <span>{formatCoordinateDms(point.lat, 'lat')} {formatCoordinateDms(point.lon, 'lon')}</span>
+                      </div>
+                    </Tooltip>
+                  </Marker>
+                ) : (
+                  <CircleMarker
+                    center={[point.lat, point.lon]}
+                    pane="fp-visual-point-pane"
+                    radius={palette.radius}
+                    pathOptions={{
+                      color: palette.color,
+                      weight: 1.45,
+                      fillColor: palette.fillColor,
+                      fillOpacity: 0.95,
+                    }}
+                    eventHandlers={{
+                      click: (event) => {
+                        event.originalEvent.preventDefault()
+                        event.originalEvent.stopPropagation()
+                        addVisualPointToEnd(point)
+                      },
+                      mouseout: closeLeafletTooltipOnMouseOut,
+                    }}
+                  >
                   <Tooltip direction="top" offset={[0, -6]} opacity={0.95} className="fp-hover-tooltip fp-visual-point-tooltip">
                     <div className="fp-airport-tooltip fp-visual-point-tooltip__content">
                       <strong>{label}</strong>
@@ -4462,7 +4519,8 @@ export function FlightplanMapEditor({
                       <span>{formatCoordinateDms(point.lat, 'lat')} {formatCoordinateDms(point.lon, 'lon')}</span>
                     </div>
                   </Tooltip>
-                </CircleMarker>
+                  </CircleMarker>
+                )}
               </FeatureGroup>
             )
           })}
