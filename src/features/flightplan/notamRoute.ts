@@ -75,6 +75,31 @@ function sanitizeNotamSourceText(value: string) {
   return withoutHtml
 }
 
+const notamCoordinateTokenPattern = String.raw`\d{4,6}(?:\.\d+)?[NS]\s*\d{4,7}(?:\.\d+)?[EW]`
+const notamVerticalLimitTokenPattern = String.raw`(?:FL\s*\d{2,3}|SFC|GND|\d{3,5}\s*FT(?:\s*(?:AMSL|MSL|AGL))?)`
+
+function normalizeVerticalLimitText(value: string) {
+  const verticalLimitPattern = new RegExp(
+    String.raw`(Gräns\s+i\s+höjdled\s*\/?\s*Vertical\s+limit)\s+` +
+      String.raw`((?:(?!\.\s+${notamVerticalLimitTokenPattern}\s+${notamVerticalLimitTokenPattern})(?:.|\n))+?)` +
+      String.raw`\.\s+((?:${notamVerticalLimitTokenPattern})(?:\s+${notamVerticalLimitTokenPattern}){1,2})`,
+    'gi',
+  )
+
+  return value.replace(verticalLimitPattern, (_match, label: string, boundary: string, limits: string) => {
+    const normalizedLimits = limits
+      .replace(/\s+/g, ' ')
+      .replace(/\bFL\s+(\d{2,3})\b/gi, 'FL $1')
+      .trim()
+    const normalizedBoundary = boundary
+      .replace(/\s+/g, ' ')
+      .replace(new RegExp(String.raw`\s+-\s+(?=${notamCoordinateTokenPattern})`, 'gi'), '\n- ')
+      .trim()
+
+    return `${label}: ${normalizedLimits}\n${normalizedBoundary}.`
+  })
+}
+
 function repairPdfColumnDateLabels(value: string) {
   const datePattern = String.raw`\d{1,2}\s+[A-Z]{3}\s+\d{4}\s+\d{2}:?\d{2}(?:\s+EST)?`
   const misplacedLabelsPattern = new RegExp(
@@ -104,9 +129,12 @@ export function formatNotamText(value: string | null) {
     return ''
   }
 
-  const formatted = repairPdfColumnDateLabels(sanitizeNotamSourceText(value))
+  const normalized = repairPdfColumnDateLabels(sanitizeNotamSourceText(value))
     .replace(/\u00a0/g, ' ')
     .replace(/\s+/g, ' ')
+
+  const formatted = normalizeVerticalLimitText(normalized)
+    .replace(/\s+(Gräns\s+i\s+höjdled\s*\/?\s*Vertical\s+limit:)/gi, '\n$1')
     .replace(/\s+\+\s+/g, '\n\n+ ')
     .replace(/^(\+\s+)/, '+ ')
     .replace(/(\d{2}:\d{2})(FROM:)/g, '$1\nFROM:')
@@ -394,6 +422,11 @@ function splitSectionEntries(sectionText: string | null) {
 
 function deriveTitle(rawText: string) {
   const normalized = sanitizeNotamSourceText(rawText).replace(/\s+/g, ' ').trim()
+  const verticalLimitIndex = normalized.search(/\bGräns\s+i\s+höjdled\s*\/?\s*Vertical\s+limit\b|\bVertical\s+limits?\b/i)
+  if (verticalLimitIndex > 15) {
+    return normalized.slice(0, verticalLimitIndex).trim()
+  }
+
   const timestampIndex = normalized.search(/\d{2}\s+[A-Z]{3}\s+\d{4}/)
   const source = timestampIndex > 15 ? normalized.slice(0, timestampIndex).trim() : normalized
   return source.length > 140 ? `${source.slice(0, 137)}...` : source
