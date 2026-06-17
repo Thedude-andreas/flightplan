@@ -87,13 +87,18 @@ const airspaceSourceId = 'flightplan-3d-airspaces'
 const airspaceLayerId = 'flightplan-3d-airspaces'
 const airspaceOutlineLayerId = 'flightplan-3d-airspaces-outline'
 const airspaceBaseOutlineLayerId = 'flightplan-3d-airspaces-base-outline'
+const airspaceHighlightLayerId = 'flightplan-3d-airspaces-highlight'
+const airspaceBaseHighlightLayerId = 'flightplan-3d-airspaces-base-highlight'
 const notamVolumeSourceId = 'flightplan-3d-notam-volumes'
 const notamVolumeLayerId = 'flightplan-3d-notam-volumes'
 const notamVolumeOutlineLayerId = 'flightplan-3d-notam-volumes-outline'
+const notamVolumeHighlightLayerId = 'flightplan-3d-notam-volumes-highlight'
 const notamLineSourceId = 'flightplan-3d-notam-lines'
 const notamLineLayerId = 'flightplan-3d-notam-lines'
+const notamLineHighlightLayerId = 'flightplan-3d-notam-lines-highlight'
 const notamPointSourceId = 'flightplan-3d-notam-points'
 const notamPointLayerId = 'flightplan-3d-notam-points'
+const notamPointHighlightLayerId = 'flightplan-3d-notam-points-highlight'
 const weatherAreaSourceId = 'flightplan-3d-weather-areas'
 const weatherAreaLayerId = 'flightplan-3d-weather-areas'
 const weatherLineSourceId = 'flightplan-3d-weather-lines'
@@ -213,20 +218,6 @@ function escapeHtml(value: string) {
     .replace(/'/g, '&#39;')
 }
 
-function formatAirspacePopup(properties: mapboxgl.GeoJSONFeature['properties']) {
-  const kind = String(properties?.kind ?? 'Luftrum')
-  const name = String(properties?.name ?? '')
-  const lower = String(properties?.lower ?? '-')
-  const upper = String(properties?.upper ?? '-')
-
-  return `
-    <div class="fp-mapbox3d-popup">
-      <strong>${escapeHtml(kind)}${name ? ` · ${escapeHtml(name)}` : ''}</strong>
-      <span>${escapeHtml(lower)} till ${escapeHtml(upper)}</span>
-    </div>
-  `
-}
-
 function formatGenericPopup(properties: mapboxgl.GeoJSONFeature['properties']) {
   const title = String(properties?.title ?? properties?.label ?? 'Objekt')
   const body = String(properties?.body ?? '')
@@ -237,6 +228,26 @@ function formatGenericPopup(properties: mapboxgl.GeoJSONFeature['properties']) {
       ${body ? `<span>${escapeHtml(body)}</span>` : ''}
     </div>
   `
+}
+
+function idMatchFilter(ids: string[]) {
+  return ['in', ['to-string', ['get', 'id']], ['literal', ids]] as mapboxgl.FilterSpecification
+}
+
+function getRenderedFeatureIds(features: mapboxgl.MapboxGeoJSONFeature[]) {
+  return Array.from(new Set(
+    features
+      .map((feature) => String(feature.properties?.id ?? ''))
+      .filter(Boolean),
+  ))
+}
+
+function setLayerIdFilter(map: mapboxgl.Map, layerId: string, ids: string[]) {
+  if (!map.getLayer(layerId)) {
+    return
+  }
+
+  map.setFilter(layerId, idMatchFilter(ids))
 }
 
 function parseAltitudeFt(value: string | null | undefined, fallback: number | null = null) {
@@ -1319,6 +1330,18 @@ export function FlightplanMapbox3D({
         },
       })
       map.addLayer({
+        id: airspaceBaseHighlightLayerId,
+        type: 'line',
+        source: airspaceSourceId,
+        filter: idMatchFilter([]),
+        paint: {
+          'line-color': getMapboxAirspaceColorExpression(),
+          'line-width': ['interpolate', ['linear'], ['zoom'], 6, 2.8, 10, 4.4, 14, 6.4],
+          'line-opacity': 1,
+          'line-dasharray': getMapboxAirspaceDashArrayExpression(),
+        },
+      })
+      map.addLayer({
         id: airspaceOutlineLayerId,
         type: 'line',
         source: airspaceSourceId,
@@ -1333,28 +1356,27 @@ export function FlightplanMapbox3D({
           'line-dasharray': getMapboxAirspaceDashArrayExpression(),
         },
       })
-      const airspacePopup = new mapboxgl.Popup({
-        closeButton: false,
-        closeOnClick: false,
-        offset: 12,
+      map.addLayer({
+        id: airspaceHighlightLayerId,
+        type: 'line',
+        source: airspaceSourceId,
+        filter: idMatchFilter([]),
+        layout: {
+          'line-elevation-reference': 'sea',
+          'line-z-offset': ['get', 'heightMeters'],
+        },
+        paint: {
+          'line-color': getMapboxAirspaceColorExpression(),
+          'line-width': ['interpolate', ['linear'], ['zoom'], 6, 3.2, 10, 5, 14, 7.2],
+          'line-opacity': 1,
+          'line-dasharray': getMapboxAirspaceDashArrayExpression(),
+        },
       })
       map.on('mouseenter', airspaceLayerId, () => {
         map.getCanvas().style.cursor = 'pointer'
       })
-      map.on('mousemove', airspaceLayerId, (event) => {
-        const feature = event.features?.[0]
-        if (!feature) {
-          return
-        }
-
-        airspacePopup
-          .setLngLat(event.lngLat)
-          .setHTML(formatAirspacePopup(feature.properties))
-          .addTo(map)
-      })
       map.on('mouseleave', airspaceLayerId, () => {
         map.getCanvas().style.cursor = ''
-        airspacePopup.remove()
       })
       map.on('click', airspaceLayerId, (event) => {
         const feature = event.features?.[0]
@@ -1393,6 +1415,22 @@ export function FlightplanMapbox3D({
           'line-dasharray': [2, 1.4],
         },
       })
+      map.addLayer({
+        id: notamVolumeHighlightLayerId,
+        type: 'line',
+        source: notamVolumeSourceId,
+        filter: idMatchFilter([]),
+        layout: {
+          'line-elevation-reference': 'sea',
+          'line-z-offset': ['get', 'heightMeters'],
+        },
+        paint: {
+          'line-color': ['get', 'color'],
+          'line-width': ['interpolate', ['linear'], ['zoom'], 6, 3.2, 10, 5, 14, 7],
+          'line-opacity': 1,
+          'line-dasharray': [2, 1.4],
+        },
+      })
       updateOrCreateGeoJsonSource(map, notamLineSourceId, latestMapData.notamGeoJson.lines)
       map.addLayer({
         id: notamLineLayerId,
@@ -1402,6 +1440,18 @@ export function FlightplanMapbox3D({
           'line-color': ['get', 'color'],
           'line-width': ['interpolate', ['linear'], ['zoom'], 6, 1.6, 12, 3.5],
           'line-opacity': 0.9,
+          'line-dasharray': [2, 1.4],
+        },
+      })
+      map.addLayer({
+        id: notamLineHighlightLayerId,
+        type: 'line',
+        source: notamLineSourceId,
+        filter: idMatchFilter([]),
+        paint: {
+          'line-color': ['get', 'color'],
+          'line-width': ['interpolate', ['linear'], ['zoom'], 6, 3.4, 12, 6.4],
+          'line-opacity': 1,
           'line-dasharray': [2, 1.4],
         },
       })
@@ -1415,6 +1465,19 @@ export function FlightplanMapbox3D({
           'circle-radius': ['interpolate', ['linear'], ['zoom'], 5, 4, 12, 8],
           'circle-stroke-color': '#ffffff',
           'circle-stroke-width': 1.5,
+        },
+      })
+      map.addLayer({
+        id: notamPointHighlightLayerId,
+        type: 'circle',
+        source: notamPointSourceId,
+        filter: idMatchFilter([]),
+        paint: {
+          'circle-color': 'rgba(255, 255, 255, 0)',
+          'circle-radius': ['interpolate', ['linear'], ['zoom'], 5, 8, 12, 13],
+          'circle-stroke-color': ['get', 'color'],
+          'circle-stroke-width': 3,
+          'circle-stroke-opacity': 1,
         },
       })
 
@@ -1516,9 +1579,6 @@ export function FlightplanMapbox3D({
 
       const genericPopup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false, offset: 12 })
       const popupLayers = [
-        notamVolumeLayerId,
-        notamLineLayerId,
-        notamPointLayerId,
         weatherAreaLayerId,
         weatherLineLayerId,
         mapPointLayerId,
@@ -1588,6 +1648,44 @@ export function FlightplanMapbox3D({
           new mapboxgl.Popup({ offset: 14 }).setLngLat(event.lngLat).setHTML(formatGenericPopup(properties)).addTo(map)
         })
       }
+
+      const hoverHighlightLayers = [
+        airspaceLayerId,
+        notamVolumeLayerId,
+        notamLineLayerId,
+        notamPointLayerId,
+      ]
+      const updateHoverHighlights = (event: mapboxgl.MapMouseEvent) => {
+        const renderedFeatures = map.queryRenderedFeatures(event.point, { layers: hoverHighlightLayers })
+        const airspaceIds = getRenderedFeatureIds(
+          renderedFeatures.filter((feature) => feature.source === airspaceSourceId),
+        )
+        const notamVolumeIds = getRenderedFeatureIds(
+          renderedFeatures.filter((feature) => feature.source === notamVolumeSourceId),
+        )
+        const notamLineIds = getRenderedFeatureIds(
+          renderedFeatures.filter((feature) => feature.source === notamLineSourceId),
+        )
+        const notamPointIds = getRenderedFeatureIds(
+          renderedFeatures.filter((feature) => feature.source === notamPointSourceId),
+        )
+
+        setLayerIdFilter(map, airspaceBaseHighlightLayerId, airspaceIds)
+        setLayerIdFilter(map, airspaceHighlightLayerId, airspaceIds)
+        setLayerIdFilter(map, notamVolumeHighlightLayerId, notamVolumeIds)
+        setLayerIdFilter(map, notamLineHighlightLayerId, notamLineIds)
+        setLayerIdFilter(map, notamPointHighlightLayerId, notamPointIds)
+      }
+      const clearHoverHighlights = () => {
+        setLayerIdFilter(map, airspaceBaseHighlightLayerId, [])
+        setLayerIdFilter(map, airspaceHighlightLayerId, [])
+        setLayerIdFilter(map, notamVolumeHighlightLayerId, [])
+        setLayerIdFilter(map, notamLineHighlightLayerId, [])
+        setLayerIdFilter(map, notamPointHighlightLayerId, [])
+      }
+
+      map.on('mousemove', updateHoverHighlights)
+      map.on('mouseleave', clearHoverHighlights)
 
       map.on('click', (event) => {
         if (suppressNextMapClickRef.current) {
