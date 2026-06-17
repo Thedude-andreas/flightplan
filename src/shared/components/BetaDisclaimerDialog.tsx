@@ -1,6 +1,19 @@
 import { useMemo, useState } from 'react'
 
 const betaDisclaimerStoragePrefix = 'vfrplan.betaDisclaimerAccepted'
+const maxRecentUpdateDays = 5
+
+type RecentCommit = {
+  hash: string
+  date: string
+  subject: string
+}
+
+type RecentUpdateDay = {
+  date: string
+  subjects: string[]
+  hashes: string[]
+}
 
 function getStorageKey() {
   return `${betaDisclaimerStoragePrefix}.${__APP_VERSION__}`
@@ -22,9 +35,41 @@ function acceptDisclaimer() {
   }
 }
 
+function formatUpdateDate(date: string) {
+  const parsed = new Date(`${date}T00:00:00`)
+  if (Number.isNaN(parsed.getTime())) {
+    return date
+  }
+
+  return new Intl.DateTimeFormat('sv-SE', {
+    dateStyle: 'medium',
+  }).format(parsed)
+}
+
+function groupCommitsByDate(commits: RecentCommit[]): RecentUpdateDay[] {
+  const grouped = new Map<string, RecentUpdateDay>()
+
+  for (const commit of commits) {
+    const existing = grouped.get(commit.date)
+    if (existing) {
+      existing.subjects.push(commit.subject)
+      existing.hashes.push(commit.hash)
+      continue
+    }
+
+    grouped.set(commit.date, {
+      date: commit.date,
+      subjects: [commit.subject],
+      hashes: [commit.hash],
+    })
+  }
+
+  return Array.from(grouped.values()).slice(0, maxRecentUpdateDays)
+}
+
 export function BetaDisclaimerDialog() {
   const [isOpen, setIsOpen] = useState(() => !hasAcceptedDisclaimer())
-  const recentCommits = useMemo(() => __RECENT_COMMITS__.slice(0, 5), [])
+  const recentUpdateDays = useMemo(() => groupCommitsByDate(__RECENT_COMMITS__), [])
 
   if (!isOpen) {
     return null
@@ -58,15 +103,21 @@ export function BetaDisclaimerDialog() {
           </p>
         </div>
 
-        {recentCommits.length ? (
-          <div className="beta-disclaimer__commits" aria-label="Senaste commits">
+        {recentUpdateDays.length ? (
+          <div className="beta-disclaimer__commits" aria-label="Senaste uppdateringar">
             <h3>Senaste uppdateringar</h3>
             <ol>
-              {recentCommits.map((commit) => (
-                <li key={commit.hash}>
-                  <time dateTime={commit.date}>{commit.date}</time>
-                  <span>{commit.subject}</span>
-                  <code>{commit.hash}</code>
+              {recentUpdateDays.map((day) => (
+                <li key={day.date}>
+                  <div className="beta-disclaimer__commits-day">
+                    <time dateTime={day.date}>{formatUpdateDate(day.date)}</time>
+                    <code>{day.hashes[0]}</code>
+                  </div>
+                  <ul>
+                    {day.subjects.map((subject, index) => (
+                      <li key={`${day.hashes[index]}-${subject}`}>{subject}</li>
+                    ))}
+                  </ul>
                 </li>
               ))}
             </ol>

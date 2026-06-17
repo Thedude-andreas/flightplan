@@ -509,24 +509,37 @@
 
 .beta-disclaimer__commits li {
   display: grid;
-  grid-template-columns: 6.5rem minmax(0, 1fr) auto;
-  gap: 10px;
-  align-items: baseline;
+  gap: 8px;
   color: #33434f;
   font-size: 0.92rem;
   line-height: 1.35;
 }
 
-.beta-disclaimer__commits time {
+.beta-disclaimer__commits-day {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.beta-disclaimer__commits-day time {
   color: #5d6b75;
   font-variant-numeric: tabular-nums;
 }
 
-.beta-disclaimer__commits span {
-  min-width: 0;
+.beta-disclaimer__commits li ul {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding-left: 18px;
 }
 
-.beta-disclaimer__commits code {
+.beta-disclaimer__commits li li {
+  display: list-item;
+}
+
+.beta-disclaimer__commits-day code {
+  flex: 0 0 auto;
   padding: 3px 6px;
   border-radius: 7px;
   background: rgba(22, 56, 80, 0.08);
@@ -610,11 +623,7 @@
     bottom: 12px;
   }
 
-  .beta-disclaimer__commits li {
-    grid-template-columns: 1fr auto;
-  }
-
-  .beta-disclaimer__commits time {
-    grid-column: 1 / -1;
+  .beta-disclaimer__commits-day {
+    align-items: start;
   }
 }

@@ -18,7 +18,7 @@ function resolveAppVersion() {
 
 function resolveRecentCommits(): RecentCommit[] {
   try {
-    const output = execSync('git log -5 --date=short --pretty=format:%h%x09%ad%x09%s', { encoding: 'utf8' }).trim()
+    const output = execSync('git log -30 --date=short --pretty=format:%h%x09%ad%x09%s', { encoding: 'utf8' }).trim()
 
     if (!output) {
       return []
