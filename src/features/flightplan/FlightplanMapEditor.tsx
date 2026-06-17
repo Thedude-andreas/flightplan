@@ -420,6 +420,17 @@ const notamMapPane = 'fp-notam-pane'
 const notamMapHighlightPane = 'fp-notam-highlight-pane'
 const obstacleMapPane = 'fp-obstacle-pane'
 
+function areMapBoundsClose(left: L.LatLngBounds | null, right: L.LatLngBounds, toleranceDegrees = 0.0001) {
+  if (!left) {
+    return false
+  }
+
+  return Math.abs(left.getSouth() - right.getSouth()) <= toleranceDegrees &&
+    Math.abs(left.getWest() - right.getWest()) <= toleranceDegrees &&
+    Math.abs(left.getNorth() - right.getNorth()) <= toleranceDegrees &&
+    Math.abs(left.getEast() - right.getEast()) <= toleranceDegrees
+}
+
 function readStoredMapLayerPreferences(): MapLayerPreferences {
   if (typeof window === 'undefined') {
     return defaultMapLayerPreferences
@@ -2386,6 +2397,8 @@ export function FlightplanMapEditor({
   const [mapZoom, setMapZoom] = useState(7)
   const [mapInstance, setMapInstance] = useState<L.Map | null>(null)
   const [mapBounds, setMapBounds] = useState<L.LatLngBounds | null>(null)
+  const [mapbox3dZoom, setMapbox3dZoom] = useState(7)
+  const [mapbox3dBounds, setMapbox3dBounds] = useState<L.LatLngBounds | null>(null)
   const [selectedPointInfo, setSelectedPointInfo] = useState<MapPointInfo | null>(null)
   const [dragPreviewWaypoints, setDragPreviewWaypoints] = useState<ReturnType<typeof legsToWaypoints> | null>(null)
   const [activeSegmentInsertIndex, setActiveSegmentInsertIndex] = useState<number | null>(null)
@@ -2421,6 +2434,8 @@ export function FlightplanMapEditor({
   const showTaf = mapLayerPreferences.taf
   const showAirportWeather = showMetar || showTaf
   const showAirportMarkers = showAirports || showAirportWeather
+  const obstacleViewportBounds = isMapbox3dBasemap ? mapbox3dBounds : mapBounds
+  const obstacleViewportZoom = isMapbox3dBasemap ? mapbox3dZoom : mapZoom
   const airportFlightCategories = useMemo<Record<string, FlightplanMapboxAirportFlightCategory>>(() => {
     if (!showAirportWeather) {
       return {}
@@ -2569,19 +2584,19 @@ export function FlightplanMapEditor({
     return swedishVisualPoints.filter((point) => paddedBounds.contains([point.lat, point.lon]))
   }, [mapBounds, mapZoom, showVisualPoints, swedishVisualPoints])
   const visibleObstacles = useMemo(() => {
-    if (!showObstacles || mapZoom < obstacleMinZoom) {
+    if (!showObstacles || obstacleViewportZoom < obstacleMinZoom) {
       return []
     }
 
-    if (!mapBounds) {
+    if (!obstacleViewportBounds) {
       return obstacles
     }
 
-    const paddedBounds = mapBounds.pad(0.08)
+    const paddedBounds = obstacleViewportBounds.pad(0.08)
     return obstacles.filter((obstacle) => paddedBounds.contains([obstacle.lat, obstacle.lon]))
-  }, [mapBounds, mapZoom, obstacles, showObstacles])
+  }, [obstacleViewportBounds, obstacleViewportZoom, obstacles, showObstacles])
   const obstacleLayerMeta = (() => {
-    if (mapZoom < obstacleMinZoom) {
+    if (obstacleViewportZoom < obstacleMinZoom) {
       return `LFV från zoom ${obstacleMinZoom}`
     }
 
@@ -2693,7 +2708,7 @@ export function FlightplanMapEditor({
   }, [airportWeatherByIcao])
 
   useEffect(() => {
-    if (!showObstacles || !mapBounds || mapZoom < obstacleMinZoom) {
+    if (!showObstacles || !obstacleViewportBounds || obstacleViewportZoom < obstacleMinZoom) {
       setObstacles([])
       setObstacleFetchResult(null)
       setObstacleStatus('idle')
@@ -2701,7 +2716,7 @@ export function FlightplanMapEditor({
     }
 
     const controller = new AbortController()
-    const paddedBounds = mapBounds.pad(0.15)
+    const paddedBounds = obstacleViewportBounds.pad(0.15)
     const timeoutId = window.setTimeout(() => {
       setObstacleStatus('loading')
       fetchSwedishObstacles(
@@ -2740,7 +2755,7 @@ export function FlightplanMapEditor({
       controller.abort()
       window.clearTimeout(timeoutId)
     }
-  }, [mapBounds, mapZoom, showObstacles])
+  }, [obstacleViewportBounds, obstacleViewportZoom, showObstacles])
 
   useEffect(() => {
     visibleWeatherAirportsRef.current = visibleWeatherAirports
@@ -3865,13 +3880,16 @@ export function FlightplanMapEditor({
               mapStyle={getMapbox3DStyle(basemap)}
               navaids={showNavaids ? swedishNavaids : []}
               notamFeatures={showNotamOverlays ? notamMapFeatures : []}
-              obstacles={showObstacles ? visibleObstacles : []}
+              showObstacles={showObstacles}
               onMapViewChange={(view) => {
-                setMapBounds(L.latLngBounds(
+                const nextBounds = L.latLngBounds(
                   [view.bounds.south, view.bounds.west],
                   [view.bounds.north, view.bounds.east],
-                ))
-                setMapZoom(view.zoom)
+                )
+                setMapbox3dBounds((current) => areMapBoundsClose(current, nextBounds) ? current : nextBounds)
+                setMapbox3dZoom((current) => Math.abs(current - view.zoom) < 0.01 ? current : view.zoom)
+                setMapBounds((current) => areMapBoundsClose(current, nextBounds) ? current : nextBounds)
+                setMapZoom((current) => Math.abs(current - view.zoom) < 0.01 ? current : view.zoom)
               }}
               onInspectAirport={inspectAirport}
               onInspectNavaid={inspectNavaid}
