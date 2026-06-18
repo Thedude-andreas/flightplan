@@ -449,6 +449,100 @@
   margin: 0;
 }
 
+.dialog-field {
+  display: grid;
+  gap: 8px;
+}
+
+.dialog-field span {
+  color: #33434f;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.dialog-field input,
+.dialog-field textarea {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid rgba(18, 32, 42, 0.16);
+  border-radius: 14px;
+  background: #fff;
+  color: #12202a;
+  font: inherit;
+  padding: 10px 12px;
+}
+
+.dialog-field textarea {
+  resize: vertical;
+}
+
+.dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.smart-route-import {
+  width: min(100%, 760px);
+  max-height: min(840px, calc(100vh - 40px));
+  overflow: auto;
+}
+
+.smart-route-import__diagnostics {
+  color: #52616c;
+  font-size: 0.88rem;
+}
+
+.smart-route-import__warnings {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid rgba(132, 93, 36, 0.18);
+  border-radius: 14px;
+  background: rgba(132, 93, 36, 0.08);
+  color: #6f4f1f;
+}
+
+.smart-route-import__review {
+  display: grid;
+  gap: 14px;
+  padding-top: 4px;
+}
+
+.smart-route-import__review h3 {
+  margin: 0;
+}
+
+.smart-route-import__points {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.smart-route-import__point {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 12px;
+  border: 1px solid rgba(18, 32, 42, 0.1);
+  border-radius: 14px;
+  background: #f8fafb;
+}
+
+.smart-route-import__point div {
+  display: grid;
+  gap: 3px;
+}
+
+.smart-route-import__point span,
+.smart-route-import__point small {
+  color: #52616c;
+}
+
 .beta-disclaimer {
   z-index: 1400;
 }
