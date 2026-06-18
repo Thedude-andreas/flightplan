@@ -38,7 +38,15 @@ export function SignupPage() {
   }
 
   return (
-    <AuthFormShell title="Skapa konto" description="Registrera dig med email och verifiera adressen innan första inloggningen.">
+    <AuthFormShell
+      title="Skapa konto"
+      description="Kom igång med färdplaner, väder, NOTAM och flygplansprofiler i samma karta."
+      visual={{
+        eyebrow: 'VFR Flightplan',
+        title: 'Allt du behöver för VFR-planering samlat i en smidigare vy.',
+        features: ['Spara rutter och fortsätt där du slutade', 'Bygg profiler för klubbens flygplan', 'Verifiera kontot och börja planera direkt'],
+      }}
+    >
       {error && <AuthNotice kind="error">{error}</AuthNotice>}
       {success && <AuthNotice kind="success">{success}</AuthNotice>}
       <div className={success ? 'auth-form-state auth-form-state--muted' : 'auth-form-state'}>
