@@ -543,6 +543,23 @@
   color: #52616c;
 }
 
+.smart-route-import__candidates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.smart-route-import__candidates button {
+  border: 1px solid rgba(18, 32, 42, 0.12);
+  border-radius: 999px;
+  background: #fff;
+  color: #163850;
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 5px 9px;
+}
+
 .beta-disclaimer {
   z-index: 1400;
 }

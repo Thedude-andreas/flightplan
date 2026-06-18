@@ -11,6 +11,8 @@ import {
   type ResolvedRouteImportWaypoint,
 } from '../routeImport'
 
+type RouteImportCandidate = ResolvedRouteImportWaypoint['candidates'][number]
+
 function formatDateTime(value: string) {
   return new Intl.DateTimeFormat('sv-SE', {
     dateStyle: 'medium',
@@ -96,6 +98,11 @@ function formatUsd(value: number) {
     currency: 'USD',
     maximumFractionDigits: 4,
   }).format(value)
+}
+
+function createRouteNameFromWaypoints(points: ResolvedRouteImportWaypoint[]) {
+  const names = points.map((point) => point.name.trim()).filter(Boolean)
+  return names.length > 0 ? names.join(' - ') : 'Importerad rutt'
 }
 
 export function FlightPlansPage() {
@@ -291,6 +298,44 @@ export function FlightPlansPage() {
     }
   }
 
+  function handleReverseImportedRoute() {
+    setImportedWaypoints((current) => {
+      const reversed = [...current].reverse()
+      setImportResultName(createRouteNameFromWaypoints(reversed))
+      return reversed
+    })
+  }
+
+  function handleSelectImportCandidate(pointIndex: number, candidate: RouteImportCandidate) {
+    setImportedWaypoints((current) =>
+      current.map((point, index) => {
+        if (index !== pointIndex) {
+          return point
+        }
+
+        return {
+          ...point,
+          name: candidate.name,
+          lat: candidate.lat,
+          lon: candidate.lon,
+          notes: null,
+          estimatedCoordinate: false,
+          confidence: Math.max(point.confidence, candidate.score),
+          status: 'resolved',
+          source: candidate.source,
+          candidates: [
+            candidate,
+            ...point.candidates.filter((nextCandidate) =>
+              nextCandidate.name !== candidate.name
+              || nextCandidate.lat !== candidate.lat
+              || nextCandidate.lon !== candidate.lon,
+            ),
+          ],
+        }
+      }),
+    )
+  }
+
   return (
     <section className="app-panel">
       <div className="app-panel__header">
@@ -443,6 +488,9 @@ export function FlightPlansPage() {
                     <h3>{importResultName}</h3>
                     <p>{importedWaypoints.filter((point) => point.lat != null && point.lon != null).length} av {importedWaypoints.length} punkter kan placeras.</p>
                   </div>
+                  <button type="button" onClick={handleReverseImportedRoute}>
+                    Reversera
+                  </button>
                 </div>
                 <ol className="smart-route-import__points">
                   {importedWaypoints.map((point, index) => (
@@ -450,12 +498,23 @@ export function FlightPlansPage() {
                       <div>
                         <strong>{point.name}</strong>
                         <span>{point.source} · {Math.round(point.confidence * 100)}%</span>
+                        {point.notes && <small>{point.notes}</small>}
                         {point.candidates.length > 1 && (
-                          <small>Alternativ: {point.candidates.slice(1, 4).map((candidate) => candidate.name).join(', ')}</small>
+                          <div className="smart-route-import__candidates" aria-label={`Alternativ för ${point.raw}`}>
+                            {point.candidates.slice(1, 5).map((candidate) => (
+                              <button
+                                type="button"
+                                key={`${candidate.name}-${candidate.lat}-${candidate.lon}`}
+                                onClick={() => handleSelectImportCandidate(index, candidate)}
+                              >
+                                {candidate.name}
+                              </button>
+                            ))}
+                          </div>
                         )}
                       </div>
                       <span className={`resource-pill resource-pill--${point.status === 'unresolved' ? 'error' : point.status === 'ambiguous' ? 'warning' : 'saved'}`}>
-                        {point.status === 'unresolved' ? 'Saknas' : point.status === 'ambiguous' ? 'Osäker' : 'OK'}
+                        {point.status === 'unresolved' ? 'Saknas' : point.status === 'ambiguous' || point.estimatedCoordinate ? 'Osäker' : 'OK'}
                       </span>
                     </li>
                   ))}

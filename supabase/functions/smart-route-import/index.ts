@@ -21,6 +21,7 @@ type ParsedWaypoint = {
   lat?: number | null
   lon?: number | null
   notes?: string | null
+  estimatedCoordinate?: boolean | null
   confidence?: number | null
 }
 
@@ -98,6 +99,7 @@ function fallbackParse(payload: SmartRouteImportPayload): ParsedRoute {
         name: coordinate ? null : part,
         lat: coordinate?.lat ?? null,
         lon: coordinate?.lon ?? null,
+        estimatedCoordinate: false,
         confidence: coordinate ? 0.92 : 0.72,
       }
     })
@@ -153,6 +155,7 @@ function normalizeParsedRoute(value: unknown, fallbackName: string): ParsedRoute
         lat: typeof point.lat === 'number' && Number.isFinite(point.lat) ? point.lat : null,
         lon: typeof point.lon === 'number' && Number.isFinite(point.lon) ? point.lon : null,
         notes: point.notes ? String(point.notes) : null,
+        estimatedCoordinate: Boolean(point.estimatedCoordinate),
         confidence: typeof point.confidence === 'number' ? clamp(point.confidence, 0, 1) : null,
       }))
       .filter((point) => point.raw || point.name || (point.lat != null && point.lon != null))
@@ -167,11 +170,16 @@ function normalizeParsedRoute(value: unknown, fallbackName: string): ParsedRoute
 }
 
 function createPrompt(payload: SmartRouteImportPayload) {
+  const canEstimateFromMapContext = payload.sourceType === 'image' || payload.sourceType === 'pdf'
+
   return [
     'Du tolkar underlag för VFR-flygrutter. Returnera endast JSON.',
     'Extrahera ruttnamn, waypoints i ordning, koordinater om de finns, samt korta varningar.',
-    'Hitta inte på koordinater. Om en punkt bara är ett namn, lämna lat/lon null.',
-    'JSON-format: {"routeName":string,"waypoints":[{"raw":string,"name":string|null,"lat":number|null,"lon":number|null,"notes":string|null,"confidence":number}],"warnings":string[],"confidence":number}',
+    canEstimateFromMapContext
+      ? 'För bild/PDF med kartunderlag: om en markerad punkt saknar exakt etikett/koordinat men kan placeras grovt genom relation till igenkännbara orter, sjöar, kuster, vägar, flygplatser eller ruttnät i bilden, ange en ungefärlig lat/lon, sätt estimatedCoordinate true, låg confidence och beskriv underlaget i notes. Om kartkontexten inte räcker, lämna lat/lon null.'
+      : 'Hitta inte på koordinater. Om en punkt bara är ett namn, lämna lat/lon null.',
+    'JSON-format: {"routeName":string,"waypoints":[{"raw":string,"name":string|null,"lat":number|null,"lon":number|null,"notes":string|null,"estimatedCoordinate":boolean,"confidence":number}],"warnings":string[],"confidence":number}',
+    'Lägg en warning när någon koordinat är uppskattad eller mycket osäker.',
     `Källa: ${payload.sourceType ?? 'text'}`,
     payload.fileName ? `Filnamn: ${payload.fileName}` : '',
     'Text:',

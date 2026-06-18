@@ -29,6 +29,8 @@ export type ResolvedRouteImportWaypoint = {
   name: string
   lat: number | null
   lon: number | null
+  notes: string | null
+  estimatedCoordinate: boolean
   confidence: number
   status: 'resolved' | 'ambiguous' | 'unresolved'
   source: string
@@ -121,8 +123,8 @@ function coordinateCandidate(point: SmartRouteImportWaypoint) {
     name: point.name?.trim() || point.raw || `${point.lat.toFixed(5)}, ${point.lon.toFixed(5)}`,
     lat: point.lat,
     lon: point.lon,
-    source: 'Koordinat',
-    score: 1,
+    source: point.estimatedCoordinate ? 'Uppskattad koordinat' : 'Koordinat',
+    score: point.estimatedCoordinate ? Math.min(point.confidence ?? 0.55, 0.68) : 1,
   }
 }
 
@@ -244,6 +246,8 @@ export async function resolveImportedWaypoints(points: SmartRouteImportWaypoint[
       name: best?.name ?? point.name ?? point.raw,
       lat: best?.lat ?? null,
       lon: best?.lon ?? null,
+      notes: point.notes ?? null,
+      estimatedCoordinate: Boolean(point.estimatedCoordinate),
       confidence,
       status: best ? ambiguous ? 'ambiguous' : 'resolved' : 'unresolved',
       source: best?.source ?? 'Saknar träff',

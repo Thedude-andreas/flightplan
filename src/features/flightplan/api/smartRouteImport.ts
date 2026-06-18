@@ -17,6 +17,7 @@ export type SmartRouteImportWaypoint = {
   lat?: number | null
   lon?: number | null
   notes?: string | null
+  estimatedCoordinate?: boolean | null
   confidence?: number | null
 }
 
