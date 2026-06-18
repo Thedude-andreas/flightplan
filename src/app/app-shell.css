@@ -98,6 +98,41 @@
   padding: 44px;
 }
 
+.marketing-hero--start {
+  width: min(100%, 760px);
+  overflow: hidden;
+  padding: 0;
+  text-align: center;
+}
+
+.marketing-hero__image {
+  display: block;
+  width: 100%;
+  aspect-ratio: 2618 / 1278;
+  object-fit: cover;
+}
+
+.marketing-hero--start .marketing-hero__content {
+  padding: 34px 40px 38px;
+  gap: 14px;
+}
+
+.marketing-hero--start h1 {
+  font-size: clamp(2.2rem, 5vw, 4.2rem);
+}
+
+.marketing-hero__subtitle {
+  margin: 0;
+  color: #44525d;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.marketing-hero--start .marketing-hero__actions {
+  justify-content: center;
+  margin-top: 10px;
+}
+
 .marketing-hero__content,
 .auth-card {
   display: grid;
@@ -830,6 +865,19 @@
   .auth-card {
     padding: 24px;
     border-radius: 22px;
+  }
+
+  .marketing-hero--start {
+    padding: 0;
+  }
+
+  .marketing-hero--start .marketing-hero__content {
+    padding: 24px;
+  }
+
+  .marketing-hero--start .marketing-hero__actions {
+    display: grid;
+    grid-template-columns: 1fr;
   }
 
   .app-version-badge {

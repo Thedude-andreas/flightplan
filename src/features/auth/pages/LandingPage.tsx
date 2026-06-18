@@ -30,13 +30,11 @@ export function LandingPage() {
   }, [location.hash, location.search, navigate])
 
   return (
-    <div className="marketing-hero">
+    <div className="marketing-hero marketing-hero--start">
+      <img className="marketing-hero__image" src="/Start-dialog.png" alt="" />
       <div className="marketing-hero__content">
-        <p className="marketing-hero__eyebrow">VFRplan.se</p>
-        <h1>Driftfärdplaner, karteditor och flygplansprofiler i samma arbetsyta.</h1>
-        <p className="marketing-hero__lede">
-          Färdplaneringsverktyg på en karta som inte är kass, byggt för att göra planeringen snabb, tydlig och faktiskt användbar i verkligheten.
-        </p>
+        <h1>VFR FLIGHTPLAN</h1>
+        <p className="marketing-hero__subtitle">VFRplan.se</p>
         <div className="marketing-hero__actions">
           <Link to="/login" className="button-link button-link--primary">
             Logga in
