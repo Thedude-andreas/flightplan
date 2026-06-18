@@ -38,7 +38,15 @@ export function LoginPage() {
   }
 
   return (
-    <AuthFormShell title="Logga in" description="Fortsätt till dina färdplaner och flygplansprofiler.">
+    <AuthFormShell
+      title="Planera nästa flygning"
+      description="Logga in och samla färdplaner, väder, NOTAM och flygplansprofiler i ett arbetsflöde byggt för klubbflygning."
+      visual={{
+        eyebrow: 'VFR Flightplan',
+        title: 'Smidig färdplanering på en karta som inte är kass.',
+        features: ['Rita och justera rutten direkt på kartan', 'Väder, NOTAM och luftrum samlat i planeringen', 'Spara färdplaner och flygplansprofiler för nästa flygning'],
+      }}
+    >
       {state?.configurationRequired && (
         <AuthNotice kind="error">Supabase saknar miljövariabler. Sätt `VITE_SUPABASE_URL` och `VITE_SUPABASE_ANON_KEY` först.</AuthNotice>
       )}

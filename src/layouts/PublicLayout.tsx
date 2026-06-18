@@ -1,9 +1,9 @@
 import type { CSSProperties } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import { AppVersionBadge } from '../shared/components/AppVersionBadge'
-import loginBackgroundUrl from '../assets/login-background.png'
 
 const scenicAuthPaths = ['/', '/login', '/signup', '/verify-email', '/forgot-password', '/reset-password']
+const loginBackgroundUrl = '/login-background_2.png'
 
 export function PublicLayout() {
   const location = useLocation()
