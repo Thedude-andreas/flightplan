@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent, ReactNode } from 'react'
 import './features/flightplan/flightplan.css'
 import {
@@ -704,7 +704,7 @@ export function FlightplanApp({
     [initialAircraftOptions],
   )
 
-  const normalizePlanRadioNav = (nextPlan: FlightPlanInput): FlightPlanInput => {
+  const normalizePlanRadioNav = useCallback((nextPlan: FlightPlanInput): FlightPlanInput => {
     const departureLabel = getEndpointLabel(nextPlan.routeLegs[0]?.from, nextPlan.header.departureAerodrome)
     const destinationLabel = getEndpointLabel(
       nextPlan.routeLegs[nextPlan.routeLegs.length - 1]?.to,
@@ -726,9 +726,9 @@ export function FlightplanApp({
         buildSuggestedRadioNav(planWithSyncedEndpoints),
       ),
     }
-  }
+  }, [])
 
-  const normalizePlanForAircraft = (nextPlan: FlightPlanInput, useDefaultLoads = false): FlightPlanInput => {
+  const normalizePlanForAircraft = useCallback((nextPlan: FlightPlanInput, useDefaultLoads = false): FlightPlanInput => {
     const aircraft = getAircraftForPlan(nextPlan, aircraftOptions)
     const syncedWeightBalance = normalizeWeightBalanceForAircraft(nextPlan, aircraft, useDefaultLoads)
 
@@ -737,7 +737,7 @@ export function FlightplanApp({
       aircraftRegistration: aircraft?.registration ?? nextPlan.aircraftRegistration,
       weightBalance: syncedWeightBalance,
     })
-  }
+  }, [aircraftOptions, normalizePlanRadioNav])
 
   const [plan, setPlan] = useState<FlightPlanInput>(() =>
     normalizePlanForAircraft(cloneFlightPlan(initialPlan ?? createInitialFlightPlan())),
@@ -929,7 +929,14 @@ export function FlightplanApp({
       })
 
     return () => controller.abort()
-  }, [aloftWindAutoFetchEnabled, routeWindRequestKey])
+  }, [
+    aloftWindAutoFetchEnabled,
+    normalizePlanForAircraft,
+    plan.header.date,
+    plan.header.plannedStartTime,
+    plan.routeLegs,
+    routeWindRequestKey,
+  ])
 
   const effectivePlan = useMemo<FlightPlanInput>(() => {
     const magneticVariations = calculateRouteLegMagneticVariations(

@@ -133,6 +133,7 @@ const obstacleVolumeLayerId = 'flightplan-3d-obstacle-volumes'
 const obstacleVolumeOutlineLayerId = 'flightplan-3d-obstacle-volumes-outline'
 const obstacleVolumeRenderLayerId = 'flightplan-3d-obstacle-volumes-render'
 const obstacleVolumeMinZoom = 8
+const emptyObstacles: SwedishObstacle[] = []
 const aloftWindSourceId = 'flightplan-3d-aloft-winds'
 const aloftWindLayerId = 'flightplan-3d-aloft-winds'
 const tocTodSourceId = 'flightplan-3d-toc-tod'
@@ -1513,7 +1514,12 @@ export function FlightplanMapbox3D({
     [airportFlightCategories, airports, navaids, visualPoints],
   )
   const holdingPatternObjects = useMemo(() => buildHoldingPattern3DObjects(visualPoints), [visualPoints])
-  const activeObstacles = showObstacles ? mapboxObstacles : []
+  const activeObstacles = useMemo(
+    () => showObstacles && mapboxObstacleView && mapboxObstacleView.zoom >= obstacleVolumeMinZoom
+      ? mapboxObstacles
+      : emptyObstacles,
+    [mapboxObstacleView, mapboxObstacles, showObstacles],
+  )
   const obstacleGeoJson = useMemo(() => buildObstacle3DGeoJson(activeObstacles), [activeObstacles])
   const obstacleObjects = useMemo(() => buildObstacle3DObjects(activeObstacles), [activeObstacles])
   const aloftWindGeoJson = useMemo(() => buildAloftWindGeoJson(aloftWinds), [aloftWinds])
@@ -2307,7 +2313,6 @@ export function FlightplanMapbox3D({
 
   useEffect(() => {
     if (!showObstacles || !mapboxObstacleView || mapboxObstacleView.zoom < obstacleVolumeMinZoom) {
-      setMapboxObstacles([])
       return
     }
 

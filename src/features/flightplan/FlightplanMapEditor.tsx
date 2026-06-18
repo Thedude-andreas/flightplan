@@ -786,11 +786,11 @@ function getAirportServiceHoursSections(rawText: string | null): AirportServiceH
 }
 
 function mergeRawWithSupplement(base: string, supplement: string, label: string) {
-  if (supplement === 'Stängt') {
+  if (supplement === 'N/A') {
     return base
   }
 
-  if (base === 'Stängt') {
+  if (base === 'N/A') {
     return `${label} ${supplement}`
   }
 
@@ -994,7 +994,7 @@ function buildAirportTowerHoursDays(
 
   return weekdayKeys.map((key) => {
     const item = byDay.get(key)
-    const raw = item?.raw.length ? item.raw.join(' / ') : 'Stängt'
+    const raw = item?.raw.length ? item.raw.join(' / ') : 'N/A'
     const intervals = item?.intervals ?? []
     const isCurrentDay = plannedStart?.key === key
     const isOpenAtStart = plannedStart && isCurrentDay
@@ -1003,7 +1003,7 @@ function buildAirportTowerHoursDays(
     const status: AirportTowerHoursDay['status'] = isCurrentDay
       ? intervals.length > 0
         ? isOpenAtStart ? 'open' : 'closed'
-        : raw === 'Stängt' ? 'closed' : 'unknown'
+        : 'unknown'
       : null
 
     return {
@@ -1017,38 +1017,73 @@ function buildAirportTowerHoursDays(
   })
 }
 
+function hasAirportHoursData(day: AirportTowerHoursDay) {
+  return day.intervals.length > 0 || day.raw !== 'N/A'
+}
+
+function mergeAirportServiceSections(
+  sections: AirportServiceHoursSection[],
+  date: string,
+  plannedStartTime: string,
+) {
+  const sectionDays = sections.map((section) => buildAirportTowerHoursDays(section.lines, date, plannedStartTime))
+  const primary = sectionDays[0]
+
+  if (!primary) {
+    return []
+  }
+
+  return primary.map((day, dayIndex) => {
+    if (hasAirportHoursData(day)) {
+      return day
+    }
+
+    for (const fallbackDays of sectionDays.slice(1)) {
+      const fallbackDay = fallbackDays[dayIndex]
+      if (fallbackDay && hasAirportHoursData(fallbackDay)) {
+        return {
+          ...fallbackDay,
+          isCurrentDay: day.isCurrentDay,
+        }
+      }
+    }
+
+    return day
+  })
+}
+
 function buildAirportServiceHoursSchedule(
   rawText: string | null,
   date: string,
   plannedStartTime: string,
 ): AirportServiceHoursSchedule | null {
   const sections = getAirportServiceHoursSections(rawText)
-  const twrSection = sections.find((section) => section.kind === 'TWR')
-  const afisSection = sections.find((section) => section.kind === 'AFIS')
+  const twrSections = sections.filter((section) => section.kind === 'TWR')
+  const afisSections = sections.filter((section) => section.kind === 'AFIS')
 
-  if (!twrSection && !afisSection) {
+  if (twrSections.length === 0 && afisSections.length === 0) {
     return null
   }
 
-  if (twrSection && afisSection) {
-    const twrDays = buildAirportTowerHoursDays(twrSection.lines, date, plannedStartTime)
-    const afisDays = buildAirportTowerHoursDays(afisSection.lines, date, plannedStartTime)
+  if (twrSections.length > 0 && afisSections.length > 0) {
+    const twrDays = mergeAirportServiceSections(twrSections, date, plannedStartTime)
+    const afisDays = mergeAirportServiceSections(afisSections, date, plannedStartTime)
     return {
       title: 'TWR öppet',
       days: mergeAirportHoursDays(twrDays, afisDays, 'AFIS'),
     }
   }
 
-  if (twrSection) {
+  if (twrSections.length > 0) {
     return {
       title: 'TWR öppet',
-      days: buildAirportTowerHoursDays(twrSection.lines, date, plannedStartTime),
+      days: mergeAirportServiceSections(twrSections, date, plannedStartTime),
     }
   }
 
   return {
     title: 'AFIS öppet',
-    days: buildAirportTowerHoursDays(afisSection?.lines ?? [], date, plannedStartTime),
+    days: mergeAirportServiceSections(afisSections, date, plannedStartTime),
   }
 }
 
