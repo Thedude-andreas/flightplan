@@ -995,6 +995,8 @@ function extractCircleRadiusNm(rawText: string): number | null {
     { pattern: /INOM\s+EN\s+RADIE\s+AV\s+(\d+(?:\.\d+)?)\s*M(?:ETER)?\b/i, unit: 'm' },
     { pattern: /WITHIN\s+A\s+RADIUS\s+OF\s+(\d+(?:\.\d+)?)\s*NM/i, unit: 'nm' },
     { pattern: /WITHIN\s+A\s+RADIUS\s+OF\s+(\d+(?:\.\d+)?)\s*M(?:ETERS?|ETRES?)?\b/i, unit: 'm' },
+    { pattern: /WITHIN\s+RADIUS\s+(\d+(?:\.\d+)?)\s*NM/i, unit: 'nm' },
+    { pattern: /WITHIN\s+RADIUS\s+(\d+(?:\.\d+)?)\s*M(?:ETERS?|ETRES?)?\b/i, unit: 'm' },
   ]
 
   for (const { pattern, unit } of patterns) {
