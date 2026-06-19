@@ -421,6 +421,7 @@ const sigmetOverlayPalette = {
 } as const
 
 const notamMapPane = 'fp-notam-pane'
+const notamMapLinePane = 'fp-notam-line-pane'
 const notamMapHighlightPane = 'fp-notam-highlight-pane'
 const obstacleMapPane = 'fp-obstacle-pane'
 
@@ -775,6 +776,14 @@ function NotamMapInfoCard({ feature }: { feature: NotamMapOverlayFeature }) {
       ) : null}
       <pre className="fp-notam-map-tooltip__body">{preview}</pre>
     </div>
+  )
+}
+
+function createNotamPointTooltip(feature: NotamMapOverlayFeature) {
+  return (
+    <Tooltip direction="top" offset={[0, -10]} opacity={0.95} className="fp-hover-tooltip fp-notam-map-tooltip-popup">
+      <NotamMapInfoCard feature={feature} />
+    </Tooltip>
   )
 }
 
@@ -1749,26 +1758,6 @@ function geometryContainsPoint(
   }
 
   return geometry.coordinates.some((polygon) => pointInPolygon(lat, lon, polygon))
-}
-
-function formatAirspaceTooltipContent(
-  airspaces: Array<{
-    id: string
-    kind: string
-    name: string | null
-    positionIndicator: string | null
-    lower: string | null
-    upper: string | null
-  }>,
-) {
-  return `<div class="fp-airspace-tooltip">${airspaces.map((airspace) => {
-    const title = `${airspace.kind}${airspace.name ? ` · ${airspace.name}` : ''}`
-    const indicator = airspace.positionIndicator && airspace.kind !== 'R' && airspace.kind !== 'D'
-      ? `<span>${airspace.positionIndicator}</span>`
-      : ''
-    const levels = `<span>${airspace.lower ?? '—'} till ${airspace.upper ?? '—'}</span>`
-    return `<div class="fp-airspace-tooltip__row"><strong>${title}</strong>${indicator}${levels}</div>`
-  }).join('')}</div>`
 }
 
 function getAirspaceLabelText(airspace: SwedishAirspace) {
@@ -4089,6 +4078,7 @@ export function FlightplanMapEditor({
           >
           <ZoomControl position="topright" />
           <Pane name={notamMapPane} style={{ zIndex: 525 }} />
+          <Pane name={notamMapLinePane} style={{ zIndex: 526 }} />
           <Pane name="fp-navaid-pane" style={{ zIndex: 530 }} />
           <Pane name="fp-visual-point-pane" style={{ zIndex: 535 }} />
           <Pane name={obstacleMapPane} style={{ zIndex: 540 }} />
@@ -4139,18 +4129,9 @@ export function FlightplanMapEditor({
               data={airspaceGeoJson}
               style={(feature) => getLeafletAirspacePathOptions(feature?.properties?.kind)}
               onEachFeature={(_feature, layer) => {
-                layer.bindTooltip('', {
-                  sticky: true,
-                  opacity: 0.95,
-                  offset: [14, -10],
-                  className: 'fp-hover-tooltip fp-airspace-tooltip',
-                })
                 layer.on('mouseover mousemove', (event) => {
                   const pointer = event as LeafletMouseEvent
                   if (isCoarsePointerInput()) {
-                    if (layer.isTooltipOpen()) {
-                      layer.closeTooltip()
-                    }
                     setHoveredAirspaceIds([])
                     setHoveredNotamFeatures([])
                     return
@@ -4160,9 +4141,6 @@ export function FlightplanMapEditor({
                   const matchingNotamFeatures = getNotamHoverFeaturesAtPoint(pointer.latlng.lat, pointer.latlng.lng)
 
                   if (matchingAirspaces.length === 0) {
-                    if (layer.isTooltipOpen()) {
-                      layer.closeTooltip()
-                    }
                     setHoveredAirspaceIds([])
                     setHoveredNotamFeatures(matchingNotamFeatures)
                     return
@@ -4170,13 +4148,8 @@ export function FlightplanMapEditor({
 
                   setHoveredAirspaceIds(matchingAirspaces.map((airspace) => airspace.id))
                   setHoveredNotamFeatures(matchingNotamFeatures)
-                  layer.setTooltipContent(formatAirspaceTooltipContent(matchingAirspaces))
-                  if (!layer.isTooltipOpen()) {
-                    layer.openTooltip(pointer.latlng)
-                  }
                 })
                 layer.on('mouseout', () => {
-                  layer.closeTooltip()
                   setHoveredAirspaceIds([])
                   setHoveredNotamFeatures([])
                 })
@@ -4184,9 +4157,6 @@ export function FlightplanMapEditor({
                   const clicked = event as LeafletMouseEvent
                   clicked.originalEvent?.preventDefault?.()
                   clicked.originalEvent?.stopPropagation?.()
-                  if (isCoarsePointerInput() && layer.isTooltipOpen()) {
-                    layer.closeTooltip()
-                  }
 
                   addPointToEnd(clicked.latlng.lat, clicked.latlng.lng)
                 })
@@ -4208,16 +4178,6 @@ export function FlightplanMapEditor({
 
           {showWeatherOverlays
             ? routeWeatherOverlays.map((overlay) => {
-                const tooltipContent = (
-                  <Tooltip sticky opacity={0.95} className="fp-hover-tooltip fp-weather-overlay-tooltip">
-                    <div className="fp-airport-tooltip fp-weather-overlay-tooltip__content">
-                      <strong>{overlay.firCodes[0] ?? 'SIGMET/ARS/AIRMET'}</strong>
-                      <span>{overlay.matchSummary}</span>
-                      <span>{overlay.title}</span>
-                    </div>
-                  </Tooltip>
-                )
-
                 if (overlay.geometry.type === 'polygon') {
                   return (
                     <Polygon
@@ -4232,9 +4192,7 @@ export function FlightplanMapEditor({
                         dashArray: '6 4',
                       }}
                       eventHandlers={{ mouseout: closeLeafletTooltipOnMouseOut }}
-                    >
-                      {tooltipContent}
-                    </Polygon>
+                    />
                   )
                 }
 
@@ -4254,9 +4212,7 @@ export function FlightplanMapEditor({
                         dashArray: '6 4',
                       }}
                       eventHandlers={{ mouseout: closeLeafletTooltipOnMouseOut }}
-                    >
-                      {tooltipContent}
-                    </Polygon>
+                    />
                   )
                 }
 
@@ -4273,9 +4229,7 @@ export function FlightplanMapEditor({
                         dashArray: '8 6',
                       }}
                       eventHandlers={{ mouseout: closeLeafletTooltipOnMouseOut }}
-                    >
-                      {tooltipContent}
-                    </Polyline>
+                    />
                   )
                 }
 
@@ -4293,9 +4247,7 @@ export function FlightplanMapEditor({
                         dashArray: '6 4',
                       }}
                       eventHandlers={{ mouseout: closeLeafletTooltipOnMouseOut }}
-                    >
-                      {tooltipContent}
-                    </Circle>
+                    />
                   )
                 }
 
@@ -4312,7 +4264,13 @@ export function FlightplanMapEditor({
                     }}
                     eventHandlers={{ mouseout: closeLeafletTooltipOnMouseOut }}
                   >
-                    {tooltipContent}
+                    <Tooltip sticky opacity={0.95} className="fp-hover-tooltip fp-weather-overlay-tooltip">
+                      <div className="fp-airport-tooltip fp-weather-overlay-tooltip__content">
+                        <strong>{overlay.firCodes[0] ?? 'SIGMET/ARS/AIRMET'}</strong>
+                        <span>{overlay.matchSummary}</span>
+                        <span>{overlay.title}</span>
+                      </div>
+                    </Tooltip>
                   </CircleMarker>
                 )
               })
@@ -4334,7 +4292,9 @@ export function FlightplanMapEditor({
                         keyboard={false}
                         zIndexOffset={80}
                         eventHandlers={getNotamFeatureEventHandlers(feature)}
-                      />
+                      >
+                        {createNotamPointTooltip(feature)}
+                      </Marker>
                     )
                   }
 
@@ -4362,7 +4322,9 @@ export function FlightplanMapEditor({
                         keyboard={false}
                         zIndexOffset={80}
                         eventHandlers={getNotamFeatureEventHandlers(feature)}
-                      />
+                      >
+                        {createNotamPointTooltip(feature)}
+                      </Marker>
                     )
                   }
 
@@ -4381,11 +4343,15 @@ export function FlightplanMapEditor({
                   return (
                     <Polyline
                       key={feature.id}
-                      pane={notamMapPane}
+                      pane={notamMapLinePane}
                       positions={feature.positions}
                       pathOptions={notamMapPathOptions(feature.source, 'line', mapZoom)}
                       eventHandlers={getNotamFeatureEventHandlers(feature)}
-                    />
+                    >
+                      <Tooltip sticky opacity={0.95} className="fp-hover-tooltip fp-notam-map-tooltip-popup">
+                        <NotamMapInfoCard feature={feature} />
+                      </Tooltip>
+                    </Polyline>
                   )
                 }
 
@@ -4399,7 +4365,9 @@ export function FlightplanMapEditor({
                     keyboard={false}
                     zIndexOffset={80}
                     eventHandlers={getNotamFeatureEventHandlers(feature)}
-                  />
+                  >
+                    {createNotamPointTooltip(feature)}
+                  </Marker>
                 )
               })
             : null}
@@ -4456,7 +4424,7 @@ export function FlightplanMapEditor({
                   return (
                     <Polyline
                       key={`highlight-${hoveredNotamFeature.id}`}
-                      pane={notamMapHighlightPane}
+                      pane={notamMapLinePane}
                       positions={hoveredNotamFeature.positions}
                       pathOptions={pathOptions}
                       interactive={false}
@@ -4774,18 +4742,7 @@ export function FlightplanMapEditor({
                   },
                   mouseout: closeLeafletTooltipOnMouseOut,
                 }}
-              >
-                <Tooltip sticky opacity={1} className="fp-hover-tooltip fp-segment-tooltip">
-                  <div>
-                    <strong>{getRoutePointLabel(leg.from)} → {getRoutePointLabel(leg.to)}</strong>
-                    <span>TT {previewDerived.routeLegs[index]?.trueTrack ?? '—'}°</span>
-                    <span>MH {previewDerived.routeLegs[index]?.magneticHeading ?? '—'}°</span>
-                    <span>GS {previewDerived.routeLegs[index]?.groundSpeedKt ?? '—'} kt</span>
-                    <span>Dist {previewDerived.routeLegs[index]?.distanceNm ?? '—'} nm</span>
-                    <span>Tid {formatTimeFromMinutes(previewDerived.routeLegs[index]?.legTimeMinutes ?? 0)}</span>
-                  </div>
-                </Tooltip>
-              </Polyline>
+              />
               {shouldShowDirectionArrow(leg) ? (
                 <Marker
                   position={(() => {

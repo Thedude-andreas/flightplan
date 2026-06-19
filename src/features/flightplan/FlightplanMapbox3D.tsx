@@ -2172,9 +2172,9 @@ export function FlightplanMapbox3D({
 
       const genericPopup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false, offset: 12 })
       const popupLayers = [
-        weatherAreaLayerId,
-        weatherLineLayerId,
         obstacleVolumeLayerId,
+        notamPointLayerId,
+        notamLineLayerId,
         mapPointLayerId,
         mapPointEntryExitLayerId,
         airportWeatherLabelLayerId,
