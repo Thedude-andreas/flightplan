@@ -126,6 +126,7 @@ const weatherLineSourceId = 'flightplan-3d-weather-lines'
 const weatherLineLayerId = 'flightplan-3d-weather-lines'
 const mapPointSourceId = 'flightplan-3d-map-points'
 const mapPointLayerId = 'flightplan-3d-map-points'
+const mapPointEntryExitLayerId = 'flightplan-3d-map-point-entry-exit'
 const airportWeatherLabelLayerId = 'flightplan-3d-airport-weather-labels'
 const mapPointLabelLayerId = 'flightplan-3d-map-point-labels'
 const holdingPatternLayerId = 'flightplan-3d-holding-patterns'
@@ -192,6 +193,9 @@ const routeVisualClearanceMeters = 70
 const routeGateHalfWidthNm = 0.11
 const routeGateHalfHeightMeters = 140
 const routeGateRibHalfSizeMeters = 3
+const reportingPointColor = '#732184'
+const reportingPointSymbolMinZoom = 8.5
+const reportingPointLabelMinZoom = 9
 const holdingPatternMinZoom = 9
 const holdingPatternAltitudeFt = 1000
 const holdingPatternRadiusMeters = 475
@@ -1329,7 +1333,7 @@ function buildMapPointGeoJson({
         label: getSwedishVisualPointDisplayLabel(point),
         title: point.name ?? point.positionIndicator ?? 'VFR-punkt',
         body: point.kind,
-        color: point.kind === 'holding' ? '#059669' : '#f97316',
+        color: point.kind === 'holding' ? '#059669' : reportingPointColor,
         radius: 4,
         sortPriority: 20,
       },
@@ -2076,7 +2080,7 @@ export function FlightplanMapbox3D({
         id: mapPointLayerId,
         type: 'circle',
         source: mapPointSourceId,
-        filter: ['!', ['all', ['==', ['get', 'category'], 'visual-point'], ['==', ['get', 'kind'], 'holding']]],
+        filter: ['!=', ['get', 'category'], 'visual-point'],
         layout: {
           'circle-sort-key': ['get', 'sortPriority'],
         },
@@ -2086,6 +2090,25 @@ export function FlightplanMapbox3D({
           'circle-stroke-color': '#ffffff',
           'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 5, 1.8, 12, 2.3],
           'circle-opacity': 0.95,
+        },
+      })
+      map.addLayer({
+        id: mapPointEntryExitLayerId,
+        type: 'symbol',
+        source: mapPointSourceId,
+        minzoom: reportingPointSymbolMinZoom,
+        filter: ['all', ['==', ['get', 'category'], 'visual-point'], ['==', ['get', 'kind'], 'entry-exit']],
+        layout: {
+          'text-field': '▲',
+          'text-size': ['interpolate', ['linear'], ['zoom'], 8, 18, 13, 26],
+          'text-allow-overlap': true,
+          'text-ignore-placement': true,
+          'symbol-sort-key': ['get', 'sortPriority'],
+        },
+        paint: {
+          'text-color': ['get', 'color'],
+          'text-halo-color': '#ffffff',
+          'text-halo-width': 0.8,
         },
       })
       const holdingPatternLayer = createHoldingPatternLayer(latestMapData.holdingPatternObjects)
@@ -2113,7 +2136,7 @@ export function FlightplanMapbox3D({
         id: mapPointLabelLayerId,
         type: 'symbol',
         source: mapPointSourceId,
-        minzoom: 8,
+        minzoom: reportingPointLabelMinZoom,
         layout: {
           'text-field': ['get', 'label'],
           'text-size': ['interpolate', ['linear'], ['zoom'], 8, 10, 13, 13],
@@ -2123,7 +2146,7 @@ export function FlightplanMapbox3D({
         },
         filter: ['!', ['all', ['==', ['get', 'category'], 'visual-point'], ['==', ['get', 'kind'], 'holding']]],
         paint: {
-          'text-color': '#0f172a',
+          'text-color': ['case', ['all', ['==', ['get', 'category'], 'visual-point'], ['==', ['get', 'kind'], 'entry-exit']], reportingPointColor, '#0f172a'],
           'text-halo-color': '#ffffff',
           'text-halo-width': 1.2,
         },
@@ -2153,6 +2176,7 @@ export function FlightplanMapbox3D({
         weatherLineLayerId,
         obstacleVolumeLayerId,
         mapPointLayerId,
+        mapPointEntryExitLayerId,
         airportWeatherLabelLayerId,
         mapPointLabelLayerId,
         aloftWindLayerId,
@@ -2183,7 +2207,7 @@ export function FlightplanMapbox3D({
           const id = String(properties?.id ?? '')
           const category = String(properties?.category ?? '')
           const latestInspect = latestInspectRef.current
-          const isMapPointInteraction = layerId === mapPointLayerId || layerId === airportWeatherLabelLayerId || layerId === mapPointLabelLayerId
+          const isMapPointInteraction = layerId === mapPointLayerId || layerId === mapPointEntryExitLayerId || layerId === airportWeatherLabelLayerId || layerId === mapPointLabelLayerId
 
           if (isMapPointInteraction && category === 'airport') {
             const airport = latestInspect.airportById.get(id)

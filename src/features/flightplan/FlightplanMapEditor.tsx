@@ -400,8 +400,8 @@ const airportLabelMinZoom = 8
 const airportMarkerRadiusPx = 4
 const navaidMinZoom = 7
 const navaidLabelMinZoom = 9
-const visualPointMinZoom = 10
-const visualPointLabelMinZoom = 11
+const visualPointMinZoom = 9
+const visualPointLabelMinZoom = 9
 const holdingPatternBaseIconSizePx = 34
 const holdingPatternDiameterMeters = 950
 const obstacleMinZoom = 8
@@ -530,27 +530,82 @@ function NotamValidityModeToggle({
   )
 }
 
-function getObstaclePalette(obstacle: SwedishObstacle) {
-  switch (obstacle.category) {
-    case 'wind_turbine':
-      return { color: '#0f766e', fillColor: '#2dd4bf', radius: 4.8 }
-    case 'mast':
-    case 'tower':
-      return { color: '#7c2d12', fillColor: '#f97316', radius: 4.4 }
-    case 'chimney':
-    case 'crane':
-      return { color: '#991b1b', fillColor: '#ef4444', radius: 4.8 }
-    case 'building':
-      return { color: '#475569', fillColor: '#94a3b8', radius: 4.2 }
-    case 'vegetation':
-      return { color: '#166534', fillColor: '#65a30d', radius: 3.8 }
-    case 'powerline_or_pylon':
-      return { color: '#854d0e', fillColor: '#eab308', radius: 4.2 }
-    case 'navaid':
-      return { color: '#4338ca', fillColor: '#818cf8', radius: 4.4 }
-    case 'other':
-      return { color: '#334155', fillColor: '#64748b', radius: 3.8 }
+function obstacleHeightFt(obstacle: SwedishObstacle) {
+  if (obstacle.heightValue == null || !Number.isFinite(obstacle.heightValue)) {
+    return null
   }
+
+  const unit = obstacle.heightUnit?.trim().toUpperCase() ?? 'M'
+  return unit === 'FT' || unit === 'FEET' ? obstacle.heightValue : obstacle.heightValue / 0.3048
+}
+
+function getWindTurbineSymbolColor(obstacle: SwedishObstacle) {
+  const heightFt = obstacleHeightFt(obstacle)
+  return heightFt != null && heightFt < 130 ? '#732184' : '#1f5db8'
+}
+
+function getObstacleSymbolColor(obstacle: SwedishObstacle) {
+  const heightFt = obstacleHeightFt(obstacle)
+  return heightFt != null && heightFt < 130 ? '#732184' : '#1f5db8'
+}
+
+function isObstacleLighted(obstacle: SwedishObstacle) {
+  const lighting = obstacle.lightingDescription?.trim().toLowerCase() ?? ''
+  if (!lighting) {
+    return false
+  }
+
+  return !/\b(?:unlighted|none|no|nej|obelyst)\b/.test(lighting)
+}
+
+function getObstacleShaftEndpoint(obstacle: SwedishObstacle, centerX: number, centerY: number, length: number) {
+  const heightFt = obstacleHeightFt(obstacle)
+  const clockHour = Math.max(1, Math.min(12, Math.round((heightFt ?? 300) / 100)))
+  const angleRad = ((clockHour * 30 - 90) * Math.PI) / 180
+
+  return {
+    x: centerX + Math.cos(angleRad) * length,
+    y: centerY + Math.sin(angleRad) * length,
+  }
+}
+
+function createWindTurbineObstacleIcon(obstacle: SwedishObstacle) {
+  const color = getWindTurbineSymbolColor(obstacle)
+  const lighted = isObstacleLighted(obstacle)
+  const center = { x: 18, y: 18 }
+  const endpoint = getObstacleShaftEndpoint(obstacle, center.x, center.y, 25)
+
+  return divIcon({
+    className: 'fp-wind-turbine-obstacle-marker',
+    iconSize: [36, 36],
+    iconAnchor: [18, 18],
+    html: `
+      <svg viewBox="0 0 44 44" aria-hidden="true" focusable="false" style="--fp-wind-turbine-color: ${color}">
+        <line class="fp-wind-turbine-shaft" x1="${center.x}" y1="${center.y}" x2="${endpoint.x.toFixed(2)}" y2="${endpoint.y.toFixed(2)}" />
+        <path class="fp-wind-turbine-drop" d="M18 7.5c5.8 0 10.5 4.6 10.5 10.3 0 4.4-3 7.6-5.5 11.4L18 40l-5-10.8c-2.5-3.8-5.5-7-5.5-11.4C7.5 12.1 12.2 7.5 18 7.5Z" />
+        ${lighted ? '<circle class="fp-wind-turbine-hole" cx="18" cy="18" r="4.7" />' : ''}
+      </svg>
+    `,
+  })
+}
+
+function createStandardObstacleIcon(obstacle: SwedishObstacle) {
+  const color = getObstacleSymbolColor(obstacle)
+  const lighted = isObstacleLighted(obstacle)
+  const center = { x: 18, y: 18 }
+  const endpoint = getObstacleShaftEndpoint(obstacle, center.x, center.y, 25)
+
+  return divIcon({
+    className: 'fp-standard-obstacle-marker',
+    iconSize: [36, 36],
+    iconAnchor: [18, 18],
+    html: `
+      <svg viewBox="0 0 44 44" aria-hidden="true" focusable="false" style="--fp-obstacle-color: ${color}">
+        <line class="fp-standard-obstacle-shaft" x1="${center.x}" y1="${center.y}" x2="${endpoint.x.toFixed(2)}" y2="${endpoint.y.toFixed(2)}" />
+        <circle class="fp-standard-obstacle-dot ${lighted ? 'is-lighted' : ''}" cx="18" cy="18" r="5" />
+      </svg>
+    `,
+  })
 }
 
 function formatObstacleHeight(value: number | null, unit: string | null) {
@@ -1146,14 +1201,6 @@ function getNavaidPalette(kind: SwedishNavaid['kind']) {
   }
 }
 
-function getVisualPointPalette(kind: SwedishVisualPoint['kind']) {
-  if (kind === 'holding') {
-    return { color: '#9a5b00', fillColor: '#ffd36a', radius: 4.8, marker: 'H' }
-  }
-
-  return { color: '#006b78', fillColor: '#8be7ee', radius: 4.4, marker: 'I' }
-}
-
 function getVisualPointKindLabel(kind: SwedishVisualPoint['kind']) {
   return kind === 'holding' ? 'Väntläge' : 'In-/utpassering'
 }
@@ -1192,6 +1239,19 @@ function createHoldingPatternIcon(sizePx: number) {
       <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
         <path vector-effect="non-scaling-stroke" d="M3 12a9 9 0 1 0 9-9 9.7 9.7 0 0 0-6.7 2.7L3 8" />
         <path vector-effect="non-scaling-stroke" d="M3 3v5h5" />
+      </svg>
+    `,
+  })
+}
+
+function createReportingPointIcon() {
+  return divIcon({
+    className: 'fp-reporting-point-marker',
+    iconSize: [18, 18],
+    iconAnchor: [9, 9],
+    html: `
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path d="M12 3 22 21H2Z" />
       </svg>
     `,
   })
@@ -4492,7 +4552,6 @@ export function FlightplanMapEditor({
             : null}
 
           {visibleVisualPoints.map((point) => {
-            const palette = getVisualPointPalette(point.kind)
             const label = getVisualPointDisplayLabel(point)
             return (
               <FeatureGroup key={point.id}>
@@ -4531,16 +4590,10 @@ export function FlightplanMapEditor({
                     </Tooltip>
                   </Marker>
                 ) : (
-                  <CircleMarker
-                    center={[point.lat, point.lon]}
+                  <Marker
+                    position={[point.lat, point.lon]}
+                    icon={createReportingPointIcon()}
                     pane="fp-visual-point-pane"
-                    radius={palette.radius}
-                    pathOptions={{
-                      color: palette.color,
-                      weight: 1.45,
-                      fillColor: palette.fillColor,
-                      fillOpacity: 0.95,
-                    }}
                     eventHandlers={{
                       click: (event) => {
                         event.originalEvent.preventDefault()
@@ -4550,7 +4603,7 @@ export function FlightplanMapEditor({
                       mouseout: closeLeafletTooltipOnMouseOut,
                     }}
                   >
-                  <Tooltip direction="top" offset={[0, -6]} opacity={0.95} className="fp-hover-tooltip fp-visual-point-tooltip">
+                  <Tooltip direction="top" offset={[0, -12]} opacity={0.95} className="fp-hover-tooltip fp-visual-point-tooltip">
                     <div className="fp-airport-tooltip fp-visual-point-tooltip__content">
                       <strong>{label}</strong>
                       <span>{getVisualPointKindLabel(point.kind)}{point.positionIndicator ? ` · ${point.positionIndicator}` : ''}</span>
@@ -4559,44 +4612,55 @@ export function FlightplanMapEditor({
                       <span>{formatCoordinateDms(point.lat, 'lat')} {formatCoordinateDms(point.lon, 'lon')}</span>
                     </div>
                   </Tooltip>
-                  </CircleMarker>
+                  </Marker>
                 )}
               </FeatureGroup>
             )
           })}
 
           {visibleObstacles.map((obstacle) => {
-            const palette = getObstaclePalette(obstacle)
             const obstacleType = getObstacleDisplayType(obstacle)
+            const obstacleTooltip = (
+              <Tooltip direction="top" offset={[0, obstacle.category === 'wind_turbine' ? -14 : -6]} opacity={0.95} className="fp-hover-tooltip fp-obstacle-tooltip">
+                <div className="fp-airport-tooltip fp-obstacle-tooltip__content">
+                  <strong>{obstacle.name ?? obstacleType}</strong>
+                  <span>{obstacleType}</span>
+                  {formatObstacleHeight(obstacle.heightValue, obstacle.heightUnit) ? (
+                    <span>Höjd {formatObstacleHeight(obstacle.heightValue, obstacle.heightUnit)}</span>
+                  ) : null}
+                  {formatObstacleHeight(obstacle.mslValue, obstacle.mslUnit) ? (
+                    <span>MSL {formatObstacleHeight(obstacle.mslValue, obstacle.mslUnit)}</span>
+                  ) : null}
+                  {obstacle.lightingDescription ? <span>Ljus {obstacle.lightingDescription}</span> : null}
+                  {obstacle.cycleId ? <span>LFV {obstacle.cycleId}</span> : null}
+                </div>
+              </Tooltip>
+            )
+
+            if (obstacle.category === 'wind_turbine') {
+              return (
+                <Marker
+                  key={obstacle.id}
+                  position={[obstacle.lat, obstacle.lon]}
+                  icon={createWindTurbineObstacleIcon(obstacle)}
+                  pane={obstacleMapPane}
+                  eventHandlers={{ mouseout: closeLeafletTooltipOnMouseOut }}
+                >
+                  {obstacleTooltip}
+                </Marker>
+              )
+            }
+
             return (
-              <CircleMarker
+              <Marker
                 key={obstacle.id}
-                center={[obstacle.lat, obstacle.lon]}
+                position={[obstacle.lat, obstacle.lon]}
+                icon={createStandardObstacleIcon(obstacle)}
                 pane={obstacleMapPane}
-                radius={palette.radius}
-                pathOptions={{
-                  color: palette.color,
-                  weight: 1.3,
-                  fillColor: palette.fillColor,
-                  fillOpacity: 0.82,
-                }}
                 eventHandlers={{ mouseout: closeLeafletTooltipOnMouseOut }}
               >
-                <Tooltip direction="top" offset={[0, -6]} opacity={0.95} className="fp-hover-tooltip fp-obstacle-tooltip">
-                  <div className="fp-airport-tooltip fp-obstacle-tooltip__content">
-                    <strong>{obstacle.name ?? obstacleType}</strong>
-                    <span>{obstacleType}</span>
-                    {formatObstacleHeight(obstacle.heightValue, obstacle.heightUnit) ? (
-                      <span>Höjd {formatObstacleHeight(obstacle.heightValue, obstacle.heightUnit)}</span>
-                    ) : null}
-                    {formatObstacleHeight(obstacle.mslValue, obstacle.mslUnit) ? (
-                      <span>MSL {formatObstacleHeight(obstacle.mslValue, obstacle.mslUnit)}</span>
-                    ) : null}
-                    {obstacle.lightingDescription ? <span>Ljus {obstacle.lightingDescription}</span> : null}
-                    {obstacle.cycleId ? <span>LFV {obstacle.cycleId}</span> : null}
-                  </div>
-                </Tooltip>
-              </CircleMarker>
+                {obstacleTooltip}
+              </Marker>
             )
           })}
 

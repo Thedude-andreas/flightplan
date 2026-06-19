@@ -64,6 +64,7 @@ export type ObstacleFetchResult = {
 
 const lfvWfsProxyPath = '/lfv-wfs'
 const obstacleMaxFeatures = 2500
+const obstacleMinDisplayHeightM = 40
 
 function stringValue(value: unknown) {
   return typeof value === 'string' && value.trim() ? value.trim() : null
@@ -173,14 +174,57 @@ function toObstacle(feature: LfvObstacleFeature): SwedishObstacle | null {
   }
 }
 
+function obstacleHeightMeters(obstacle: SwedishObstacle) {
+  if (obstacle.heightValue == null || !Number.isFinite(obstacle.heightValue)) {
+    return null
+  }
+
+  const unit = obstacle.heightUnit?.trim().toUpperCase() ?? 'M'
+  return unit === 'FT' || unit === 'FEET' ? obstacle.heightValue * 0.3048 : obstacle.heightValue
+}
+
+function isAirportSurveyObstacleName(name: string | null) {
+  return name != null && /^[A-Z]{4}\d+$/i.test(name.trim())
+}
+
+function hasObstacleSafetyMetadata(obstacle: SwedishObstacle) {
+  return Boolean(obstacle.lightingDescription || obstacle.markingDescription || obstacle.remark || obstacle.nationalRemark)
+}
+
+function isLowRiskAirportSurfaceObstacle(obstacle: SwedishObstacle) {
+  const typeText = normalizeTypeText(obstacle.typeDescription, obstacle.nationalTypeDescription)
+
+  return (
+    obstacle.heightValue == null
+    && isAirportSurveyObstacleName(obstacle.name)
+    && !hasObstacleSafetyMetadata(obstacle)
+    && (
+      obstacle.category === 'vegetation'
+      || obstacle.category === 'navaid'
+      || /\bterrain\b|\bmark\b|\bpole\b|\bantenna\b|\bbuilding\b|\bshrub\b|\bforest\b|\btree\b|\bvegetation\b/.test(typeText)
+    )
+  )
+}
+
+function shouldDisplayObstacle(obstacle: SwedishObstacle) {
+  if (isLowRiskAirportSurfaceObstacle(obstacle)) {
+    return false
+  }
+
+  const heightMeters = obstacleHeightMeters(obstacle)
+  return heightMeters == null || heightMeters > obstacleMinDisplayHeightM
+}
+
 function parseObstacleResponse(payload: LfvObstacleResponse): ObstacleFetchResult {
+  const obstacles = (payload.features ?? []).flatMap((feature) => {
+    const obstacle = toObstacle(feature)
+    return obstacle && shouldDisplayObstacle(obstacle) ? [obstacle] : []
+  })
+
   return {
-    obstacles: (payload.features ?? []).flatMap((feature) => {
-      const obstacle = toObstacle(feature)
-      return obstacle ? [obstacle] : []
-    }),
+    obstacles,
     totalFeatures: numberValue(payload.totalFeatures ?? payload.numberMatched),
-    numberReturned: numberValue(payload.numberReturned),
+    numberReturned: obstacles.length,
     fetchedAt: stringValue(payload.timeStamp),
   }
 }
