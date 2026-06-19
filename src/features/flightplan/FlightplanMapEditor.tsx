@@ -24,6 +24,7 @@ import {
   getSwedishAirspaces,
   getSwedishNavaids,
   getSwedishVisualPoints,
+  getSwedishVisualPointDisplayLabel,
   type SwedishAirport,
   type SwedishAirspace,
   type SwedishAirspaceGeometry,
@@ -1158,11 +1159,7 @@ function getVisualPointKindLabel(kind: SwedishVisualPoint['kind']) {
 }
 
 function getVisualPointDisplayLabel(point: SwedishVisualPoint) {
-  if (point.kind === 'holding') {
-    return point.name ?? point.location ?? point.positionIndicator ?? 'HOLD'
-  }
-
-  return point.location ?? point.name ?? point.positionIndicator ?? 'ENTRY'
+  return getSwedishVisualPointDisplayLabel(point)
 }
 
 function createVisualRoutePoint(point: SwedishVisualPoint) {
@@ -1193,8 +1190,8 @@ function createHoldingPatternIcon(sizePx: number) {
     iconAnchor: [sizePx / 2, sizePx / 2],
     html: `
       <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-        <path d="M3 12a9 9 0 1 0 9-9 9.7 9.7 0 0 0-6.7 2.7L3 8" />
-        <path d="M3 3v5h5" />
+        <path vector-effect="non-scaling-stroke" d="M3 12a9 9 0 1 0 9-9 9.7 9.7 0 0 0-6.7 2.7L3 8" />
+        <path vector-effect="non-scaling-stroke" d="M3 3v5h5" />
       </svg>
     `,
   })
@@ -2677,7 +2674,15 @@ export function FlightplanMapEditor({
     const visualPointViewportBounds = isMapbox3dBasemap ? mapbox3dBounds : mapBounds
     const visualPointViewportZoom = isMapbox3dBasemap ? mapbox3dZoom : mapZoom
 
-    if (!showVisualPoints || visualPointViewportZoom < visualPointMinZoom) {
+    if (!showVisualPoints) {
+      return []
+    }
+
+    if (isMapbox3dBasemap && !visualPointViewportBounds) {
+      return swedishVisualPoints
+    }
+
+    if (visualPointViewportZoom < visualPointMinZoom) {
       return []
     }
 
@@ -4008,7 +4013,7 @@ export function FlightplanMapEditor({
               onInspectVisualPoint={inspectVisualPoint}
               plan={plan}
               derived={derived}
-              visualPoints={showVisualPoints ? visibleVisualPoints : []}
+              visualPoints={showVisualPoints ? swedishVisualPoints : []}
               weatherOverlays={showWeatherOverlays ? routeWeatherOverlays : []}
             />
           </Suspense>

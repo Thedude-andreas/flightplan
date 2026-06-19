@@ -3,7 +3,7 @@ import mapboxgl from 'mapbox-gl'
 import * as THREE from 'three'
 import 'mapbox-gl/dist/mapbox-gl.css'
 
-import type { SwedishAirspace, SwedishAirport, SwedishNavaid, SwedishVisualPoint } from './aviationData'
+import { getSwedishVisualPointDisplayLabel, type SwedishAirspace, type SwedishAirport, type SwedishNavaid, type SwedishVisualPoint } from './aviationData'
 import type { NotamMapOverlayFeature } from './notamRoute'
 import { fetchSwedishObstacles, getObstacleDisplayType, type SwedishObstacle } from './obstacles'
 import type { RouteLegAloftWind } from './openMeteoAloft'
@@ -56,6 +56,7 @@ type HoldingPattern3DObject = {
   id: string
   lat: number
   lon: number
+  label: string
 }
 
 type TerrainStatus = 'checking' | 'ready' | 'degraded' | 'error'
@@ -191,10 +192,11 @@ const routeVisualClearanceMeters = 70
 const routeGateHalfWidthNm = 0.11
 const routeGateHalfHeightMeters = 140
 const routeGateRibHalfSizeMeters = 3
-const visualPointMinZoom = 10
+const holdingPatternMinZoom = 9
 const holdingPatternAltitudeFt = 1000
 const holdingPatternRadiusMeters = 475
 const holdingPatternTubeMeters = 12
+const holdingPatternLabelBaseRotationRad = Math.PI
 const notamVolumeBaseFt = 0
 const notamVolumeDefaultUpperFt = 5000
 const mapboxStyleUrls: Record<FlightplanMapbox3DStyle, string> = {
@@ -710,7 +712,16 @@ function createHoldingPatternLayer(initialHoldings: HoldingPattern3DObject[]): H
     for (const child of [...scene.children]) {
       if (child instanceof THREE.Mesh) {
         child.geometry.dispose()
+
+        const childMaterials = Array.isArray(child.material) ? child.material : [child.material]
+        for (const childMaterial of childMaterials) {
+          if (childMaterial !== material) {
+            childMaterial.map?.dispose()
+            childMaterial.dispose()
+          }
+        }
       }
+
       scene.remove(child)
     }
   }
@@ -724,6 +735,19 @@ function createHoldingPatternLayer(initialHoldings: HoldingPattern3DObject[]): H
 
     for (const holding of holdings) {
       addHoldingPatternMesh(scene, holding, material)
+    }
+  }
+
+  function updateLabelRotations() {
+    if (!map || !scene) {
+      return
+    }
+
+    const labelRotationZ = holdingPatternLabelBaseRotationRad + THREE.MathUtils.degToRad(map.getBearing())
+    for (const child of scene.children) {
+      if (child instanceof THREE.Mesh && child.userData.isHoldingPatternLabel === true) {
+        child.rotation.z = labelRotationZ
+      }
     }
   }
 
@@ -754,11 +778,12 @@ function createHoldingPatternLayer(initialHoldings: HoldingPattern3DObject[]): H
       scene = null
     },
     render(_gl, matrix) {
-      if (!map || !camera || !renderer || !scene || map.getZoom() < visualPointMinZoom) {
+      if (!map || !camera || !renderer || !scene || map.getZoom() < holdingPatternMinZoom) {
         return
       }
 
       camera.projectionMatrix = new THREE.Matrix4().fromArray(matrix)
+      updateLabelRotations()
       renderer.resetState()
       renderer.clearDepth()
       renderer.render(scene, camera)
@@ -971,6 +996,49 @@ function addHoldingPatternMesh(
   arrow.position.set(coordinate.x + arrowTip.x, coordinate.y + arrowTip.y, coordinate.z)
   arrow.rotation.z = Math.atan2(-arrowDirection.x, arrowDirection.y)
   scene.add(arrow)
+
+  const labelMesh = createHoldingPatternLabelMesh(holding.label, radius * 1.62, radius * 0.52)
+  labelMesh.position.set(coordinate.x, coordinate.y, coordinate.z)
+  scene.add(labelMesh)
+}
+
+function createHoldingPatternLabelMesh(label: string, width: number, height: number) {
+  const canvas = document.createElement('canvas')
+  canvas.width = 512
+  canvas.height = 192
+  const context = canvas.getContext('2d')
+
+  if (context) {
+    context.clearRect(0, 0, canvas.width, canvas.height)
+    context.translate(canvas.width, 0)
+    context.scale(-1, 1)
+    context.textAlign = 'center'
+    context.textBaseline = 'middle'
+    context.font = '800 82px Inter, Space Grotesk, Arial, sans-serif'
+    context.lineJoin = 'round'
+    context.strokeStyle = 'rgba(255, 255, 255, 0.95)'
+    context.lineWidth = 12
+    context.strokeText(label, canvas.width / 2, canvas.height / 2)
+    context.fillStyle = '#111827'
+    context.fillText(label, canvas.width / 2, canvas.height / 2)
+  }
+
+  const texture = new THREE.CanvasTexture(canvas)
+  texture.colorSpace = THREE.SRGBColorSpace
+  const geometry = new THREE.PlaneGeometry(width, height)
+  const material = new THREE.MeshBasicMaterial({
+    map: texture,
+    transparent: true,
+    depthTest: false,
+    depthWrite: false,
+    toneMapped: false,
+    side: THREE.DoubleSide,
+  })
+  const mesh = new THREE.Mesh(geometry, material)
+  mesh.rotation.z = holdingPatternLabelBaseRotationRad
+  mesh.renderOrder = 10
+  mesh.userData.isHoldingPatternLabel = true
+  return mesh
 }
 
 function addObstacleCylinderMesh(
@@ -1258,7 +1326,7 @@ function buildMapPointGeoJson({
         category: 'visual-point',
         kind: point.kind,
         id: point.id,
-        label: point.name ?? point.positionIndicator ?? 'VFR',
+        label: getSwedishVisualPointDisplayLabel(point),
         title: point.name ?? point.positionIndicator ?? 'VFR-punkt',
         body: point.kind,
         color: point.kind === 'holding' ? '#059669' : '#f97316',
@@ -1279,6 +1347,7 @@ function buildHoldingPattern3DObjects(visualPoints: SwedishVisualPoint[]) {
       id: point.id,
       lat: point.lat,
       lon: point.lon,
+      label: getSwedishVisualPointDisplayLabel(point),
     }))
 }
 
@@ -2052,7 +2121,7 @@ export function FlightplanMapbox3D({
           'text-anchor': 'top',
           'text-allow-overlap': false,
         },
-        filter: ['!=', ['get', 'category'], 'obstacle'],
+        filter: ['!', ['all', ['==', ['get', 'category'], 'visual-point'], ['==', ['get', 'kind'], 'holding']]],
         paint: {
           'text-color': '#0f172a',
           'text-halo-color': '#ffffff',

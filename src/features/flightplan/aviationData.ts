@@ -91,6 +91,21 @@ export type SwedishVisualPoint = {
   lon: number
 }
 
+const holdingDirectionLabels = new Set(['NORTH', 'SOUTH', 'EAST', 'WEST'])
+
+export function getSwedishVisualPointDisplayLabel(point: SwedishVisualPoint) {
+  if (point.kind === 'holding') {
+    const location = point.location?.trim().toUpperCase()
+    if (location && holdingDirectionLabels.has(location)) {
+      return location
+    }
+
+    return point.location ?? point.name ?? point.positionIndicator ?? 'HOLD'
+  }
+
+  return point.location ?? point.name ?? point.positionIndicator ?? 'ENTRY'
+}
+
 export type SwedishAirspaceFrequency = {
   id: string
   kind: 'FIR' | 'TMA' | 'TIA' | 'TIZ'
