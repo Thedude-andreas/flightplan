@@ -3,7 +3,7 @@ import mapboxgl from 'mapbox-gl'
 import * as THREE from 'three'
 import 'mapbox-gl/dist/mapbox-gl.css'
 
-import { getSwedishVisualPointDisplayLabel, type SwedishAirspace, type SwedishAirport, type SwedishNavaid, type SwedishVisualPoint } from './aviationData'
+import { getSwedishAirportMapLabel, getSwedishVisualPointDisplayLabel, type SwedishAirspace, type SwedishAirport, type SwedishNavaid, type SwedishVisualPoint } from './aviationData'
 import type { NotamMapOverlayFeature } from './notamRoute'
 import { fetchSwedishObstacles, getObstacleDisplayType, type SwedishObstacle } from './obstacles'
 import type { RouteLegAloftWind } from './openMeteoAloft'
@@ -1384,7 +1384,7 @@ function buildMapPointGeoJson({
         return {
           category: 'airport',
           id: airport.icao ?? `${airport.name}-${airport.lat}-${airport.lon}`,
-          label: airport.icao ?? airport.name ?? 'AD',
+          label: getSwedishAirportMapLabel(airport),
           title: airport.icao ?? airport.name ?? 'Flygplats',
           body: airport.name ?? '',
           showAirportSymbol: showAirportSymbols,
@@ -2448,7 +2448,14 @@ export function FlightplanMapbox3D({
         },
         filter: ['!', ['all', ['==', ['get', 'category'], 'visual-point'], ['==', ['get', 'kind'], 'holding']]],
         paint: {
-          'text-color': ['case', ['all', ['==', ['get', 'category'], 'visual-point'], ['==', ['get', 'kind'], 'entry-exit']], reportingPointColor, '#0f172a'],
+          'text-color': [
+            'case',
+            ['==', ['get', 'category'], 'airport'],
+            aeronauticalSymbolBlue,
+            ['all', ['==', ['get', 'category'], 'visual-point'], ['==', ['get', 'kind'], 'entry-exit']],
+            reportingPointColor,
+            '#0f172a',
+          ],
           'text-halo-color': '#ffffff',
           'text-halo-width': 1.2,
         },

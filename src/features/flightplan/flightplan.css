@@ -2736,7 +2736,6 @@
   pointer-events: none;
 }
 
-.flightplan-page .fp-airport-label span,
 .flightplan-page .fp-navaid-label-marker span {
   display: inline-block;
   padding: 0.12rem 0.36rem;
@@ -2750,6 +2749,29 @@
   letter-spacing: 0.06em;
   line-height: 1.15;
   box-shadow: 0 1px 4px rgba(18, 42, 92, 0.14);
+}
+
+.flightplan-page .fp-airport-label span {
+  display: inline-block;
+  min-width: max-content;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #005da8;
+  font-family: 'Space Grotesk', 'Inter', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 1;
+  white-space: nowrap;
+  overflow-wrap: normal;
+  box-shadow: none;
+  text-shadow:
+    0 1px 0 #fff,
+    0 -1px 0 #fff,
+    1px 0 0 #fff,
+    -1px 0 0 #fff,
+    0 1px 3px rgba(18, 42, 92, 0.16);
 }
 
 .flightplan-page .fp-navaid-label-marker {
@@ -2857,9 +2879,26 @@
 }
 
 .flightplan-page .fp-visual-point-label-marker--holding span {
-  background: rgba(255, 251, 235, 0.96);
-  border-color: rgba(154, 91, 0, 0.32);
-  color: #794600;
+  display: block;
+  min-width: max-content;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  border: 0;
+  color: #151515;
+  font-size: 0.68rem;
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
+  overflow-wrap: normal;
+  transform: translate(-50%, 12px);
+  box-shadow: none;
+  text-shadow:
+    0 1px 0 #fff,
+    0 -1px 0 #fff,
+    1px 0 0 #fff,
+    -1px 0 0 #fff,
+    0 1px 3px rgba(18, 42, 92, 0.16);
 }
 
 .flightplan-page .fp-reporting-point-marker {

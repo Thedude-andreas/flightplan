@@ -69,6 +69,24 @@ export type SwedishAirport = {
   }>
 }
 
+function getAirportChartName(airport: SwedishAirport) {
+  const name = airport.name?.trim()
+  if (!name) {
+    return airport.icao ?? 'AD'
+  }
+
+  const parts = name.split('/').map((part) => part.trim()).filter(Boolean)
+  return (parts.at(-1) ?? name).toUpperCase()
+}
+
+export function getSwedishAirportMapLabel(airport: SwedishAirport) {
+  const name = getAirportChartName(airport)
+  const icao = airport.icao?.trim().toUpperCase() ?? ''
+  const locationSuffix = icao.length >= 2 ? icao.slice(-2) : null
+
+  return [name, locationSuffix].filter(Boolean).join(' ')
+}
+
 export type SwedishNavaid = {
   id: string
   kind: 'VOR' | 'DMEV' | 'DME' | 'NDB'

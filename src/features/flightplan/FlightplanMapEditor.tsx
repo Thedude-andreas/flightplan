@@ -23,6 +23,7 @@ import {
   getSwedishAirports,
   getSwedishAirspaces,
   getSwedishNavaids,
+  getSwedishAirportMapLabel,
   getSwedishVisualPoints,
   getSwedishVisualPointDisplayLabel,
   type SwedishAirport,
@@ -4968,7 +4969,7 @@ export function FlightplanMapEditor({
                         opacity={1}
                         className="fp-airport-label"
                       >
-                        <span>{airport.icao}</span>
+                        <span>{getSwedishAirportMapLabel(airport)}</span>
                       </Tooltip>
                     ) : null}
                     {airportTooltip}
