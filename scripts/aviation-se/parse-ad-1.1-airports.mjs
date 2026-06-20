@@ -73,11 +73,13 @@ function findOfflineSearchIndex() {
 }
 
 function findZipEntry(pattern) {
-  const output = execFileSync(
-    'python3',
-    [
-      '-c',
-      `
+  let output = ''
+  try {
+    output = execFileSync(
+      'python3',
+      [
+        '-c',
+        `
 import json
 import re
 import sys
@@ -90,14 +92,18 @@ with zipfile.ZipFile(sys.argv[1]) as archive:
             print(json.dumps(name, ensure_ascii=False))
             break
       `,
-      offlineZipPath,
-      pattern.source,
-    ],
-    {
-      encoding: 'utf8',
-      maxBuffer: 1024 * 1024,
-    },
-  ).trim()
+        offlineZipPath,
+        pattern.source,
+      ],
+      {
+        encoding: 'utf8',
+        maxBuffer: 1024 * 1024,
+        stdio: ['ignore', 'pipe', 'ignore'],
+      },
+    ).trim()
+  } catch {
+    return null
+  }
 
   return output ? JSON.parse(output) : null
 }
@@ -421,6 +427,7 @@ async function main() {
       lon: airport.arp.lon,
       category: airport.category,
       detailsInAd2: airport.detailsInAd2,
+      runways: airport.runways,
     }))
 
   writeFileSync(
@@ -432,6 +439,11 @@ async function main() {
   lon: number
   category: string | null
   detailsInAd2: boolean
+  runways: Array<{
+    designator: string
+    dimensionsMeters: string | null
+    surface: string | null
+  }>
 }
 
 export const swedishAirports: SwedishAirport[] = ${JSON.stringify(mapAirports, null, 2)}\n`,

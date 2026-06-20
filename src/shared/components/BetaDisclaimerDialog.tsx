@@ -88,46 +88,49 @@ export function BetaDisclaimerDialog() {
         aria-modal="true"
         aria-labelledby="beta-disclaimer-title"
       >
-        <div className="beta-disclaimer__content">
-          <p className="app-eyebrow">Beta-testning</p>
-          <h2 id="beta-disclaimer-title">Applikationen är under utveckling</h2>
-          <p>Det innebär att:</p>
-          <ul className="beta-disclaimer__list">
-            <li>Alla moduler och funktioner inte är färdigutvecklade</li>
-            <li>Otestade uppdateringar kan publiceras utan förvarning</li>
-            <li>Visad information kan vara helt eller delvis baserad på dummydata utan verklighetsförankring</li>
-          </ul>
-          <p>
-            Buggrapporter och utvecklingsförslag tas tacksamt emot på:{' '}
-            <a href="mailto:info@vfrplan.se">info@vfrplan.se</a>
-          </p>
-        </div>
-
-        {recentUpdateDays.length ? (
-          <div className="beta-disclaimer__commits" aria-label="Senaste uppdateringar">
-            <h3>Senaste uppdateringar</h3>
-            <ol>
-              {recentUpdateDays.map((day) => (
-                <li key={day.date}>
-                  <div className="beta-disclaimer__commits-day">
-                    <time dateTime={day.date}>{formatUpdateDate(day.date)}</time>
-                    <code>{day.hashes[0]}</code>
-                  </div>
-                  <ul>
-                    {day.subjects.map((subject, index) => (
-                      <li key={`${day.hashes[index]}-${subject}`}>{subject}</li>
-                    ))}
-                  </ul>
-                </li>
-              ))}
-            </ol>
+        <img className="beta-disclaimer__image" src="/Start-dialog.png" alt="" />
+        <div className="beta-disclaimer__body">
+          <div className="beta-disclaimer__content">
+            <p className="app-eyebrow">Beta-testning</p>
+            <h2 id="beta-disclaimer-title">Applikationen är under utveckling</h2>
+            <p>Det innebär att:</p>
+            <ul className="beta-disclaimer__list">
+              <li>Alla moduler och funktioner inte är färdigutvecklade</li>
+              <li>Otestade uppdateringar kan publiceras utan förvarning</li>
+              <li>Visad information kan vara helt eller delvis baserad på dummydata utan verklighetsförankring</li>
+            </ul>
+            <p>
+              Buggrapporter och utvecklingsförslag tas tacksamt emot på:{' '}
+              <a href="mailto:info@vfrplan.se">info@vfrplan.se</a>
+            </p>
           </div>
-        ) : null}
 
-        <div className="dialog-actions">
-          <button type="button" onClick={handleAccept}>
-            Meddelandet mottaget
-          </button>
+          {recentUpdateDays.length ? (
+            <div className="beta-disclaimer__commits" aria-label="Senaste uppdateringar">
+              <h3>Senaste uppdateringar</h3>
+              <ol>
+                {recentUpdateDays.map((day) => (
+                  <li key={day.date}>
+                    <div className="beta-disclaimer__commits-day">
+                      <time dateTime={day.date}>{formatUpdateDate(day.date)}</time>
+                      <code>{day.hashes[0]}</code>
+                    </div>
+                    <ul>
+                      {day.subjects.map((subject, index) => (
+                        <li key={`${day.hashes[index]}-${subject}`}>{subject}</li>
+                      ))}
+                    </ul>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          ) : null}
+
+          <div className="dialog-actions">
+            <button type="button" onClick={handleAccept}>
+              Meddelandet mottaget
+            </button>
+          </div>
         </div>
       </section>
     </div>

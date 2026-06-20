@@ -98,41 +98,6 @@
   padding: 44px;
 }
 
-.marketing-hero--start {
-  width: min(100%, 760px);
-  overflow: hidden;
-  padding: 0;
-  text-align: center;
-}
-
-.marketing-hero__image {
-  display: block;
-  width: 100%;
-  aspect-ratio: 2618 / 1278;
-  object-fit: cover;
-}
-
-.marketing-hero--start .marketing-hero__content {
-  padding: 34px 40px 38px;
-  gap: 14px;
-}
-
-.marketing-hero--start h1 {
-  font-size: clamp(2.2rem, 5vw, 4.2rem);
-}
-
-.marketing-hero__subtitle {
-  margin: 0;
-  color: #44525d;
-  font-size: 1.15rem;
-  font-weight: 700;
-}
-
-.marketing-hero--start .marketing-hero__actions {
-  justify-content: center;
-  margin-top: 10px;
-}
-
 .marketing-hero__content,
 .auth-card {
   display: grid;
@@ -587,6 +552,121 @@
   margin: 0;
 }
 
+.beta-disclaimer {
+  z-index: 1400;
+}
+
+.beta-disclaimer__card {
+  width: min(100%, 760px);
+  max-height: min(840px, calc(100vh - 40px));
+  gap: 0;
+  overflow: auto;
+  padding: 0;
+  border-radius: 22px;
+}
+
+.beta-disclaimer__image {
+  display: block;
+  width: 100%;
+  aspect-ratio: 2618 / 1278;
+  object-fit: cover;
+  background: #d7e1e7;
+}
+
+.beta-disclaimer__body {
+  display: grid;
+  gap: 18px;
+  padding: 24px;
+}
+
+.beta-disclaimer__content {
+  display: grid;
+  gap: 12px;
+}
+
+.beta-disclaimer__card h2 {
+  color: #12202a;
+  font-size: clamp(1.45rem, 3vw, 2rem);
+  line-height: 1.08;
+}
+
+.beta-disclaimer__card a {
+  color: #163850;
+  font-weight: 700;
+}
+
+.beta-disclaimer__list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 20px;
+  color: #33434f;
+  line-height: 1.55;
+}
+
+.beta-disclaimer__commits {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid rgba(18, 32, 42, 0.1);
+  border-radius: 14px;
+  background: #f5f8fa;
+}
+
+.beta-disclaimer__commits h3 {
+  margin: 0;
+  color: #12202a;
+  font-size: 1rem;
+}
+
+.beta-disclaimer__commits ol {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.beta-disclaimer__commits li {
+  display: grid;
+  gap: 8px;
+  color: #33434f;
+  font-size: 0.92rem;
+  line-height: 1.35;
+}
+
+.beta-disclaimer__commits-day {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.beta-disclaimer__commits-day time {
+  color: #5d6b75;
+  font-variant-numeric: tabular-nums;
+}
+
+.beta-disclaimer__commits li ul {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding-left: 18px;
+}
+
+.beta-disclaimer__commits li li {
+  display: list-item;
+}
+
+.beta-disclaimer__commits-day code {
+  flex: 0 0 auto;
+  padding: 3px 6px;
+  border-radius: 7px;
+  background: rgba(22, 56, 80, 0.08);
+  color: #163850;
+  font-size: 0.78rem;
+}
+
 .dialog-field {
   display: grid;
   gap: 8px;
@@ -698,104 +778,6 @@
   padding: 5px 9px;
 }
 
-.beta-disclaimer {
-  z-index: 1400;
-}
-
-.beta-disclaimer__card {
-  width: min(100%, 680px);
-  max-height: min(760px, calc(100vh - 40px));
-  overflow: auto;
-}
-
-.beta-disclaimer__content {
-  display: grid;
-  gap: 12px;
-}
-
-.beta-disclaimer__card h2 {
-  color: #12202a;
-  font-size: clamp(1.55rem, 4vw, 2.25rem);
-  line-height: 1.08;
-}
-
-.beta-disclaimer__card a {
-  color: #163850;
-  font-weight: 700;
-}
-
-.beta-disclaimer__list {
-  display: grid;
-  gap: 8px;
-  margin: 0;
-  padding-left: 20px;
-  color: #33434f;
-  line-height: 1.55;
-}
-
-.beta-disclaimer__commits {
-  display: grid;
-  gap: 10px;
-  padding: 16px;
-  border: 1px solid rgba(18, 32, 42, 0.1);
-  border-radius: 14px;
-  background: #f5f8fa;
-}
-
-.beta-disclaimer__commits h3 {
-  margin: 0;
-  color: #12202a;
-  font-size: 1rem;
-}
-
-.beta-disclaimer__commits ol {
-  display: grid;
-  gap: 10px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.beta-disclaimer__commits li {
-  display: grid;
-  gap: 8px;
-  color: #33434f;
-  font-size: 0.92rem;
-  line-height: 1.35;
-}
-
-.beta-disclaimer__commits-day {
-  display: flex;
-  gap: 10px;
-  align-items: baseline;
-  justify-content: space-between;
-}
-
-.beta-disclaimer__commits-day time {
-  color: #5d6b75;
-  font-variant-numeric: tabular-nums;
-}
-
-.beta-disclaimer__commits li ul {
-  display: grid;
-  gap: 4px;
-  margin: 0;
-  padding-left: 18px;
-}
-
-.beta-disclaimer__commits li li {
-  display: list-item;
-}
-
-.beta-disclaimer__commits-day code {
-  flex: 0 0 auto;
-  padding: 3px 6px;
-  border-radius: 7px;
-  background: rgba(22, 56, 80, 0.08);
-  color: #163850;
-  font-size: 0.78rem;
-}
-
 .dialog-field {
   display: grid;
   gap: 8px;
@@ -867,22 +849,13 @@
     border-radius: 22px;
   }
 
-  .marketing-hero--start {
-    padding: 0;
-  }
-
-  .marketing-hero--start .marketing-hero__content {
-    padding: 24px;
-  }
-
-  .marketing-hero--start .marketing-hero__actions {
-    display: grid;
-    grid-template-columns: 1fr;
-  }
-
   .app-version-badge {
     right: 12px;
     bottom: 12px;
+  }
+
+  .beta-disclaimer__body {
+    padding: 20px;
   }
 
   .beta-disclaimer__commits-day {

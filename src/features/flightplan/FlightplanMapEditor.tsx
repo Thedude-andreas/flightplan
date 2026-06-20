@@ -295,7 +295,7 @@ const waypointIcon = divIcon({
   iconAnchor: [9, 9],
 })
 
-function createAirportIcon(category: MetarFlightCategory, size: 'default' | 'small' = 'default') {
+function createAirportWeatherIcon(category: MetarFlightCategory) {
   const label = category === 'VMC' ? 'V' : category === 'MVMC' ? 'M' : category === 'IMC' ? 'I' : ''
   const variant =
     category === 'VMC'
@@ -307,10 +307,97 @@ function createAirportIcon(category: MetarFlightCategory, size: 'default' | 'sma
           : 'is-unknown'
 
   return divIcon({
-    className: `fp-airport-marker ${size === 'small' ? 'fp-airport-marker--small' : ''}`,
+    className: 'fp-airport-weather-marker',
     html: `<span class="${variant}">${label}</span>`,
-    iconSize: size === 'small' ? [14, 14] : [20, 20],
-    iconAnchor: size === 'small' ? [7, 7] : [10, 10],
+    iconSize: [20, 20],
+    iconAnchor: [10, 10],
+  })
+}
+
+function getAirportSymbolKind(airport: SwedishAirport) {
+  const category = airport.category?.toLowerCase() ?? ''
+  const longestRunwayLengthMeters = getLongestRunwayLengthMeters(airport)
+
+  if (longestRunwayLengthMeters < 900) {
+    return 'small'
+  }
+
+  if (category.includes('mil')) {
+    return 'military'
+  }
+
+  return 'civil'
+}
+
+function getRunwayLengthMeters(runway: SwedishAirport['runways'][number]) {
+  const length = runway.dimensionsMeters?.match(/\d+(?:[.,]\d+)?/)?.[0]
+  if (!length) {
+    return 0
+  }
+
+  return Number(length.replace(',', '.')) || 0
+}
+
+function getRunwayBearingDegrees(runway: SwedishAirport['runways'][number]) {
+  const designator = runway.designator.match(/\b([0-3]\d)[LCR]?\b/)?.[1]
+  if (!designator) {
+    return null
+  }
+
+  const runwayNumber = Number(designator)
+  if (!Number.isFinite(runwayNumber) || runwayNumber < 1 || runwayNumber > 36) {
+    return null
+  }
+
+  return runwayNumber === 36 ? 0 : runwayNumber * 10
+}
+
+function getLongestRunwayBearingDegrees(airport: SwedishAirport) {
+  let longestRunway: SwedishAirport['runways'][number] | null = null
+  let longestLengthMeters = -1
+
+  for (const runway of airport.runways) {
+    const lengthMeters = getRunwayLengthMeters(runway)
+    if (lengthMeters > longestLengthMeters) {
+      longestRunway = runway
+      longestLengthMeters = lengthMeters
+    }
+  }
+
+  return longestRunway ? getRunwayBearingDegrees(longestRunway) : null
+}
+
+function getLongestRunwayLengthMeters(airport: SwedishAirport) {
+  return airport.runways.reduce((longest, runway) => Math.max(longest, getRunwayLengthMeters(runway)), 0)
+}
+
+function createAirportSymbolIcon(airport: SwedishAirport) {
+  const symbolKind = getAirportSymbolKind(airport)
+  const runwayRotationDegrees = getLongestRunwayBearingDegrees(airport) ?? 25
+  const symbol =
+    symbolKind === 'military'
+      ? `
+        <circle class="fp-airport-symbol__shape fp-airport-symbol__shape--filled" cx="18" cy="18" r="9.5" />
+        <rect class="fp-airport-symbol__runway" x="15" y="3.5" width="6" height="29" transform="rotate(${runwayRotationDegrees} 18 18)" />
+      `
+      : symbolKind === 'civil'
+        ? `
+          <circle class="fp-airport-symbol__shape" cx="18" cy="18" r="9.5" />
+          <rect class="fp-airport-symbol__runway" x="15" y="3.5" width="6" height="29" transform="rotate(${runwayRotationDegrees} 18 18)" />
+        `
+        : `
+          <circle class="fp-airport-symbol__shape" cx="18" cy="18" r="10.5" />
+        `
+
+  return divIcon({
+    className: `fp-airport-symbol-marker fp-airport-symbol-marker--${symbolKind}`,
+    html: `
+      <svg viewBox="0 0 36 36" aria-hidden="true" focusable="false">
+        ${symbol}
+      </svg>
+    `,
+    iconSize: [26, 26],
+    iconAnchor: [13, 13],
   })
 }
 
@@ -376,6 +463,42 @@ function createMapLabelIcon(className: string, label: string) {
   })
 }
 
+function createNavaidIcon(kind: SwedishNavaid['kind']) {
+  const symbol =
+    kind === 'NDB'
+      ? `
+        <circle class="fp-navaid-symbol__ndb-ring fp-navaid-symbol__ndb-ring--outer" cx="18" cy="18" r="14" />
+        <circle class="fp-navaid-symbol__ndb-ring fp-navaid-symbol__ndb-ring--middle" cx="18" cy="18" r="9" />
+        <circle class="fp-navaid-symbol__ndb-ring fp-navaid-symbol__ndb-ring--inner" cx="18" cy="18" r="5" />
+        <circle class="fp-navaid-symbol__center" cx="18" cy="18" r="2" />
+      `
+      : kind === 'VOR'
+        ? `
+          <polygon class="fp-navaid-symbol__shape" points="18 4 30.1 11 30.1 25 18 32 5.9 25 5.9 11" />
+          <circle class="fp-navaid-symbol__center" cx="18" cy="18" r="2" />
+        `
+        : kind === 'DMEV'
+          ? `
+            <polygon class="fp-navaid-symbol__shape fp-navaid-symbol__shape--filled" points="18 4 30.1 11 30.1 25 18 32 5.9 25 5.9 11" />
+            <circle class="fp-navaid-symbol__center fp-navaid-symbol__center--inverse" cx="18" cy="18" r="2.3" />
+          `
+          : `
+            <rect class="fp-navaid-symbol__shape" x="6" y="6" width="24" height="24" />
+            <circle class="fp-navaid-symbol__center" cx="18" cy="18" r="2" />
+          `
+
+  return divIcon({
+    className: `fp-navaid-symbol-marker fp-navaid-symbol-marker--${kind.toLowerCase()}`,
+    html: `
+      <svg viewBox="0 0 36 36" aria-hidden="true" focusable="false">
+        ${symbol}
+      </svg>
+    `,
+    iconSize: [26, 26],
+    iconAnchor: [13, 13],
+  })
+}
+
 function normalizeDegrees(value: number) {
   const result = value % 360
   return result < 0 ? result + 360 : result
@@ -397,7 +520,7 @@ const airspaceMapLabelMaxWidthPx = 180
 const airspaceMapLabelAverageCharWidthPx = 7
 const airspaceMapLabelLineHeightPx = 13
 const airportLabelMinZoom = 8
-const airportMarkerRadiusPx = 4
+const airportMarkerRadiusPx = 13
 const navaidMinZoom = 7
 const navaidLabelMinZoom = 9
 const visualPointMinZoom = 9
@@ -1193,21 +1316,6 @@ export type FlightplanMapViewport = {
 const emptyPlanViewport: FlightplanMapViewport = {
   center: [64.9, 16.8],
   zoom: 5,
-}
-
-function getNavaidPalette(kind: SwedishNavaid['kind']) {
-  switch (kind) {
-    case 'VOR':
-      return { color: '#0c5a9a', fillColor: '#d9eeff', radius: 5 }
-    case 'DMEV':
-      return { color: '#6d3bb3', fillColor: '#eadcff', radius: 5 }
-    case 'DME':
-      return { color: '#7f4a12', fillColor: '#ffe7c9', radius: 4.5 }
-    case 'NDB':
-      return { color: '#0f6a41', fillColor: '#d9f6e6', radius: 4.5 }
-    default:
-      return { color: '#4a5560', fillColor: '#eef2f4', radius: 4.5 }
-  }
 }
 
 function getVisualPointKindLabel(kind: SwedishVisualPoint['kind']) {
@@ -4471,7 +4579,6 @@ export function FlightplanMapEditor({
 
           {showNavaids && mapZoom >= navaidMinZoom
             ? swedishNavaids.map((navaid) => {
-                const palette = getNavaidPalette(navaid.kind)
                 const label = navaid.ident ?? navaid.name ?? navaid.kind
                 return (
                   <FeatureGroup key={navaid.id}>
@@ -4485,16 +4592,12 @@ export function FlightplanMapEditor({
                         zIndexOffset={100}
                       />
                     ) : null}
-                    <CircleMarker
-                      center={[navaid.lat, navaid.lon]}
+                    <Marker
+                      position={[navaid.lat, navaid.lon]}
                       pane="fp-navaid-pane"
-                      radius={palette.radius}
-                      pathOptions={{
-                        color: palette.color,
-                        weight: 1.25,
-                        fillColor: palette.fillColor,
-                        fillOpacity: 0.92,
-                      }}
+                      icon={createNavaidIcon(navaid.kind)}
+                      keyboard={false}
+                      zIndexOffset={105}
                       eventHandlers={{
                         click: (event) => {
                           event.originalEvent.preventDefault()
@@ -4513,7 +4616,7 @@ export function FlightplanMapEditor({
                           <span>{formatCoordinateDms(navaid.lat, 'lat')} {formatCoordinateDms(navaid.lon, 'lon')}</span>
                         </div>
                       </Tooltip>
-                    </CircleMarker>
+                    </Marker>
                   </FeatureGroup>
                 )
               })
@@ -4652,7 +4755,9 @@ export function FlightplanMapEditor({
             const flightRules = getAirportDisplayFlightRules(airportWeather, { showMetar, showTaf })
             const weatherLines = getAirportTooltipWeatherLines(airportWeather)
             const hasWeatherData = hasAirportWeatherData(airportWeather, { showMetar, showTaf })
-            const iconSize = showAirportWeather && !hasWeatherData ? 'small' : 'default'
+            const icon = showAirportWeather && hasWeatherData
+              ? createAirportWeatherIcon(flightRules.category)
+              : createAirportSymbolIcon(airport)
             const airportAdNotam = getAirportNotamLookup(airport.icao)
             const serviceHoursSchedule = airportAdNotam?.status === 'ready'
               ? buildAirportServiceHoursSchedule(
@@ -4666,7 +4771,7 @@ export function FlightplanMapEditor({
             <Marker
               key={airport.icao ?? `${airport.name}-${airport.lat}-${airport.lon}`}
               position={[airport.lat, airport.lon]}
-              icon={createAirportIcon(flightRules.category, iconSize)}
+              icon={icon}
               pane="fp-airport-pane"
               keyboard={false}
               zIndexOffset={hasWeatherData ? 140 : 70}
