@@ -302,7 +302,17 @@ const waypointIcon = divIcon({
   iconAnchor: [9, 9],
 })
 
+const airportWeatherIconCache = new Map<MetarFlightCategory, L.DivIcon>()
+const airportSymbolIconCache = new Map<string, L.DivIcon>()
+const mapLabelIconCache = new Map<string, L.DivIcon>()
+const navaidIconCache = new Map<SwedishNavaid['kind'], L.DivIcon>()
+
 function createAirportWeatherIcon(category: MetarFlightCategory) {
+  const cached = airportWeatherIconCache.get(category)
+  if (cached) {
+    return cached
+  }
+
   const label = category === 'VMC' ? 'V' : category === 'MVMC' ? 'M' : category === 'IMC' ? 'I' : ''
   const variant =
     category === 'VMC'
@@ -313,12 +323,14 @@ function createAirportWeatherIcon(category: MetarFlightCategory) {
           ? 'is-imc'
           : 'is-unknown'
 
-  return divIcon({
+  const icon = divIcon({
     className: 'fp-airport-weather-marker',
     html: `<span class="${variant}">${label}</span>`,
     iconSize: [20, 20],
     iconAnchor: [10, 10],
   })
+  airportWeatherIconCache.set(category, icon)
+  return icon
 }
 
 function getAirportSymbolKind(airport: SwedishAirport) {
@@ -381,6 +393,12 @@ function getLongestRunwayLengthMeters(airport: SwedishAirport) {
 function createAirportSymbolIcon(airport: SwedishAirport) {
   const symbolKind = getAirportSymbolKind(airport)
   const runwayRotationDegrees = getLongestRunwayBearingDegrees(airport) ?? 25
+  const cacheKey = `${symbolKind}:${runwayRotationDegrees}`
+  const cached = airportSymbolIconCache.get(cacheKey)
+  if (cached) {
+    return cached
+  }
+
   const symbol =
     symbolKind === 'military'
       ? `
@@ -396,7 +414,7 @@ function createAirportSymbolIcon(airport: SwedishAirport) {
           <circle class="fp-airport-symbol__shape" cx="18" cy="18" r="10.5" />
         `
 
-  return divIcon({
+  const icon = divIcon({
     className: `fp-airport-symbol-marker fp-airport-symbol-marker--${symbolKind}`,
     html: `
       <svg viewBox="0 0 36 36" aria-hidden="true" focusable="false">
@@ -406,6 +424,8 @@ function createAirportSymbolIcon(airport: SwedishAirport) {
     iconSize: [26, 26],
     iconAnchor: [13, 13],
   })
+  airportSymbolIconCache.set(cacheKey, icon)
+  return icon
 }
 
 function getAirportDisplayFlightRules(
@@ -462,15 +482,28 @@ function escapeHtml(value: string) {
 }
 
 function createMapLabelIcon(className: string, label: string) {
-  return divIcon({
+  const cacheKey = `${className}:${label}`
+  const cached = mapLabelIconCache.get(cacheKey)
+  if (cached) {
+    return cached
+  }
+
+  const icon = divIcon({
     className,
     html: `<span>${escapeHtml(label)}</span>`,
     iconSize: [0, 0],
     iconAnchor: [0, 0],
   })
+  mapLabelIconCache.set(cacheKey, icon)
+  return icon
 }
 
 function createNavaidIcon(kind: SwedishNavaid['kind']) {
+  const cached = navaidIconCache.get(kind)
+  if (cached) {
+    return cached
+  }
+
   const symbol =
     kind === 'NDB'
       ? `
@@ -494,7 +527,7 @@ function createNavaidIcon(kind: SwedishNavaid['kind']) {
             <circle class="fp-navaid-symbol__center" cx="18" cy="18" r="2" />
           `
 
-  return divIcon({
+  const icon = divIcon({
     className: `fp-navaid-symbol-marker fp-navaid-symbol-marker--${kind.toLowerCase()}`,
     html: `
       <svg viewBox="0 0 36 36" aria-hidden="true" focusable="false">
@@ -504,6 +537,8 @@ function createNavaidIcon(kind: SwedishNavaid['kind']) {
     iconSize: [26, 26],
     iconAnchor: [13, 13],
   })
+  navaidIconCache.set(kind, icon)
+  return icon
 }
 
 function normalizeDegrees(value: number) {
@@ -567,6 +602,14 @@ function areMapBoundsClose(left: L.LatLngBounds | null, right: L.LatLngBounds, t
     Math.abs(left.getWest() - right.getWest()) <= toleranceDegrees &&
     Math.abs(left.getNorth() - right.getNorth()) <= toleranceDegrees &&
     Math.abs(left.getEast() - right.getEast()) <= toleranceDegrees
+}
+
+function sameStringArray(left: string[], right: string[]) {
+  return left.length === right.length && left.every((value, index) => value === right[index])
+}
+
+function sameNotamFeatureIds(left: NotamMapOverlayFeature[], right: NotamMapOverlayFeature[]) {
+  return left.length === right.length && left.every((feature, index) => feature.id === right[index]?.id)
 }
 
 function readStoredMapLayerPreferences(): MapLayerPreferences {
@@ -2940,6 +2983,8 @@ export function FlightplanMapEditor({
   const showTaf = mapLayerPreferences.taf
   const showAirportWeather = showMetar || showTaf
   const showAirportMarkers = showAirports || showAirportWeather
+  const pointViewportBounds = isMapbox3dBasemap ? mapbox3dBounds : mapBounds
+  const pointViewportZoom = isMapbox3dBasemap ? mapbox3dZoom : mapZoom
   const obstacleViewportBounds = isMapbox3dBasemap ? mapbox3dBounds : mapBounds
   const obstacleViewportZoom = isMapbox3dBasemap ? mapbox3dZoom : mapZoom
   const airportFlightCategories = useMemo<Record<string, FlightplanMapboxAirportFlightCategory>>(() => {
@@ -3082,29 +3127,55 @@ export function FlightplanMapEditor({
         distanceNm: 0,
       }))
   }, [mapBounds, showAirportMarkers, swedishAirports])
-  const visibleVisualPoints = useMemo(() => {
-    const visualPointViewportBounds = isMapbox3dBasemap ? mapbox3dBounds : mapBounds
-    const visualPointViewportZoom = isMapbox3dBasemap ? mapbox3dZoom : mapZoom
+  const visibleAirports = useMemo(() => {
+    if (!showAirportMarkers) {
+      return []
+    }
 
+    const canRenderAirportSymbol = showAirports && pointViewportZoom >= airportSymbolMinZoom
+    if (!canRenderAirportSymbol && !showAirportWeather) {
+      return []
+    }
+
+    if (!pointViewportBounds) {
+      return printMode ? swedishAirports : []
+    }
+
+    const paddedBounds = pointViewportBounds.pad(0.16)
+    return swedishAirports.filter((airport) => paddedBounds.contains([airport.lat, airport.lon]))
+  }, [pointViewportBounds, pointViewportZoom, printMode, showAirports, showAirportMarkers, showAirportWeather, swedishAirports])
+  const visibleNavaids = useMemo(() => {
+    if (!showNavaids || pointViewportZoom < navaidMinZoom) {
+      return []
+    }
+
+    if (!pointViewportBounds) {
+      return printMode ? swedishNavaids : []
+    }
+
+    const paddedBounds = pointViewportBounds.pad(0.12)
+    return swedishNavaids.filter((navaid) => paddedBounds.contains([navaid.lat, navaid.lon]))
+  }, [pointViewportBounds, pointViewportZoom, printMode, showNavaids, swedishNavaids])
+  const visibleVisualPoints = useMemo(() => {
     if (!showVisualPoints) {
       return []
     }
 
-    if (isMapbox3dBasemap && !visualPointViewportBounds) {
+    if (isMapbox3dBasemap && !pointViewportBounds) {
       return swedishVisualPoints
     }
 
-    if (visualPointViewportZoom < visualPointMinZoom) {
+    if (pointViewportZoom < visualPointMinZoom) {
       return []
     }
 
-    if (!visualPointViewportBounds) {
-      return swedishVisualPoints
+    if (!pointViewportBounds) {
+      return printMode ? swedishVisualPoints : []
     }
 
-    const paddedBounds = visualPointViewportBounds.pad(0.1)
+    const paddedBounds = pointViewportBounds.pad(0.1)
     return swedishVisualPoints.filter((point) => paddedBounds.contains([point.lat, point.lon]))
-  }, [isMapbox3dBasemap, mapBounds, mapZoom, mapbox3dBounds, mapbox3dZoom, showVisualPoints, swedishVisualPoints])
+  }, [isMapbox3dBasemap, pointViewportBounds, pointViewportZoom, printMode, showVisualPoints, swedishVisualPoints])
   const visibleObstacles = useMemo(() => {
     if (!showObstacles || obstacleViewportZoom < obstacleMinZoom) {
       return []
@@ -3566,6 +3637,14 @@ export function FlightplanMapEditor({
     })
   }, [airportWeatherByIcao])
 
+  const setHoveredAirspaceIdsIfChanged = (nextIds: string[]) => {
+    setHoveredAirspaceIds((current) => (sameStringArray(current, nextIds) ? current : nextIds))
+  }
+
+  const setHoveredNotamFeaturesIfChanged = (nextFeatures: NotamMapOverlayFeature[]) => {
+    setHoveredNotamFeatures((current) => (sameNotamFeatureIds(current, nextFeatures) ? current : nextFeatures))
+  }
+
   const getAirspacesAtPoint = (lat: number, lon: number) =>
     visibleAirspaces
       .filter((airspace) => airspaceContainsPoint(airspace, lat, lon))
@@ -3829,8 +3908,8 @@ export function FlightplanMapEditor({
       notamPanelHideTimeoutRef.current = null
     }
 
-    setHoveredAirspaceIds(getAirspacesAtPoint(lat, lon).map((airspace) => airspace.id))
-    setHoveredNotamFeatures(getNotamHoverFeaturesAtPoint(lat, lon, feature))
+    setHoveredAirspaceIdsIfChanged(getAirspacesAtPoint(lat, lon).map((airspace) => airspace.id))
+    setHoveredNotamFeaturesIfChanged(getNotamHoverFeaturesAtPoint(lat, lon, feature))
   }
 
   const scheduleHideNotamInfoPanel = (featureId: string) => {
@@ -3840,7 +3919,7 @@ export function FlightplanMapEditor({
 
     notamPanelHideTimeoutRef.current = window.setTimeout(() => {
       setHoveredNotamFeatures((current) => (current.some((feature) => feature.id === featureId) ? [] : current))
-      setHoveredAirspaceIds([])
+      setHoveredAirspaceIds((current) => (current.length === 0 ? current : []))
       notamPanelHideTimeoutRef.current = null
     }, 180)
   }
@@ -4552,8 +4631,8 @@ export function FlightplanMapEditor({
                 layer.on('mouseover mousemove', (event) => {
                   const pointer = event as LeafletMouseEvent
                   if (isCoarsePointerInput()) {
-                    setHoveredAirspaceIds([])
-                    setHoveredNotamFeatures([])
+                    setHoveredAirspaceIdsIfChanged([])
+                    setHoveredNotamFeaturesIfChanged([])
                     return
                   }
 
@@ -4561,17 +4640,17 @@ export function FlightplanMapEditor({
                   const matchingNotamFeatures = getNotamHoverFeaturesAtPoint(pointer.latlng.lat, pointer.latlng.lng)
 
                   if (matchingAirspaces.length === 0) {
-                    setHoveredAirspaceIds([])
-                    setHoveredNotamFeatures(matchingNotamFeatures)
+                    setHoveredAirspaceIdsIfChanged([])
+                    setHoveredNotamFeaturesIfChanged(matchingNotamFeatures)
                     return
                   }
 
-                  setHoveredAirspaceIds(matchingAirspaces.map((airspace) => airspace.id))
-                  setHoveredNotamFeatures(matchingNotamFeatures)
+                  setHoveredAirspaceIdsIfChanged(matchingAirspaces.map((airspace) => airspace.id))
+                  setHoveredNotamFeaturesIfChanged(matchingNotamFeatures)
                 })
                 layer.on('mouseout', () => {
-                  setHoveredAirspaceIds([])
-                  setHoveredNotamFeatures([])
+                  setHoveredAirspaceIdsIfChanged([])
+                  setHoveredNotamFeaturesIfChanged([])
                 })
                 layer.on('click', (event) => {
                   const clicked = event as LeafletMouseEvent
@@ -4946,8 +5025,7 @@ export function FlightplanMapEditor({
               })
             : null}
 
-          {showNavaids && mapZoom >= navaidMinZoom
-            ? swedishNavaids.map((navaid) => {
+          {visibleNavaids.map((navaid) => {
                 const label = navaid.ident ?? navaid.name ?? navaid.kind
                 return (
                   <FeatureGroup key={navaid.id}>
@@ -4988,8 +5066,7 @@ export function FlightplanMapEditor({
                     </Marker>
                   </FeatureGroup>
                 )
-              })
-            : null}
+              })}
 
           {visibleVisualPoints.map((point) => {
             const label = getVisualPointDisplayLabel(point)
@@ -5119,7 +5196,7 @@ export function FlightplanMapEditor({
             />
           ))}
 
-          {showAirportMarkers ? swedishAirports.map((airport) => {
+          {visibleAirports.map((airport) => {
             const airportWeather = airport.icao ? airportWeatherByIcao[airport.icao] : null
             const flightRules = getAirportDisplayFlightRules(airportWeather, { showMetar, showTaf })
             const weatherLines = getAirportTooltipWeatherLines(airportWeather)
@@ -5213,7 +5290,7 @@ export function FlightplanMapEditor({
                 ) : null}
               </FeatureGroup>
             )
-          }) : null}
+          })}
 
           {previewRouteLegs.map((leg, index) => (
             <FeatureGroup key={`segment-${index}`}>
