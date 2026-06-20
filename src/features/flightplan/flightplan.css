@@ -2873,6 +2873,27 @@
   border: 0;
 }
 
+.flightplan-page .fp-temporary-obstacle-aura {
+  fill: rgba(239, 68, 68, 0.18);
+  stroke: rgba(239, 68, 68, 0.46);
+  stroke-width: 4;
+}
+
+.flightplan-page .fp-temporary-obstacle-aura-line {
+  fill: none;
+  stroke: rgba(239, 68, 68, 0.5);
+  stroke-width: 8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.flightplan-page .fp-temporary-obstacle-aura-shape {
+  fill: rgba(239, 68, 68, 0.18);
+  stroke: rgba(239, 68, 68, 0.5);
+  stroke-width: 5;
+  stroke-linejoin: round;
+}
+
 .flightplan-page .fp-standard-obstacle-marker svg {
   display: block;
   width: 100%;

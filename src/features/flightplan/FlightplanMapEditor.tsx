@@ -62,6 +62,7 @@ import type { RouteLegAloftWind } from './openMeteoAloft'
 import {
   fetchSwedishObstacles,
   getObstacleDisplayType,
+  type ObstacleCategory,
   type SwedishObstacle,
 } from './obstacles'
 import type { FlightPlanInput, FlightPlanDerived } from './types'
@@ -545,6 +546,7 @@ const sigmetOverlayPalette = {
 
 const notamMapPane = 'fp-notam-pane'
 const notamMapLinePane = 'fp-notam-line-pane'
+const notamMapSymbolPane = 'fp-notam-symbol-pane'
 const notamMapHighlightPane = 'fp-notam-highlight-pane'
 const obstacleMapPane = 'fp-obstacle-pane'
 
@@ -693,43 +695,114 @@ function getObstacleShaftEndpoint(obstacle: SwedishObstacle, centerX: number, ce
   }
 }
 
-function createWindTurbineObstacleIcon(obstacle: SwedishObstacle) {
+function createWindTurbineObstacleIcon(obstacle: SwedishObstacle, options: { temporary?: boolean } = {}) {
   const color = getWindTurbineSymbolColor(obstacle)
   const lighted = isObstacleLighted(obstacle)
   const center = { x: 18, y: 18 }
   const endpoint = getObstacleShaftEndpoint(obstacle, center.x, center.y, 25)
+  const dropPath = 'M18 7.5c5.8 0 10.5 4.6 10.5 10.3 0 4.4-3 7.6-5.5 11.4L18 40l-5-10.8c-2.5-3.8-5.5-7-5.5-11.4C7.5 12.1 12.2 7.5 18 7.5Z'
 
   return divIcon({
-    className: 'fp-wind-turbine-obstacle-marker',
+    className: `fp-wind-turbine-obstacle-marker ${options.temporary ? 'fp-temporary-obstacle-marker' : ''}`.trim(),
     iconSize: [36, 36],
     iconAnchor: [18, 18],
     html: `
       <svg viewBox="0 0 44 44" aria-hidden="true" focusable="false" style="--fp-wind-turbine-color: ${color}">
+        ${options.temporary ? `<line class="fp-temporary-obstacle-aura-line" x1="${center.x}" y1="${center.y}" x2="${endpoint.x.toFixed(2)}" y2="${endpoint.y.toFixed(2)}" />` : ''}
+        ${options.temporary ? `<path class="fp-temporary-obstacle-aura-shape" d="${dropPath}" />` : ''}
         <line class="fp-wind-turbine-shaft" x1="${center.x}" y1="${center.y}" x2="${endpoint.x.toFixed(2)}" y2="${endpoint.y.toFixed(2)}" />
-        <path class="fp-wind-turbine-drop" d="M18 7.5c5.8 0 10.5 4.6 10.5 10.3 0 4.4-3 7.6-5.5 11.4L18 40l-5-10.8c-2.5-3.8-5.5-7-5.5-11.4C7.5 12.1 12.2 7.5 18 7.5Z" />
+        <path class="fp-wind-turbine-drop" d="${dropPath}" />
         ${lighted ? '<circle class="fp-wind-turbine-hole" cx="18" cy="18" r="4.7" />' : ''}
       </svg>
     `,
   })
 }
 
-function createStandardObstacleIcon(obstacle: SwedishObstacle) {
+function createStandardObstacleIcon(obstacle: SwedishObstacle, options: { temporary?: boolean } = {}) {
   const color = getObstacleSymbolColor(obstacle)
   const lighted = isObstacleLighted(obstacle)
   const center = { x: 18, y: 18 }
   const endpoint = getObstacleShaftEndpoint(obstacle, center.x, center.y, 25)
 
   return divIcon({
-    className: 'fp-standard-obstacle-marker',
+    className: `fp-standard-obstacle-marker ${options.temporary ? 'fp-temporary-obstacle-marker' : ''}`.trim(),
     iconSize: [36, 36],
     iconAnchor: [18, 18],
     html: `
       <svg viewBox="0 0 44 44" aria-hidden="true" focusable="false" style="--fp-obstacle-color: ${color}">
+        ${options.temporary ? '<circle class="fp-temporary-obstacle-aura" cx="18" cy="18" r="7" />' : ''}
         <line class="fp-standard-obstacle-shaft" x1="${center.x}" y1="${center.y}" x2="${endpoint.x.toFixed(2)}" y2="${endpoint.y.toFixed(2)}" />
         <circle class="fp-standard-obstacle-dot ${lighted ? 'is-lighted' : ''}" cx="18" cy="18" r="5" />
       </svg>
     `,
   })
+}
+
+function inferNotamObstacleCategory(feature: NotamMapOverlayFeature): ObstacleCategory {
+  const text = `${feature.title} ${feature.rawText}`
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+
+  if (/\bwind\s*turbine\b|\bwindturbine\b|\bvindkraft/.test(text)) return 'wind_turbine'
+  if (/\bcrane\b|\bkran\b/.test(text)) return 'crane'
+  if (/\bmast\b|\btelemast\b|\bantenna\b/.test(text)) return 'mast'
+  if (/\btower\b|\btorn\b/.test(text)) return 'tower'
+  if (/\bchimney\b|\bskorsten\b|\bstack\b/.test(text)) return 'chimney'
+  if (/\bpower\s*line\b|\bpylon\b|\bkraftledning\b/.test(text)) return 'powerline_or_pylon'
+  if (/\bbuilding\b|\bbyggnad\b/.test(text)) return 'building'
+
+  return 'other'
+}
+
+function extractNotamObstacleHeight(rawText: string): { value: number | null; unit: string | null } {
+  const normalized = rawText.replace(/\u00a0/g, ' ').replace(/\s+/g, ' ')
+  const match = normalized.match(/\b(?:HEIGHT|HGT|HÖJD|HOJD)\s*(?:OF\s+)?(?:OBST(?:ACLE)?\s*)?(?:IS\s*)?(\d{2,5})\s*(FT|FEET|M|METER|METERS|METRE|METRES)\b/i)
+    ?? normalized.match(/\b(\d{2,5})\s*(FT|FEET|M|METER|METERS|METRE|METRES)\s*(?:AGL|GND)\b/i)
+
+  if (!match) {
+    return { value: null, unit: null }
+  }
+
+  const value = Number(match[1])
+  if (!Number.isFinite(value)) {
+    return { value: null, unit: null }
+  }
+
+  const unit = match[2].toUpperCase().startsWith('FT') || match[2].toUpperCase() === 'FEET' ? 'FT' : 'M'
+  return { value, unit }
+}
+
+function notamFeatureToTemporaryObstacle(feature: NotamMapOverlayFeature): SwedishObstacle {
+  const [lat, lon] = getFeatureMarkerPosition(feature)
+  const height = extractNotamObstacleHeight(feature.rawText)
+
+  return {
+    id: feature.id,
+    name: feature.title,
+    category: inferNotamObstacleCategory(feature),
+    typeDescription: 'Temporary obstacle',
+    nationalTypeDescription: 'Tillfälligt hinder',
+    lightingDescription: /\b(?:LIGHTED|LGT|BELYST|LJUS)\b/i.test(feature.rawText) ? 'Temporary lighting' : null,
+    markingDescription: null,
+    heightValue: height.value,
+    heightUnit: height.unit,
+    mslValue: null,
+    mslUnit: null,
+    remark: feature.label,
+    nationalRemark: feature.supplementId ? `AIP SUP ${feature.supplementId}` : null,
+    cycleId: null,
+    lat,
+    lon,
+  }
+}
+
+function createTemporaryObstacleNotamIcon(feature: NotamMapOverlayFeature) {
+  const obstacle = notamFeatureToTemporaryObstacle(feature)
+
+  return obstacle.category === 'wind_turbine'
+    ? createWindTurbineObstacleIcon(obstacle, { temporary: true })
+    : createStandardObstacleIcon(obstacle, { temporary: true })
 }
 
 function formatObstacleHeight(value: number | null, unit: string | null) {
@@ -908,6 +981,12 @@ function createNotamPointTooltip(feature: NotamMapOverlayFeature) {
       <NotamMapInfoCard feature={feature} />
     </Tooltip>
   )
+}
+
+function createNotamPointIcon(feature: NotamMapOverlayFeature) {
+  return feature.visualKind === 'obstacle'
+    ? createTemporaryObstacleNotamIcon(feature)
+    : createNotamMapSymbolIcon(feature.source)
 }
 
 function normalizeAirportHoursLine(line: string) {
@@ -4198,6 +4277,7 @@ export function FlightplanMapEditor({
           <Pane name="fp-wind-pane" style={{ zIndex: 545 }} />
           <Pane name="fp-airspace-label-pane" style={{ zIndex: 555 }} />
           <Pane name={notamMapHighlightPane} style={{ zIndex: 558 }} />
+          <Pane name={notamMapSymbolPane} style={{ zIndex: 559 }} />
           <Pane name="fp-airport-pane" style={{ zIndex: 560 }} />
           <TileLayer
             attribution={activeBasemap.attribution ?? ''}
@@ -4391,6 +4471,10 @@ export function FlightplanMapEditor({
 
           {showNotamOverlays
             ? notamMapFeatures.map((feature) => {
+                if (feature.visualKind === 'obstacle' && mapZoom < obstacleMinZoom) {
+                  return null
+                }
+
                 const renderAsPoint = shouldCollapseNotamAreaToPoint(feature, mapInstance, mapZoom)
 
                 if (feature.kind === 'circle' && feature.radiusNm != null) {
@@ -4399,9 +4483,9 @@ export function FlightplanMapEditor({
                     return (
                       <Marker
                         key={feature.id}
-                        pane={notamMapPane}
+                        pane={notamMapSymbolPane}
                         position={[lat, lon]}
-                        icon={createNotamMapSymbolIcon(feature.source)}
+                        icon={createNotamPointIcon(feature)}
                         keyboard={false}
                         zIndexOffset={80}
                         eventHandlers={getNotamFeatureEventHandlers(feature)}
@@ -4411,15 +4495,35 @@ export function FlightplanMapEditor({
                     )
                   }
 
-                  return (
+                  const circle = (
                     <Circle
-                      key={feature.id}
+                      key={`${feature.id}-circle`}
                       pane={notamMapPane}
                       center={[lat, lon]}
                       radius={feature.radiusNm * 1852}
                       pathOptions={notamMapPathOptions(feature.source, 'area', mapZoom)}
                       eventHandlers={getNotamFeatureEventHandlers(feature)}
                     />
+                  )
+
+                  if (feature.visualKind !== 'obstacle') {
+                    return circle
+                  }
+
+                  return (
+                    <FeatureGroup key={feature.id}>
+                      {circle}
+                      <Marker
+                        pane={notamMapSymbolPane}
+                        position={[lat, lon]}
+                        icon={createNotamPointIcon(feature)}
+                        keyboard={false}
+                        zIndexOffset={95}
+                        eventHandlers={getNotamFeatureEventHandlers(feature)}
+                      >
+                        {createNotamPointTooltip(feature)}
+                      </Marker>
+                    </FeatureGroup>
                   )
                 }
 
@@ -4429,9 +4533,9 @@ export function FlightplanMapEditor({
                     return (
                       <Marker
                         key={feature.id}
-                        pane={notamMapPane}
+                        pane={notamMapSymbolPane}
                         position={[lat, lon]}
-                        icon={createNotamMapSymbolIcon(feature.source)}
+                        icon={createNotamPointIcon(feature)}
                         keyboard={false}
                         zIndexOffset={80}
                         eventHandlers={getNotamFeatureEventHandlers(feature)}
@@ -4441,14 +4545,35 @@ export function FlightplanMapEditor({
                     )
                   }
 
-                  return (
+                  const polygon = (
                     <Polygon
-                      key={feature.id}
+                      key={`${feature.id}-polygon`}
                       pane={notamMapPane}
                       positions={feature.positions}
                       pathOptions={notamMapPathOptions(feature.source, 'area', mapZoom)}
                       eventHandlers={getNotamFeatureEventHandlers(feature)}
                     />
+                  )
+
+                  if (feature.visualKind !== 'obstacle') {
+                    return polygon
+                  }
+
+                  const [lat, lon] = getFeatureMarkerPosition(feature)
+                  return (
+                    <FeatureGroup key={feature.id}>
+                      {polygon}
+                      <Marker
+                        pane={notamMapSymbolPane}
+                        position={[lat, lon]}
+                        icon={createNotamPointIcon(feature)}
+                        keyboard={false}
+                        zIndexOffset={95}
+                        eventHandlers={getNotamFeatureEventHandlers(feature)}
+                      >
+                        {createNotamPointTooltip(feature)}
+                      </Marker>
+                    </FeatureGroup>
                   )
                 }
 
@@ -4472,9 +4597,9 @@ export function FlightplanMapEditor({
                 return (
                   <Marker
                     key={feature.id}
-                    pane={notamMapPane}
+                    pane={notamMapSymbolPane}
                     position={[ptLat, ptLon]}
-                    icon={createNotamMapSymbolIcon(feature.source)}
+                    icon={createNotamPointIcon(feature)}
                     keyboard={false}
                     zIndexOffset={80}
                     eventHandlers={getNotamFeatureEventHandlers(feature)}
@@ -4487,6 +4612,10 @@ export function FlightplanMapEditor({
 
           {showNotamOverlays
             ? hoveredNotamFeatures.map((hoveredNotamFeature) => {
+                if (hoveredNotamFeature.visualKind === 'obstacle' && mapZoom < obstacleMinZoom) {
+                  return null
+                }
+
                 if (shouldCollapseNotamAreaToPoint(hoveredNotamFeature, mapInstance, mapZoom)) {
                   return null
                 }

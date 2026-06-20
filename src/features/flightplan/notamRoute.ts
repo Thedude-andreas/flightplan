@@ -899,6 +899,7 @@ export type NotamMapOverlayFeature = {
   id: string
   source: 'notam-enroute' | 'notam-warning' | 'aip-sup'
   sourceEntryId: string
+  visualKind?: 'obstacle'
   label: string
   title: string
   rawText: string
@@ -1079,6 +1080,15 @@ function getGeometryExpectationReason(rawText: string) {
   return null
 }
 
+function isObstacleMapFeature(rawText: string) {
+  const normalized = stripNotamPdfPageArtifacts(rawText)
+    .replace(/\u00a0/g, ' ')
+    .replace(/\s+/g, ' ')
+    .toUpperCase()
+
+  return /\b(?:OBST|OBSTACLE|OBSTACLES|HINDER|FLYGHINDER|CRANE|KRAN|MAST|TOWER|TORN|WIND\s*TURBINE|WINDTURBINE|VINDKRAFT|LIGHT\s+ERECTED)\b/.test(normalized)
+}
+
 function pushPointFeatures(
   features: NotamMapOverlayFeature[],
   coords: RoutePoint[],
@@ -1087,11 +1097,14 @@ function pushPointFeatures(
   idPrefix: string,
   supplementMeta?: { id: string; url: string | null },
 ) {
+  const visualKind = isObstacleMapFeature(rawText) ? 'obstacle' : undefined
+
   for (const [index, point] of coords.entries()) {
     features.push({
       id: `${idPrefix}-pt-${index}`,
       source,
       sourceEntryId: idPrefix,
+      visualKind,
       label: notamMapSourceLabel(source),
       title: deriveTitle(rawText),
       rawText,
@@ -1111,11 +1124,14 @@ function pushAirportPointFeatures(
   idPrefix: string,
   supplementMeta?: { id: string; url: string | null },
 ) {
+  const visualKind = isObstacleMapFeature(rawText) ? 'obstacle' : undefined
+
   for (const airport of airports) {
     features.push({
       id: `${idPrefix}-airport-${airport.icao}`,
       source,
       sourceEntryId: idPrefix,
+      visualKind,
       label: `${notamMapSourceLabel(source)} · ${airport.icao}`,
       title: deriveTitle(rawText),
       rawText,
@@ -1143,6 +1159,8 @@ function pushAirspacePolygonFeatures(
   idPrefix: string,
   supplementMeta?: { id: string; url: string | null },
 ) {
+  const visualKind = isObstacleMapFeature(rawText) ? 'obstacle' : undefined
+
   for (const airspace of airspaces) {
     for (const [index, ring] of airspaceGeometryOuterRings(airspace).entries()) {
       if (ring.length < 3) {
@@ -1154,6 +1172,7 @@ function pushAirspacePolygonFeatures(
         id: `${idPrefix}-airspace-${airspace.id}-${index}`,
         source,
         sourceEntryId: idPrefix,
+        visualKind,
         label: `${notamMapSourceLabel(source)} · ${designator}`,
         title: deriveTitle(rawText),
         rawText,
@@ -1290,6 +1309,8 @@ function pushGeometryFromCoordinateText(
   supplementMeta?: { id: string; url: string | null },
 ) {
   const coords = extractCoordinates(rawText)
+  const visualKind = isObstacleMapFeature(rawText) ? 'obstacle' : undefined
+
   if (coords.length === 0) {
     const mentionedAirspaces = getMentionedSwedishAirspaces(rawText)
     if (mentionedAirspaces.length > 0) {
@@ -1331,6 +1352,7 @@ function pushGeometryFromCoordinateText(
       id: `${idPrefix}-circle`,
       source,
       sourceEntryId: idPrefix,
+      visualKind,
       label: notamMapSourceLabel(source),
       title: deriveTitle(rawText),
       rawText,
@@ -1349,6 +1371,7 @@ function pushGeometryFromCoordinateText(
       id: `${idPrefix}-poly`,
       source,
       sourceEntryId: idPrefix,
+      visualKind,
       label: notamMapSourceLabel(source),
       title: deriveTitle(rawText),
       rawText,
@@ -1366,6 +1389,7 @@ function pushGeometryFromCoordinateText(
       id: `${idPrefix}-pt`,
       source,
       sourceEntryId: idPrefix,
+      visualKind,
       label: notamMapSourceLabel(source),
       title: deriveTitle(rawText),
       rawText,
@@ -1386,6 +1410,7 @@ function pushGeometryFromCoordinateText(
     id: `${idPrefix}-line`,
     source,
     sourceEntryId: idPrefix,
+    visualKind,
     label: notamMapSourceLabel(source),
     title: deriveTitle(rawText),
     rawText,
