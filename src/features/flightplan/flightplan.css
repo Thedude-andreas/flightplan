@@ -3103,6 +3103,10 @@
   color: #312e81;
 }
 
+.flightplan-page .fp-airspace-map-label--weather-area span {
+  color: #7c2d12;
+}
+
 .flightplan-page .fp-navaid-label-marker span {
   padding: 0.08rem 0.32rem;
   border-radius: 0.03rem;

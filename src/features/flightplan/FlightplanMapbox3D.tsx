@@ -127,6 +127,8 @@ const notamObstacleSymbolSourceId = 'flightplan-3d-notam-obstacle-symbols'
 const notamObstacleSymbolLayerId = 'flightplan-3d-notam-obstacle-symbols'
 const notamObstacleVolumeRenderLayerId = 'flightplan-3d-notam-obstacle-volumes-render'
 const weatherAreaSourceId = 'flightplan-3d-weather-areas'
+const weatherAreaHaloLayerId = 'flightplan-3d-weather-areas-halo'
+const weatherAreaSoftEdgeLayerId = 'flightplan-3d-weather-areas-soft-edge'
 const weatherAreaLayerId = 'flightplan-3d-weather-areas'
 const weatherLineSourceId = 'flightplan-3d-weather-lines'
 const weatherLineLayerId = 'flightplan-3d-weather-lines'
@@ -2772,6 +2774,28 @@ export function FlightplanMapbox3D({
       })
 
       updateOrCreateGeoJsonSource(map, weatherAreaSourceId, latestMapData.weatherGeoJson.areas)
+      map.addLayer({
+        id: weatherAreaHaloLayerId,
+        type: 'line',
+        source: weatherAreaSourceId,
+        paint: {
+          'line-color': ['get', 'color'],
+          'line-width': ['interpolate', ['linear'], ['zoom'], 5, 9, 10, 16, 13, 26],
+          'line-opacity': 0.09,
+          'line-blur': ['interpolate', ['linear'], ['zoom'], 5, 6, 13, 12],
+        },
+      })
+      map.addLayer({
+        id: weatherAreaSoftEdgeLayerId,
+        type: 'line',
+        source: weatherAreaSourceId,
+        paint: {
+          'line-color': ['get', 'color'],
+          'line-width': ['interpolate', ['linear'], ['zoom'], 5, 5, 10, 9, 13, 15],
+          'line-opacity': 0.18,
+          'line-blur': ['interpolate', ['linear'], ['zoom'], 5, 3, 13, 7],
+        },
+      })
       map.addLayer({
         id: weatherAreaLayerId,
         type: 'fill',

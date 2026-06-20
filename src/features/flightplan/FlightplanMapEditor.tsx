@@ -124,6 +124,10 @@ type PointInfoNotamFeature = {
   feature: NotamMapOverlayFeature
   distanceNm: number
 }
+type PointInfoWeatherOverlay = {
+  overlay: RouteWeatherOverlay
+  distanceNm: number
+}
 type MapPointInfo = {
   lat: number
   lon: number
@@ -134,6 +138,7 @@ type MapPointInfo = {
   visualPoints: PointInfoVisualPoint[]
   obstacles: PointInfoObstacle[]
   notamFeatures: PointInfoNotamFeature[]
+  weatherOverlays: PointInfoWeatherOverlay[]
 }
 type MapPointInfoDirectObjects = Partial<Pick<MapPointInfo, 'airports' | 'navaids' | 'visualPoints' | 'notamFeatures'>>
 type PointInfoObstacle = {
@@ -1725,6 +1730,95 @@ function getNotamLabelPriority(feature: NotamMapOverlayFeature) {
   return 90
 }
 
+function getWeatherOverlayLabelText(overlay: RouteWeatherOverlay) {
+  const text = `${overlay.title} ${overlay.matchSummary} ${overlay.matchKinds.join(' ')} ${overlay.rawText}`.toUpperCase()
+  const codes: string[] = []
+
+  const addCode = (code: string) => {
+    if (!codes.includes(code)) {
+      codes.push(code)
+    }
+  }
+
+  if (/\b(?:EMBD\s+)?TS(?:GR)?\b|\bTHUNDERSTORM/.test(text)) addCode('TS')
+  if (/\bTURB(?:ULENCE)?\b/.test(text)) addCode('TURB')
+  if (/\bICE|ICING\b/.test(text)) addCode('ICE')
+  if (/\bCB\b|CUMULONIMBUS/.test(text)) addCode('CB')
+  if (/\bVA\b|VOLCANIC\s+ASH/.test(text)) addCode('VA')
+  if (/\bMTW\b|MOUNTAIN\s+WAVE/.test(text)) addCode('MTW')
+  if (/\bLLWS\b|WIND\s*SHEAR/.test(text)) addCode('WS')
+  if (/\bAIRMET\b/.test(text)) addCode('AIRMET')
+  if (/\bSIGMET\b/.test(text)) addCode('SIGMET')
+
+  return codes.slice(0, 2).join('\n') || overlay.matchKinds[0]?.toUpperCase() || overlay.firCodes[0] || 'WX'
+}
+
+function getWeatherOverlayLabelPosition(
+  overlay: RouteWeatherOverlay,
+  mapBounds: L.LatLngBounds,
+) {
+  const { geometry } = overlay
+
+  if (geometry.type === 'circle') {
+    const center = L.latLng(geometry.centre.lat, geometry.centre.lon)
+    const circleBounds = center.toBounds(geometry.radiusNm * 1852 * 2)
+    if (!circleBounds.intersects(mapBounds)) {
+      return null
+    }
+
+    if (mapBounds.contains(circleBounds.getSouthWest()) && mapBounds.contains(circleBounds.getNorthEast())) {
+      return [geometry.centre.lat, geometry.centre.lon] as [number, number]
+    }
+
+    const visibleBounds = boundsIntersection(circleBounds, mapBounds)
+    if (!visibleBounds) {
+      return null
+    }
+
+    const visibleCenter = visibleBounds.getCenter()
+    return [visibleCenter.lat, visibleCenter.lng] as [number, number]
+  }
+
+  if (geometry.type === 'polygon') {
+    if (geometry.points.length < 3) {
+      return null
+    }
+
+    return getPolygonLabelPosition([geometry.points.map((point) => [point.lon, point.lat])], mapBounds)
+  }
+
+  if (geometry.type === 'multipolygon') {
+    const positions = geometry.polygons
+      .filter((polygon) => polygon.length >= 3)
+      .map((polygon) => getPolygonLabelPosition([polygon.map((point) => [point.lon, point.lat])], mapBounds))
+      .filter((position): position is [number, number] => Boolean(position))
+
+    const mapCenter = mapBounds.getCenter()
+    return positions.sort((left, right) => L.latLng(left).distanceTo(mapCenter) - L.latLng(right).distanceTo(mapCenter))[0] ?? null
+  }
+
+  return null
+}
+
+function getWeatherOverlayBounds(overlay: RouteWeatherOverlay) {
+  const { geometry } = overlay
+
+  if (geometry.type === 'circle') {
+    return L.latLng(geometry.centre.lat, geometry.centre.lon).toBounds(geometry.radiusNm * 1852 * 2)
+  }
+
+  if (geometry.type === 'polygon') {
+    return geometry.points.length >= 3 ? L.latLngBounds(geometry.points.map((point) => [point.lat, point.lon] as [number, number])) : null
+  }
+
+  if (geometry.type === 'multipolygon') {
+    const points = geometry.polygons.flatMap((polygon) => polygon.map((point) => [point.lat, point.lon] as [number, number]))
+    return points.length >= 3 ? L.latLngBounds(points) : null
+  }
+
+  return null
+}
+
 function estimateAirspaceMapLabelSize(label: string) {
   const sourceLines = label.split(/\n+/).map((line) => line.trim()).filter(Boolean)
   const lines = sourceLines.length > 0 ? sourceLines : [label]
@@ -1880,6 +1974,55 @@ function distanceToNotamLineNm(lat: number, lon: number, positions: [number, num
   }
 
   return minDistance
+}
+
+function routePointsToPositions(points: Array<{ lat: number; lon: number }>) {
+  return points.map((point) => [point.lat, point.lon] as [number, number])
+}
+
+function weatherOverlayInspectDistanceNm(overlay: RouteWeatherOverlay, lat: number, lon: number) {
+  const { geometry } = overlay
+
+  if (geometry.type === 'circle') {
+    const distanceToCenter = distanceNmBetween(lat, lon, geometry.centre.lat, geometry.centre.lon)
+    return distanceToCenter <= geometry.radiusNm ? 0 : null
+  }
+
+  if (geometry.type === 'polygon') {
+    if (geometry.points.length < 3) {
+      return null
+    }
+
+    const polygon = [geometry.points.map((point) => [point.lon, point.lat])]
+    if (pointInPolygon(lat, lon, polygon)) {
+      return 0
+    }
+
+    return null
+  }
+
+  if (geometry.type === 'multipolygon') {
+    for (const polygonPoints of geometry.polygons) {
+      if (polygonPoints.length < 3) {
+        continue
+      }
+
+      const polygon = [polygonPoints.map((point) => [point.lon, point.lat])]
+      if (pointInPolygon(lat, lon, polygon)) {
+        return 0
+      }
+    }
+
+    return null
+  }
+
+  if (geometry.type === 'polyline') {
+    const distanceToLine = distanceToNotamLineNm(lat, lon, routePointsToPositions(geometry.points))
+    return distanceToLine != null && distanceToLine <= notamLineInspectRadiusNm ? distanceToLine : null
+  }
+
+  const distanceToPoint = distanceNmBetween(lat, lon, geometry.point.lat, geometry.point.lon)
+  return distanceToPoint <= notamPointInspectRadiusNm ? distanceToPoint : null
 }
 
 function notamFeatureInspectDistanceNm(feature: NotamMapOverlayFeature, lat: number, lon: number) {
@@ -3058,8 +3201,30 @@ export function FlightplanMapEditor({
       }
     }
 
+    if (showWeatherOverlays) {
+      for (const overlay of routeWeatherOverlays) {
+        const bounds = getWeatherOverlayBounds(overlay)
+        if (!bounds || !isLargeEnoughForAirspaceLabel(bounds, mapInstance)) {
+          continue
+        }
+
+        const position = getWeatherOverlayLabelPosition(overlay, mapBounds)
+        if (!position || !pointInBoundsWithPadding(position, mapBounds)) {
+          continue
+        }
+
+        labels.push({
+          id: `weather-${overlay.id}`,
+          label: getWeatherOverlayLabelText(overlay),
+          position,
+          variant: 'weather-area',
+          priority: 85,
+        })
+      }
+    }
+
     return removeCollidingAirspaceMapLabels(labels, mapInstance)
-  }, [isMapbox3dBasemap, mapBounds, mapInstance, mapZoom, notamMapFeatures, showAirspaces, showNotamOverlays, visibleAirspaces])
+  }, [isMapbox3dBasemap, mapBounds, mapInstance, mapZoom, notamMapFeatures, routeWeatherOverlays, showAirspaces, showNotamOverlays, showWeatherOverlays, visibleAirspaces])
   const isAirspaceLabelHighlighted = (label: AirspaceMapLabel) => {
     if (label.id.startsWith('airspace-')) {
       return hoveredAirspaceIds.includes(label.id.replace(/^airspace-/, ''))
@@ -3425,6 +3590,17 @@ export function FlightplanMapEditor({
         .sort((left, right) => left.distanceNm - right.distanceNm || left.feature.title.localeCompare(right.feature.title, 'sv'))
       : []
 
+  const getWeatherOverlayMatchesAtPoint = (lat: number, lon: number) =>
+    showWeatherOverlays
+      ? routeWeatherOverlays
+        .map((overlay) => {
+          const distanceNm = weatherOverlayInspectDistanceNm(overlay, lat, lon)
+          return distanceNm == null ? null : { overlay, distanceNm }
+        })
+        .filter((item): item is PointInfoWeatherOverlay => Boolean(item))
+        .sort((left, right) => left.distanceNm - right.distanceNm || left.overlay.title.localeCompare(right.overlay.title, 'sv'))
+      : []
+
   const getNotamHoverFeaturesAtPoint = (lat: number, lon: number, fallbackFeature?: NotamMapOverlayFeature) => {
     const matches = showNotamOverlays
       ? notamMapFeatures
@@ -3456,6 +3632,7 @@ export function FlightplanMapEditor({
   ): MapPointInfo => {
     const matchingAirspaces = getAirspacesAtPoint(lat, lon)
     const notamFeaturesAtPoint = getNotamFeatureMatchesAtPoint(lat, lon).slice(0, 8)
+    const weatherOverlaysAtPoint = getWeatherOverlayMatchesAtPoint(lat, lon).slice(0, 8)
     const nearbyObstacles = showObstacles
       ? visibleObstacles
           .map((obstacle) => ({
@@ -3480,6 +3657,7 @@ export function FlightplanMapEditor({
       visualPoints: directObjects.visualPoints ?? [],
       obstacles: nearbyObstacles,
       notamFeatures: directObjects.notamFeatures ?? notamFeaturesAtPoint,
+      weatherOverlays: weatherOverlaysAtPoint,
     }
   }
 
@@ -4122,9 +4300,9 @@ export function FlightplanMapEditor({
               </button>
             </div>
 
-            <section>
-              <h3>Luftrum</h3>
-              {selectedPointInfo.airspaces.length > 0 ? (
+            {selectedPointInfo.airspaces.length > 0 ? (
+              <section>
+                <h3>Luftrum</h3>
                 <ul>
                   {selectedPointInfo.airspaces.map((airspace) => (
                     <li key={airspace.id}>
@@ -4134,10 +4312,8 @@ export function FlightplanMapEditor({
                     </li>
                   ))}
                 </ul>
-              ) : (
-                <p>Inga visade luftrum över punkten.</p>
-              )}
-            </section>
+              </section>
+            ) : null}
 
             {selectedPointInfo.airports.length > 0 ? (
               <section>
@@ -4229,9 +4405,25 @@ export function FlightplanMapEditor({
               </section>
             ) : null}
 
-            <section>
-              <h3>NOTAM / AIP SUP</h3>
-              {selectedPointInfo.notamFeatures.length > 0 ? (
+            {selectedPointInfo.weatherOverlays.length > 0 ? (
+              <section>
+                <h3>Väderområden</h3>
+                <ul>
+                  {selectedPointInfo.weatherOverlays.map(({ overlay, distanceNm }) => (
+                    <li key={overlay.id}>
+                      <strong>{overlay.firCodes[0] ?? 'SIGMET/ARS/AIRMET'}</strong>
+                      <span>{overlay.matchSummary}</span>
+                      <span>{overlay.title}</span>
+                      {distanceNm > 0 ? <small>{formatDistanceNm(distanceNm)} från punkten</small> : null}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ) : null}
+
+            {selectedPointInfo.notamFeatures.length > 0 ? (
+              <section>
+                <h3>NOTAM / AIP SUP</h3>
                 <ul>
                   {selectedPointInfo.notamFeatures.map(({ feature, distanceNm }) => (
                     <li key={feature.id} className="fp-map-point-info-panel__notam-item">
@@ -4240,10 +4432,8 @@ export function FlightplanMapEditor({
                     </li>
                   ))}
                 </ul>
-              ) : (
-                <p>Inget visat NOTAM- eller AIP SUP-område över punkten.</p>
-              )}
-            </section>
+              </section>
+            ) : null}
           </aside>
         ) : null}
         {!printMode && !isMapbox3dBasemap && !routeEditingEnabled && !selectedPointInfo && (
