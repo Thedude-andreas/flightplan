@@ -125,6 +125,7 @@ const notamPointLayerId = 'flightplan-3d-notam-points'
 const notamPointHighlightLayerId = 'flightplan-3d-notam-points-highlight'
 const notamObstacleSymbolSourceId = 'flightplan-3d-notam-obstacle-symbols'
 const notamObstacleSymbolLayerId = 'flightplan-3d-notam-obstacle-symbols'
+const notamObstacleLightOutSymbolLayerId = 'flightplan-3d-notam-obstacle-light-out-symbols'
 const notamObstacleVolumeRenderLayerId = 'flightplan-3d-notam-obstacle-volumes-render'
 const weatherAreaSourceId = 'flightplan-3d-weather-areas'
 const weatherAreaHaloLayerId = 'flightplan-3d-weather-areas-halo'
@@ -226,6 +227,7 @@ const mapPointIconIds = {
   weatherUnknown: 'flightplan-3d-weather-unknown',
 } as const
 const obstacleIconIdPrefix = 'flightplan-3d-obstacle-symbol'
+const obstacleLightOutIconId = 'flightplan-3d-obstacle-light-out-symbol'
 const holdingPatternMinZoom = 9
 const holdingPatternAltitudeFt = 1000
 const holdingPatternRadiusMeters = 475
@@ -1141,14 +1143,21 @@ function createHoldingPatternLabelMesh(label: string, width: number, height: num
 }
 
 function getObstacleShaftEndpointMeters(obstacle: Obstacle3DObject, lengthMeters: number) {
-  const clockHour = Math.max(1, Math.min(12, Math.round((obstacle.heightFt ?? 300) / 100)))
-  const angleRad = ((clockHour * 30 - 90) * Math.PI) / 180
+  const angleRad = getObstacleShaftAngleRad(obstacle.heightFt)
 
   return {
     x: Math.cos(angleRad) * lengthMeters,
     y: Math.sin(angleRad) * lengthMeters,
     angleRad,
   }
+}
+
+function getObstacleClockHour(heightFt: number | null) {
+  return Math.max(1, Math.min(12, Math.round((heightFt ?? 300) / 100)))
+}
+
+function getObstacleShaftAngleRad(heightFt: number | null) {
+  return ((getObstacleClockHour(heightFt) * 30 - 90) * Math.PI) / 180
 }
 
 function createCapsuleShape(length: number, width: number) {
@@ -1248,14 +1257,6 @@ function addShapeObstacleMesh(
   if (obstacle.temporary) {
     addTemporaryObstacleAura(scene, obstacle, coordinate, scale, auraMaterial)
   }
-
-  const shaftLengthMeters = obstacle.category === 'wind_turbine' ? 58 : 42
-  const shaftWidthMeters = obstacle.category === 'wind_turbine' ? 10 : 8
-  const shaftEndpoint = getObstacleShaftEndpointMeters(obstacle, shaftLengthMeters * scale)
-  const shaft = createExtrudedShapeMesh(createCapsuleShape(shaftLengthMeters * scale, shaftWidthMeters * scale), heightMercator, material)
-  shaft.rotation.z = shaftEndpoint.angleRad
-  shaft.position.set(coordinate.x, coordinate.y, coordinate.z)
-  scene.add(shaft)
 
   if (obstacle.category === 'wind_turbine') {
     const drop = createExtrudedShapeMesh(createWindTurbineDropShape(2.25 * scale), heightMercator, material)
@@ -1479,7 +1480,7 @@ function getObstacleSymbolIconImageId(obstacle: Obstacle3DObject) {
   const heightBand = obstacle.heightFt != null && obstacle.heightFt < 130 ? 'low' : 'high'
   const lighted = obstacle.lighted ? 'lighted' : 'unlighted'
   const temporary = obstacle.temporary ? 'temporary' : 'permanent'
-  return `${obstacleIconIdPrefix}-${kind}-${heightBand}-${lighted}-${temporary}`
+  return `${obstacleIconIdPrefix}-${kind}-${heightBand}-${lighted}-${temporary}-clock-${getObstacleClockHour(obstacle.heightFt)}`
 }
 
 function buildNotamObstacleSymbolGeoJson(features: NotamMapOverlayFeature[]) {
@@ -1487,6 +1488,23 @@ function buildNotamObstacleSymbolGeoJson(features: NotamMapOverlayFeature[]) {
   return {
     type: 'FeatureCollection',
     features: features.flatMap((feature): GeoJsonFeature[] => {
+      if (feature.visualKind === 'obstacle-light-out') {
+        const [lat, lon] = getNotamFeatureMarkerPosition(feature)
+        return [{
+          type: 'Feature',
+          properties: {
+            category: 'notam',
+            id: feature.id,
+            title: `${feature.label} · ${feature.title}`,
+            body: feature.source,
+            color: getNotamColor(feature.source),
+            iconImage: obstacleLightOutIconId,
+            symbolKind: 'obstacle-light-out',
+          },
+          geometry: { type: 'Point', coordinates: [lon, lat] },
+        }]
+      }
+
       const obstacle = obstacleById.get(feature.id)
       if (!obstacle) {
         return []
@@ -1501,6 +1519,7 @@ function buildNotamObstacleSymbolGeoJson(features: NotamMapOverlayFeature[]) {
           body: feature.source,
           color: obstacle.color,
           iconImage: getObstacleSymbolIconImageId(obstacle),
+          symbolKind: 'obstacle',
         },
         geometry: { type: 'Point', coordinates: [obstacle.lon, obstacle.lat] },
       }]
@@ -1968,14 +1987,52 @@ function createWeatherIconImage(color: string) {
   })
 }
 
+function createObstacleLightOutIconImage() {
+  return createMapPointIconImage((context) => {
+    context.lineCap = 'round'
+    context.lineJoin = 'round'
+
+    context.fillStyle = 'rgba(255, 255, 255, 0.94)'
+    context.strokeStyle = '#ef4444'
+    context.lineWidth = 3.2
+    context.beginPath()
+    context.arc(18, 18, 9, 0, Math.PI * 2)
+    context.fill()
+    context.stroke()
+
+    context.fillStyle = '#facc15'
+    context.strokeStyle = '#111827'
+    context.lineWidth = 1.5
+    context.beginPath()
+    context.moveTo(19.6, 7.8)
+    context.lineTo(12.7, 19)
+    context.lineTo(17.5, 19)
+    context.lineTo(16.4, 28.2)
+    context.lineTo(23.3, 16.7)
+    context.lineTo(18.5, 16.7)
+    context.closePath()
+    context.fill()
+    context.stroke()
+
+    context.strokeStyle = '#ef4444'
+    context.lineWidth = 3.4
+    context.beginPath()
+    context.moveTo(11, 25)
+    context.lineTo(25, 11)
+    context.stroke()
+  })
+}
+
 function createObstacleSymbolIconImage({
   category,
   color,
+  heightFt,
   lighted,
   temporary,
 }: {
   category: 'standard' | 'wind_turbine'
   color: string
+  heightFt: number | null
   lighted: boolean
   temporary: boolean
 }) {
@@ -1989,7 +2046,12 @@ function createObstacleSymbolIconImage({
 
   context.scale(2, 2)
   const center = { x: 24, y: 24 }
-  const endpoint = { x: 45, y: 11.5 }
+  const shaftAngleRad = getObstacleShaftAngleRad(heightFt)
+  const shaftLength = 24.5
+  const endpoint = {
+    x: center.x + Math.cos(shaftAngleRad) * shaftLength,
+    y: center.y + Math.sin(shaftAngleRad) * shaftLength,
+  }
   const drawDrop = (scale = 1) => {
     const sx = (value: number) => center.x + (value - 18) * scale
     const sy = (value: number) => center.y + (value - 18) * scale
@@ -2085,10 +2147,19 @@ function ensureMapPointImages(map: mapboxgl.Map) {
 }
 
 function ensureObstacleSymbolImages(map: mapboxgl.Map) {
-  const iconImages: Array<[string, ImageData | null]> = []
+  const iconImages: Array<[string, ImageData | null]> = [
+    [obstacleLightOutIconId, createObstacleLightOutIconImage()],
+  ]
+  const heightVariants = [
+    { color: '#732184', heightFt: 100 },
+    ...Array.from({ length: 12 }, (_, index) => ({
+      color: '#1f5db8',
+      heightFt: index === 0 ? 130 : (index + 1) * 100,
+    })),
+  ]
+
   for (const category of ['standard', 'wind_turbine'] as const) {
-    for (const heightBand of ['low', 'high'] as const) {
-      const color = heightBand === 'low' ? '#732184' : '#1f5db8'
+    for (const { color, heightFt } of heightVariants) {
       for (const lighted of [false, true]) {
         for (const temporary of [false, true]) {
           const obstacle: Obstacle3DObject = {
@@ -2096,7 +2167,7 @@ function ensureObstacleSymbolImages(map: mapboxgl.Map) {
             lat: 0,
             lon: 0,
             heightMeters: 60,
-            heightFt: heightBand === 'low' ? 100 : 300,
+            heightFt,
             color,
             category: category === 'wind_turbine' ? 'wind_turbine' : 'other',
             lighted,
@@ -2104,7 +2175,7 @@ function ensureObstacleSymbolImages(map: mapboxgl.Map) {
           }
           iconImages.push([
             getObstacleSymbolIconImageId(obstacle),
-            createObstacleSymbolIconImage({ category, color, lighted, temporary }),
+            createObstacleSymbolIconImage({ category, color, heightFt, lighted, temporary }),
           ])
         }
       }
@@ -2719,10 +2790,10 @@ export function FlightplanMapbox3D({
         paint: {
           'circle-color': ['get', 'color'],
           'circle-radius': ['interpolate', ['linear'], ['zoom'], 5, 4, 12, 8],
-          'circle-opacity': ['case', ['==', ['get', 'visualKind'], 'obstacle'], 0.001, 1],
+          'circle-opacity': ['match', ['get', 'visualKind'], ['obstacle', 'obstacle-light-out'], 0.001, 1],
           'circle-stroke-color': '#ffffff',
           'circle-stroke-width': 1.5,
-          'circle-stroke-opacity': ['case', ['==', ['get', 'visualKind'], 'obstacle'], 0.001, 1],
+          'circle-stroke-opacity': ['match', ['get', 'visualKind'], ['obstacle', 'obstacle-light-out'], 0.001, 1],
         },
       })
       map.addLayer({
@@ -2763,9 +2834,25 @@ export function FlightplanMapbox3D({
         source: notamObstacleSymbolSourceId,
         minzoom: obstacleVolumeMinZoom,
         maxzoom: obstacleVolume3DMinZoom,
+        filter: ['!=', ['get', 'symbolKind'], 'obstacle-light-out'],
         layout: {
           'icon-image': ['get', 'iconImage'],
           'icon-size': 0.72,
+          'icon-pitch-alignment': 'viewport',
+          'icon-rotation-alignment': 'viewport',
+          'icon-allow-overlap': true,
+          'icon-ignore-placement': true,
+        },
+      })
+      map.addLayer({
+        id: notamObstacleLightOutSymbolLayerId,
+        type: 'symbol',
+        source: notamObstacleSymbolSourceId,
+        minzoom: obstacleVolumeMinZoom,
+        filter: ['==', ['get', 'symbolKind'], 'obstacle-light-out'],
+        layout: {
+          'icon-image': ['get', 'iconImage'],
+          'icon-size': 0.78,
           'icon-pitch-alignment': 'viewport',
           'icon-rotation-alignment': 'viewport',
           'icon-allow-overlap': true,
@@ -3001,6 +3088,7 @@ export function FlightplanMapbox3D({
         obstacleVolumeLayerId,
         obstacleSymbolLayerId,
         notamObstacleSymbolLayerId,
+        notamObstacleLightOutSymbolLayerId,
         notamPointLayerId,
         notamLineLayerId,
         mapPointNavaidLayerId,
@@ -3063,7 +3151,7 @@ export function FlightplanMapbox3D({
             }
           }
 
-          if (layerId === notamVolumeLayerId || layerId === notamLineLayerId || layerId === notamPointLayerId || layerId === notamObstacleSymbolLayerId) {
+          if (layerId === notamVolumeLayerId || layerId === notamLineLayerId || layerId === notamPointLayerId || layerId === notamObstacleSymbolLayerId || layerId === notamObstacleLightOutSymbolLayerId) {
             const notamFeature = latestInspect.notamFeatureById.get(id)
             if (notamFeature) {
               latestInspect.onInspectNotamFeature(notamFeature, event.lngLat.lat, event.lngLat.lng)
