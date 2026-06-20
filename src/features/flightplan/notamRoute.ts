@@ -899,7 +899,7 @@ export type NotamMapOverlayFeature = {
   id: string
   source: 'notam-enroute' | 'notam-warning' | 'aip-sup'
   sourceEntryId: string
-  visualKind?: 'obstacle'
+  visualKind?: 'obstacle' | 'obstacle-light-out'
   label: string
   title: string
   rawText: string
@@ -1080,13 +1080,22 @@ function getGeometryExpectationReason(rawText: string) {
   return null
 }
 
-function isObstacleMapFeature(rawText: string) {
+function getNotamMapVisualKind(rawText: string): NotamMapOverlayFeature['visualKind'] {
   const normalized = stripNotamPdfPageArtifacts(rawText)
     .replace(/\u00a0/g, ' ')
     .replace(/\s+/g, ' ')
     .toUpperCase()
 
+  if (
+    /\b(?:OBST|OBSTACLE|OBSTACLES|HINDER|FLYGHINDER)\s+(?:LIGHT|LIGHTS|LGT|LGTS|LJUS)\s+(?:U\/S|UNSERVICEABLE|OUT\s+OF\s+SERVICE|OTS|UR\s+FUNKTION)\b/.test(normalized)
+    || /\b(?:LIGHT|LIGHTS|LGT|LGTS|LJUS)\s+(?:U\/S|UNSERVICEABLE|OUT\s+OF\s+SERVICE|OTS|UR\s+FUNKTION)\b.*\b(?:OBST|OBSTACLE|OBSTACLES|HINDER|FLYGHINDER)\b/.test(normalized)
+  ) {
+    return 'obstacle-light-out'
+  }
+
   return /\b(?:OBST|OBSTACLE|OBSTACLES|HINDER|FLYGHINDER|CRANE|KRAN|MAST|TOWER|TORN|WIND\s*TURBINE|WINDTURBINE|VINDKRAFT|LIGHT\s+ERECTED)\b/.test(normalized)
+    ? 'obstacle'
+    : undefined
 }
 
 function pushPointFeatures(
@@ -1097,7 +1106,7 @@ function pushPointFeatures(
   idPrefix: string,
   supplementMeta?: { id: string; url: string | null },
 ) {
-  const visualKind = isObstacleMapFeature(rawText) ? 'obstacle' : undefined
+  const visualKind = getNotamMapVisualKind(rawText)
 
   for (const [index, point] of coords.entries()) {
     features.push({
@@ -1124,7 +1133,7 @@ function pushAirportPointFeatures(
   idPrefix: string,
   supplementMeta?: { id: string; url: string | null },
 ) {
-  const visualKind = isObstacleMapFeature(rawText) ? 'obstacle' : undefined
+  const visualKind = getNotamMapVisualKind(rawText)
 
   for (const airport of airports) {
     features.push({
@@ -1159,7 +1168,7 @@ function pushAirspacePolygonFeatures(
   idPrefix: string,
   supplementMeta?: { id: string; url: string | null },
 ) {
-  const visualKind = isObstacleMapFeature(rawText) ? 'obstacle' : undefined
+  const visualKind = getNotamMapVisualKind(rawText)
 
   for (const airspace of airspaces) {
     for (const [index, ring] of airspaceGeometryOuterRings(airspace).entries()) {
@@ -1309,7 +1318,7 @@ function pushGeometryFromCoordinateText(
   supplementMeta?: { id: string; url: string | null },
 ) {
   const coords = extractCoordinates(rawText)
-  const visualKind = isObstacleMapFeature(rawText) ? 'obstacle' : undefined
+  const visualKind = getNotamMapVisualKind(rawText)
 
   if (coords.length === 0) {
     const mentionedAirspaces = getMentionedSwedishAirspaces(rawText)

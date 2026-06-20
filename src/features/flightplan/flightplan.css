@@ -2974,6 +2974,38 @@
   stroke-linejoin: round;
 }
 
+.flightplan-page .fp-obstacle-light-out-notam-marker {
+  background: transparent;
+  border: 0;
+}
+
+.flightplan-page .fp-obstacle-light-out-notam-marker svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  filter: drop-shadow(0 1px 2px rgba(18, 42, 92, 0.2));
+}
+
+.flightplan-page .fp-obstacle-light-out-ring {
+  fill: rgba(255, 255, 255, 0.94);
+  stroke: #ef4444;
+  stroke-width: 3.2;
+}
+
+.flightplan-page .fp-obstacle-light-out-bolt {
+  fill: #facc15;
+  stroke: #111827;
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+
+.flightplan-page .fp-obstacle-light-out-slash {
+  stroke: #ef4444;
+  stroke-width: 3.4;
+  stroke-linecap: round;
+}
+
 .flightplan-page .fp-standard-obstacle-marker svg {
   display: block;
   width: 100%;

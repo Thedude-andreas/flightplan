@@ -808,6 +808,25 @@ function createTemporaryObstacleNotamIcon(feature: NotamMapOverlayFeature) {
     : createStandardObstacleIcon(obstacle, { temporary: true })
 }
 
+function createObstacleLightOutNotamIcon() {
+  return divIcon({
+    className: 'fp-obstacle-light-out-notam-marker',
+    html: `
+      <svg viewBox="0 0 28 28" aria-hidden="true" focusable="false">
+        <circle class="fp-obstacle-light-out-ring" cx="14" cy="14" r="9" />
+        <path class="fp-obstacle-light-out-bolt" d="M15.6 3.8 8.7 15h4.8l-1.1 9.2 6.9-11.5h-4.8z" />
+        <line class="fp-obstacle-light-out-slash" x1="7" y1="21" x2="21" y2="7" />
+      </svg>
+    `,
+    iconSize: [28, 28],
+    iconAnchor: [14, 14],
+  })
+}
+
+function isNotamObstacleVisualKind(feature: NotamMapOverlayFeature) {
+  return feature.visualKind === 'obstacle' || feature.visualKind === 'obstacle-light-out'
+}
+
 function formatObstacleHeight(value: number | null, unit: string | null) {
   if (value == null) {
     return null
@@ -987,9 +1006,15 @@ function createNotamPointTooltip(feature: NotamMapOverlayFeature) {
 }
 
 function createNotamPointIcon(feature: NotamMapOverlayFeature) {
-  return feature.visualKind === 'obstacle'
-    ? createTemporaryObstacleNotamIcon(feature)
-    : createNotamMapSymbolIcon(feature.source)
+  if (feature.visualKind === 'obstacle') {
+    return createTemporaryObstacleNotamIcon(feature)
+  }
+
+  if (feature.visualKind === 'obstacle-light-out') {
+    return createObstacleLightOutNotamIcon()
+  }
+
+  return createNotamMapSymbolIcon(feature.source)
 }
 
 function normalizeAirportHoursLine(line: string) {
@@ -4483,7 +4508,7 @@ export function FlightplanMapEditor({
 
           {showNotamOverlays
             ? notamMapFeatures.map((feature) => {
-                if (feature.visualKind === 'obstacle' && mapZoom < obstacleMinZoom) {
+                if (isNotamObstacleVisualKind(feature) && mapZoom < obstacleMinZoom) {
                   return null
                 }
 
@@ -4522,7 +4547,7 @@ export function FlightplanMapEditor({
                     />
                   )
 
-                  if (feature.visualKind !== 'obstacle') {
+                  if (!isNotamObstacleVisualKind(feature)) {
                     return circle
                   }
 
@@ -4575,7 +4600,7 @@ export function FlightplanMapEditor({
                     />
                   )
 
-                  if (feature.visualKind !== 'obstacle') {
+                  if (!isNotamObstacleVisualKind(feature)) {
                     return polygon
                   }
 
@@ -4632,7 +4657,7 @@ export function FlightplanMapEditor({
 
           {showNotamOverlays
             ? hoveredNotamFeatures.map((hoveredNotamFeature) => {
-                if (hoveredNotamFeature.visualKind === 'obstacle' && mapZoom < obstacleMinZoom) {
+                if (isNotamObstacleVisualKind(hoveredNotamFeature) && mapZoom < obstacleMinZoom) {
                   return null
                 }
 
