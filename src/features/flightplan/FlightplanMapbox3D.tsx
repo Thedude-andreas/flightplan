@@ -125,7 +125,8 @@ const weatherAreaLayerId = 'flightplan-3d-weather-areas'
 const weatherLineSourceId = 'flightplan-3d-weather-lines'
 const weatherLineLayerId = 'flightplan-3d-weather-lines'
 const mapPointSourceId = 'flightplan-3d-map-points'
-const mapPointLayerId = 'flightplan-3d-map-points'
+const mapPointNavaidLayerId = 'flightplan-3d-map-point-navaids'
+const mapPointAirportLayerId = 'flightplan-3d-map-point-airports'
 const mapPointEntryExitLayerId = 'flightplan-3d-map-point-entry-exit'
 const airportWeatherLabelLayerId = 'flightplan-3d-airport-weather-labels'
 const mapPointLabelLayerId = 'flightplan-3d-map-point-labels'
@@ -162,6 +163,7 @@ const metersPerNm = 1852
 const airspaceFillOpacity = 0.18
 const notamVolumeFillOpacity = 0.22
 const routeAccentColor = '#ff35c4'
+const aeronauticalSymbolBlue = '#005da8'
 const routeGateMinZoom = 10.4
 const airspaceOutlineOpacity = [
   'interpolate',
@@ -196,6 +198,20 @@ const routeGateRibHalfSizeMeters = 3
 const reportingPointColor = '#732184'
 const reportingPointSymbolMinZoom = 8.5
 const reportingPointLabelMinZoom = 9
+const mapPointSymbolMinZoom = 6
+const mapPointIconIds = {
+  airportSmall: 'flightplan-3d-airport-small',
+  airportCivil: 'flightplan-3d-airport-civil',
+  airportMilitary: 'flightplan-3d-airport-military',
+  navaidDme: 'flightplan-3d-navaid-dme',
+  navaidNdb: 'flightplan-3d-navaid-ndb',
+  navaidVor: 'flightplan-3d-navaid-vor',
+  navaidDmev: 'flightplan-3d-navaid-dmev',
+  weatherVmc: 'flightplan-3d-weather-vmc',
+  weatherMvmc: 'flightplan-3d-weather-mvmc',
+  weatherImc: 'flightplan-3d-weather-imc',
+  weatherUnknown: 'flightplan-3d-weather-unknown',
+} as const
 const holdingPatternMinZoom = 9
 const holdingPatternAltitudeFt = 1000
 const holdingPatternRadiusMeters = 475
@@ -1273,6 +1289,76 @@ function buildWeather3DGeoJson(overlays: RouteWeatherOverlay[]) {
   }
 }
 
+function getRunwayLengthMeters(runway: SwedishAirport['runways'][number]) {
+  const length = runway.dimensionsMeters?.match(/\d+(?:[.,]\d+)?/)?.[0]
+  if (!length) {
+    return 0
+  }
+
+  return Number(length.replace(',', '.')) || 0
+}
+
+function getRunwayBearingDegrees(runway: SwedishAirport['runways'][number]) {
+  const designator = runway.designator.match(/\b([0-3]\d)[LCR]?\b/)?.[1]
+  if (!designator) {
+    return null
+  }
+
+  const runwayNumber = Number(designator)
+  if (!Number.isFinite(runwayNumber) || runwayNumber < 1 || runwayNumber > 36) {
+    return null
+  }
+
+  return runwayNumber === 36 ? 0 : runwayNumber * 10
+}
+
+function getLongestRunway(airport: SwedishAirport) {
+  let longestRunway: SwedishAirport['runways'][number] | null = null
+  let longestLengthMeters = -1
+
+  for (const runway of airport.runways) {
+    const lengthMeters = getRunwayLengthMeters(runway)
+    if (lengthMeters > longestLengthMeters) {
+      longestRunway = runway
+      longestLengthMeters = lengthMeters
+    }
+  }
+
+  return longestRunway
+}
+
+function getLongestRunwayLengthMeters(airport: SwedishAirport) {
+  const longestRunway = getLongestRunway(airport)
+  return longestRunway ? getRunwayLengthMeters(longestRunway) : 0
+}
+
+function getLongestRunwayBearingDegrees(airport: SwedishAirport) {
+  const longestRunway = getLongestRunway(airport)
+  return longestRunway ? getRunwayBearingDegrees(longestRunway) : null
+}
+
+function getAirportSymbolKind(airport: SwedishAirport) {
+  const category = airport.category?.toLowerCase() ?? ''
+  const longestRunwayLengthMeters = getLongestRunwayLengthMeters(airport)
+
+  if (longestRunwayLengthMeters < 900) {
+    return 'small'
+  }
+
+  if (category.includes('mil')) {
+    return 'military'
+  }
+
+  return 'civil'
+}
+
+function getAirportWeatherColor(flightCategory: FlightplanMapboxAirportFlightCategory) {
+  if (flightCategory === 'VMC') return '#16803c'
+  if (flightCategory === 'MVMC') return '#b45309'
+  if (flightCategory === 'IMC') return '#b91c1c'
+  return '#64748b'
+}
+
 function buildMapPointGeoJson({
   airportFlightCategories,
   airports,
@@ -1288,23 +1374,41 @@ function buildMapPointGeoJson({
     ...airports.map((airport) => ({
       type: 'Feature' as const,
       properties: (() => {
-        const flightCategory = airport.icao ? airportFlightCategories[airport.icao] ?? 'UNKNOWN' : 'UNKNOWN'
+        const flightCategory = airport.icao ? airportFlightCategories[airport.icao] ?? null : null
+        const isWeatherIndicator = flightCategory != null
+        const symbolKind = getAirportSymbolKind(airport)
         return {
           category: 'airport',
           id: airport.icao ?? `${airport.name}-${airport.lat}-${airport.lon}`,
           label: airport.icao ?? airport.name ?? 'AD',
           title: airport.icao ?? airport.name ?? 'Flygplats',
           body: airport.name ?? '',
+          iconImage: isWeatherIndicator
+            ? flightCategory === 'VMC'
+              ? mapPointIconIds.weatherVmc
+              : flightCategory === 'MVMC'
+                ? mapPointIconIds.weatherMvmc
+                : flightCategory === 'IMC'
+                  ? mapPointIconIds.weatherImc
+                  : mapPointIconIds.weatherUnknown
+            : symbolKind === 'small'
+              ? mapPointIconIds.airportSmall
+              : symbolKind === 'military'
+                ? mapPointIconIds.airportMilitary
+                : mapPointIconIds.airportCivil,
           color: flightCategory === 'VMC'
             ? '#16803c'
             : flightCategory === 'MVMC'
               ? '#b45309'
               : flightCategory === 'IMC'
                 ? '#b91c1c'
-                : '#64748b',
-          radius: flightCategory === 'UNKNOWN' ? 5 : 9,
-          sortPriority: flightCategory === 'UNKNOWN' ? 30 : 60,
-          flightCategory,
+                : isWeatherIndicator
+                  ? '#64748b'
+                  : aeronauticalSymbolBlue,
+          iconRotate: isWeatherIndicator ? 0 : getLongestRunwayBearingDegrees(airport) ?? 0,
+          iconSize: isWeatherIndicator ? 0.78 : 0.72,
+          sortPriority: isWeatherIndicator ? 90 : 80,
+          flightCategory: flightCategory ?? 'NONE',
           flightCategoryLabel: flightCategory === 'VMC' ? 'V' : flightCategory === 'MVMC' ? 'M' : flightCategory === 'IMC' ? 'I' : '',
         }
       })(),
@@ -1314,14 +1418,22 @@ function buildMapPointGeoJson({
       type: 'Feature' as const,
       properties: {
         category: 'navaid',
-        id: navaid.id,
-        label: navaid.ident ?? navaid.kind,
-        title: navaid.ident ?? navaid.name ?? navaid.kind,
-        body: [navaid.kind, navaid.frequency, navaid.channel ? `Kanal ${navaid.channel}` : null].filter(Boolean).join(' · '),
-        color: '#7c3aed',
-        radius: 4,
-        sortPriority: 10,
-      },
+          id: navaid.id,
+          label: navaid.ident ?? navaid.kind,
+          title: navaid.ident ?? navaid.name ?? navaid.kind,
+          body: [navaid.kind, navaid.frequency, navaid.channel ? `Kanal ${navaid.channel}` : null].filter(Boolean).join(' · '),
+          color: aeronauticalSymbolBlue,
+          iconImage: navaid.kind === 'DME'
+            ? mapPointIconIds.navaidDme
+            : navaid.kind === 'NDB'
+              ? mapPointIconIds.navaidNdb
+              : navaid.kind === 'VOR'
+                ? mapPointIconIds.navaidVor
+                : mapPointIconIds.navaidDmev,
+          iconRotate: 0,
+          iconSize: 0.72,
+          sortPriority: 10,
+        },
       geometry: { type: 'Point', coordinates: [navaid.lon, navaid.lat] },
     })),
     ...visualPoints.map((point) => ({
@@ -1415,6 +1527,146 @@ function buildAloftWindGeoJson(aloftWinds: RouteLegAloftWind[]) {
       geometry: { type: 'Point', coordinates: [wind.midpoint.lon, wind.midpoint.lat] },
     })),
   } satisfies GeoJsonFeatureCollection
+}
+
+function createMapPointIconImage(draw: (context: CanvasRenderingContext2D) => void) {
+  const canvas = document.createElement('canvas')
+  canvas.width = 72
+  canvas.height = 72
+  const context = canvas.getContext('2d')
+  if (!context) {
+    return null
+  }
+
+  context.scale(2, 2)
+  draw(context)
+  return context.getImageData(0, 0, canvas.width, canvas.height)
+}
+
+function drawCircle(context: CanvasRenderingContext2D, x: number, y: number, radius: number, fillStyle: string | null, strokeStyle: string, lineWidth: number) {
+  context.beginPath()
+  context.arc(x, y, radius, 0, Math.PI * 2)
+  if (fillStyle) {
+    context.fillStyle = fillStyle
+    context.fill()
+  }
+  context.strokeStyle = strokeStyle
+  context.lineWidth = lineWidth
+  context.stroke()
+}
+
+function drawHexagon(context: CanvasRenderingContext2D, fillStyle: string) {
+  const points = [[18, 4], [30.1, 11], [30.1, 25], [18, 32], [5.9, 25], [5.9, 11]]
+  context.beginPath()
+  points.forEach(([x, y], index) => {
+    if (index === 0) context.moveTo(x, y)
+    else context.lineTo(x, y)
+  })
+  context.closePath()
+  context.fillStyle = fillStyle
+  context.fill()
+  context.strokeStyle = aeronauticalSymbolBlue
+  context.lineWidth = 3
+  context.lineJoin = 'round'
+  context.stroke()
+}
+
+function drawRunway(context: CanvasRenderingContext2D) {
+  context.fillStyle = 'rgba(255, 255, 255, 0.96)'
+  context.strokeStyle = aeronauticalSymbolBlue
+  context.lineWidth = 1.7
+  context.beginPath()
+  context.rect(15, 3.5, 6, 29)
+  context.fill()
+  context.stroke()
+}
+
+function createAirportIconImage(kind: 'small' | 'civil' | 'military') {
+  return createMapPointIconImage((context) => {
+    if (kind === 'small') {
+      drawCircle(context, 18, 18, 10.5, 'rgba(255, 255, 255, 0.96)', aeronauticalSymbolBlue, 3)
+      return
+    }
+
+    drawCircle(context, 18, 18, 9.5, kind === 'military' ? '#66a9df' : 'rgba(255, 255, 255, 0.96)', aeronauticalSymbolBlue, 3)
+    drawRunway(context)
+  })
+}
+
+function createNavaidIconImage(kind: SwedishNavaid['kind']) {
+  return createMapPointIconImage((context) => {
+    if (kind === 'NDB') {
+      for (const [radius, lineWidth, dash] of [[14, 2.5, 4.1], [9, 2.3, 3.4], [5, 2.1, 2.7]] as const) {
+        context.setLineDash([0.2, dash])
+        context.lineCap = 'round'
+        drawCircle(context, 18, 18, radius, null, aeronauticalSymbolBlue, lineWidth)
+      }
+      context.setLineDash([])
+      context.fillStyle = aeronauticalSymbolBlue
+      context.beginPath()
+      context.arc(18, 18, 2, 0, Math.PI * 2)
+      context.fill()
+      return
+    }
+
+    if (kind === 'VOR') {
+      drawHexagon(context, 'rgba(255, 255, 255, 0.96)')
+      context.fillStyle = aeronauticalSymbolBlue
+      context.beginPath()
+      context.arc(18, 18, 2, 0, Math.PI * 2)
+      context.fill()
+      return
+    }
+
+    if (kind === 'DMEV') {
+      drawHexagon(context, aeronauticalSymbolBlue)
+      context.fillStyle = '#ffffff'
+      context.beginPath()
+      context.arc(18, 18, 2.3, 0, Math.PI * 2)
+      context.fill()
+      return
+    }
+
+    context.fillStyle = 'rgba(255, 255, 255, 0.96)'
+    context.strokeStyle = aeronauticalSymbolBlue
+    context.lineWidth = 3
+    context.beginPath()
+    context.rect(6, 6, 24, 24)
+    context.fill()
+    context.stroke()
+    context.fillStyle = aeronauticalSymbolBlue
+    context.beginPath()
+    context.arc(18, 18, 2, 0, Math.PI * 2)
+    context.fill()
+  })
+}
+
+function createWeatherIconImage(color: string) {
+  return createMapPointIconImage((context) => {
+    drawCircle(context, 18, 18, 13, color, '#ffffff', 3)
+  })
+}
+
+function ensureMapPointImages(map: mapboxgl.Map) {
+  const iconImages: Array<[string, ImageData | null]> = [
+    [mapPointIconIds.airportSmall, createAirportIconImage('small')],
+    [mapPointIconIds.airportCivil, createAirportIconImage('civil')],
+    [mapPointIconIds.airportMilitary, createAirportIconImage('military')],
+    [mapPointIconIds.navaidDme, createNavaidIconImage('DME')],
+    [mapPointIconIds.navaidNdb, createNavaidIconImage('NDB')],
+    [mapPointIconIds.navaidVor, createNavaidIconImage('VOR')],
+    [mapPointIconIds.navaidDmev, createNavaidIconImage('DMEV')],
+    [mapPointIconIds.weatherVmc, createWeatherIconImage(getAirportWeatherColor('VMC'))],
+    [mapPointIconIds.weatherMvmc, createWeatherIconImage(getAirportWeatherColor('MVMC'))],
+    [mapPointIconIds.weatherImc, createWeatherIconImage(getAirportWeatherColor('IMC'))],
+    [mapPointIconIds.weatherUnknown, createWeatherIconImage(getAirportWeatherColor('UNKNOWN'))],
+  ]
+
+  for (const [id, image] of iconImages) {
+    if (image && !map.hasImage(id)) {
+      map.addImage(id, image, { pixelRatio: 2 })
+    }
+  }
 }
 
 function updateOrCreateGeoJsonSource(map: mapboxgl.Map, id: string, data: GeoJsonFeatureCollection | GeoJsonFeature) {
@@ -1768,7 +2020,7 @@ export function FlightplanMapbox3D({
       })
     })
 
-    const installStyleLayers = () => {
+    const installStyleLayers = async () => {
       if (map.getLayer(airspaceLayerId)) {
         updateOrCreateGeoJsonSource(map, obstacleVolumeSourceId, latestMapDataRef.current.obstacleGeoJson)
         obstacleVolumeLayerRef.current?.setObstacles(latestMapDataRef.current.obstacleObjects)
@@ -2076,20 +2328,38 @@ export function FlightplanMapbox3D({
       map.addLayer(obstacleRenderLayer)
 
       updateOrCreateGeoJsonSource(map, mapPointSourceId, latestMapData.mapPointGeoJson)
+      ensureMapPointImages(map)
       map.addLayer({
-        id: mapPointLayerId,
-        type: 'circle',
+        id: mapPointNavaidLayerId,
+        type: 'symbol',
         source: mapPointSourceId,
-        filter: ['!=', ['get', 'category'], 'visual-point'],
+        minzoom: mapPointSymbolMinZoom,
+        filter: ['==', ['get', 'category'], 'navaid'],
         layout: {
-          'circle-sort-key': ['get', 'sortPriority'],
+          'icon-image': ['get', 'iconImage'],
+          'icon-size': ['get', 'iconSize'],
+          'icon-pitch-alignment': 'map',
+          'icon-rotation-alignment': 'map',
+          'symbol-sort-key': ['get', 'sortPriority'],
+          'icon-allow-overlap': true,
+          'icon-ignore-placement': true,
         },
-        paint: {
-          'circle-color': ['get', 'color'],
-          'circle-radius': ['interpolate', ['linear'], ['zoom'], 5, ['get', 'radius'], 12, ['*', ['get', 'radius'], 1.8]],
-          'circle-stroke-color': '#ffffff',
-          'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 5, 1.8, 12, 2.3],
-          'circle-opacity': 0.95,
+      })
+      map.addLayer({
+        id: mapPointAirportLayerId,
+        type: 'symbol',
+        source: mapPointSourceId,
+        minzoom: mapPointSymbolMinZoom,
+        filter: ['==', ['get', 'category'], 'airport'],
+        layout: {
+          'icon-image': ['get', 'iconImage'],
+          'icon-size': ['get', 'iconSize'],
+          'icon-rotate': ['get', 'iconRotate'],
+          'icon-pitch-alignment': 'map',
+          'icon-rotation-alignment': 'map',
+          'symbol-sort-key': ['get', 'sortPriority'],
+          'icon-allow-overlap': true,
+          'icon-ignore-placement': true,
         },
       })
       map.addLayer({
@@ -2122,6 +2392,8 @@ export function FlightplanMapbox3D({
         layout: {
           'text-field': ['get', 'flightCategoryLabel'],
           'text-size': ['interpolate', ['linear'], ['zoom'], 5, 11, 12, 16],
+          'text-pitch-alignment': 'map',
+          'text-rotation-alignment': 'map',
           'symbol-sort-key': ['get', 'sortPriority'],
           'text-allow-overlap': true,
           'text-ignore-placement': true,
@@ -2175,7 +2447,8 @@ export function FlightplanMapbox3D({
         obstacleVolumeLayerId,
         notamPointLayerId,
         notamLineLayerId,
-        mapPointLayerId,
+        mapPointNavaidLayerId,
+        mapPointAirportLayerId,
         mapPointEntryExitLayerId,
         airportWeatherLabelLayerId,
         mapPointLabelLayerId,
@@ -2207,7 +2480,7 @@ export function FlightplanMapbox3D({
           const id = String(properties?.id ?? '')
           const category = String(properties?.category ?? '')
           const latestInspect = latestInspectRef.current
-          const isMapPointInteraction = layerId === mapPointLayerId || layerId === mapPointEntryExitLayerId || layerId === airportWeatherLabelLayerId || layerId === mapPointLabelLayerId
+          const isMapPointInteraction = layerId === mapPointNavaidLayerId || layerId === mapPointAirportLayerId || layerId === mapPointEntryExitLayerId || layerId === airportWeatherLabelLayerId || layerId === mapPointLabelLayerId
 
           if (isMapPointInteraction && category === 'airport') {
             const airport = latestInspect.airportById.get(id)

@@ -2703,7 +2703,12 @@ export function FlightplanMapEditor({
         continue
       }
 
-      categories[airport.icao] = getAirportDisplayFlightRules(airportWeatherByIcao[airport.icao] ?? null, { showMetar, showTaf }).category
+      const airportWeather = airportWeatherByIcao[airport.icao] ?? null
+      if (!hasAirportWeatherData(airportWeather, { showMetar, showTaf })) {
+        continue
+      }
+
+      categories[airport.icao] = getAirportDisplayFlightRules(airportWeather, { showMetar, showTaf }).category
     }
     return categories
   }, [airportWeatherByIcao, showAirportWeather, showMetar, showTaf, swedishAirports])
