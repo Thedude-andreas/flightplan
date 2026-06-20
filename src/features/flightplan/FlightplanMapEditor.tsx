@@ -536,6 +536,7 @@ const directionArrowWaypointClearancePx = 22
 const maxVisibleAirspaceLowerFt = 9500
 const notamAreaToPointThresholdPx = 12
 const notamAreaCollapseMaxZoom = 11
+const notamCollapsedAreaPointMinZoom = 8.0
 const notamPointInspectRadiusNm = 8
 const notamLineInspectRadiusNm = 5
 const labelBoundsPaddingRatio = 0.03
@@ -4491,6 +4492,10 @@ export function FlightplanMapEditor({
                 if (feature.kind === 'circle' && feature.radiusNm != null) {
                   const [lat, lon] = feature.positions[0] ?? [0, 0]
                   if (renderAsPoint) {
+                    if (mapZoom < notamCollapsedAreaPointMinZoom) {
+                      return null
+                    }
+
                     return (
                       <Marker
                         key={feature.id}
@@ -4540,6 +4545,10 @@ export function FlightplanMapEditor({
 
                 if (feature.kind === 'polygon') {
                   if (renderAsPoint) {
+                    if (mapZoom < notamCollapsedAreaPointMinZoom) {
+                      return null
+                    }
+
                     const [lat, lon] = getFeatureMarkerPosition(feature)
                     return (
                       <Marker
