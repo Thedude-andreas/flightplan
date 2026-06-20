@@ -1787,10 +1787,51 @@
   pointer-events: none;
 }
 
+.flightplan-page .fp-map-zoom-indicator {
+  position: absolute;
+  right: 18px;
+  bottom: 18px;
+  z-index: 615;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.32rem;
+  min-width: 5.2rem;
+  min-height: 1.95rem;
+  padding: 0.32rem 0.55rem;
+  border: 1px solid rgba(22, 56, 80, 0.16);
+  border-radius: 999px;
+  background: rgba(255, 253, 248, 0.92);
+  color: #163850;
+  font-family: 'Space Grotesk', 'Inter', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 1;
+  box-shadow: var(--fp-map-hud-shadow);
+  backdrop-filter: blur(6px);
+  pointer-events: none;
+}
+
+.flightplan-page .fp-map-zoom-indicator span {
+  color: rgba(22, 56, 80, 0.58);
+  font-size: 0.68rem;
+}
+
+.flightplan-page .fp-map-zoom-indicator strong {
+  min-width: 2.65rem;
+  color: #151515;
+  font-size: 0.78rem;
+  text-align: right;
+}
+
 .flightplan-page.is-map-view .fp-map-empty-hint {
   bottom: calc(54px + env(safe-area-inset-bottom));
   left: 24px;
   max-width: min(420px, calc(100% - 48px));
+}
+
+.flightplan-page.is-map-view .fp-map-zoom-indicator {
+  right: 12px;
+  bottom: calc(54px + env(safe-area-inset-bottom));
 }
 
 .flightplan-page .fp-map-point-info-panel {

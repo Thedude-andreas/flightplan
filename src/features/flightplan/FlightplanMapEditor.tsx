@@ -520,6 +520,7 @@ const mapLabelCollisionPaddingPx = 6
 const airspaceMapLabelMaxWidthPx = 180
 const airspaceMapLabelAverageCharWidthPx = 7
 const airspaceMapLabelLineHeightPx = 13
+const airportSymbolMinZoom = 6.0
 const airportLabelMinZoom = 8
 const airportMarkerRadiusPx = 13
 const navaidMinZoom = 7
@@ -3910,6 +3911,8 @@ export function FlightplanMapEditor({
       return arrowLayerPoint.distanceTo(waypointLayerPoint) < directionArrowWaypointClearancePx
     })
   }
+  const activeZoomLevel = isMapbox3dBasemap ? mapbox3dZoom : mapZoom
+  const zoomEnvironmentLabel = isMapbox3dBasemap ? '3D' : '2D'
 
   return (
     <section className={`fp-map-editor${printMode ? ' fp-map-editor--print' : ''}`}>
@@ -4036,7 +4039,7 @@ export function FlightplanMapEditor({
                   <MapLayerSwitch
                     checked={showAirports}
                     label="Flygplatser"
-                    meta="Markörer och ICAO-etiketter"
+                    meta={`Markörer från zoom ${airportSymbolMinZoom}, ICAO från zoom ${airportLabelMinZoom}`}
                     onToggle={() => toggleMapLayerPreference('airports')}
                   />
                   <MapLayerSwitch
@@ -4074,6 +4077,12 @@ export function FlightplanMapEditor({
           {hudTopCenterSlot ? <div className="fp-map-hud fp-map-hud--top-center">{hudTopCenterSlot}</div> : null}
         </div> : null}
         {!printMode && hudStatusSlot ? <div className="fp-map-hud fp-map-hud--bottom-center fp-map-hud--status">{hudStatusSlot}</div> : null}
+        {!printMode ? (
+          <div className="fp-map-zoom-indicator" aria-live="polite" title="Aktuell zoomnivå">
+            <span>{zoomEnvironmentLabel}</span>
+            <strong>{activeZoomLevel.toFixed(2)}</strong>
+          </div>
+        ) : null}
         {selectedPointInfo ? (
           <aside className="fp-map-point-info-panel" role="status" aria-live="polite">
             <div className="fp-map-point-info-panel__header">
@@ -4236,6 +4245,7 @@ export function FlightplanMapEditor({
               mapStyle={getMapbox3DStyle(basemap)}
               navaids={showNavaids ? swedishNavaids : []}
               notamFeatures={showNotamOverlays ? notamMapFeatures : []}
+              showAirportSymbols={showAirports}
               showObstacles={showObstacles}
               onMapViewChange={(view) => {
                 const nextBounds = L.latLngBounds(
@@ -4889,9 +4899,8 @@ export function FlightplanMapEditor({
             const flightRules = getAirportDisplayFlightRules(airportWeather, { showMetar, showTaf })
             const weatherLines = getAirportTooltipWeatherLines(airportWeather)
             const hasWeatherData = hasAirportWeatherData(airportWeather, { showMetar, showTaf })
-            const icon = showAirportWeather && hasWeatherData
-              ? createAirportWeatherIcon(flightRules.category)
-              : createAirportSymbolIcon(airport)
+            const showAirportSymbol = showAirports && mapZoom >= airportSymbolMinZoom
+            const showAirportWeatherIndicator = showAirportWeather && hasWeatherData
             const airportAdNotam = getAirportNotamLookup(airport.icao)
             const serviceHoursSchedule = airportAdNotam?.status === 'ready'
               ? buildAirportServiceHoursSchedule(
@@ -4900,44 +4909,7 @@ export function FlightplanMapEditor({
                   plan.header.plannedStartTime,
                 )
               : null
-
-            return (
-            <Marker
-              key={airport.icao ?? `${airport.name}-${airport.lat}-${airport.lon}`}
-              position={[airport.lat, airport.lon]}
-              icon={icon}
-              pane="fp-airport-pane"
-              keyboard={false}
-              zIndexOffset={hasWeatherData ? 140 : 70}
-              eventHandlers={{
-                click: (event) => {
-                  event.originalEvent.preventDefault()
-                  event.originalEvent.stopPropagation()
-                  if (isCoarsePointerInput()) {
-                    event.target.closeTooltip()
-                  }
-
-                  if (routeEditingEnabled) {
-                    addPointToEnd(airport.lat, airport.lon)
-                  } else {
-                    inspectAirport(airport)
-                  }
-                },
-                mouseover: () => loadAirportNotam(airport),
-                mouseout: closeLeafletTooltipOnMouseOut,
-              }}
-            >
-              {airport.icao && mapZoom >= airportLabelMinZoom && showAirports ? (
-                <Tooltip
-                  permanent
-                  direction="top"
-                  offset={[0, -12]}
-                  opacity={1}
-                  className="fp-airport-label"
-                >
-                  <span>{airport.icao}</span>
-                </Tooltip>
-              ) : null}
+            const airportTooltip = (
               <Tooltip direction="top" offset={[0, -6]} opacity={0.95} className="fp-hover-tooltip fp-airport-tooltip-popup">
                 <div className="fp-airport-tooltip">
                   <strong>{airport.icao}</strong>
@@ -4954,8 +4926,69 @@ export function FlightplanMapEditor({
                   <span>{formatCoordinateDms(airport.lat, 'lat')} {formatCoordinateDms(airport.lon, 'lon')}</span>
                 </div>
               </Tooltip>
-            </Marker>
-          )}) : null}
+            )
+            const airportEventHandlers = {
+              click: (event: LeafletMouseEvent) => {
+                event.originalEvent.preventDefault()
+                event.originalEvent.stopPropagation()
+                if (isCoarsePointerInput()) {
+                  event.target.closeTooltip()
+                }
+
+                if (routeEditingEnabled) {
+                  addPointToEnd(airport.lat, airport.lon)
+                } else {
+                  inspectAirport(airport)
+                }
+              },
+              mouseover: () => loadAirportNotam(airport),
+              mouseout: closeLeafletTooltipOnMouseOut,
+            }
+
+            if (!showAirportSymbol && !showAirportWeatherIndicator) {
+              return null
+            }
+
+            return (
+              <FeatureGroup key={airport.icao ?? `${airport.name}-${airport.lat}-${airport.lon}`}>
+                {showAirportSymbol ? (
+                  <Marker
+                    position={[airport.lat, airport.lon]}
+                    icon={createAirportSymbolIcon(airport)}
+                    pane="fp-airport-pane"
+                    keyboard={false}
+                    zIndexOffset={70}
+                    eventHandlers={airportEventHandlers}
+                  >
+                    {airport.icao && mapZoom >= airportLabelMinZoom ? (
+                      <Tooltip
+                        permanent
+                        direction="top"
+                        offset={[0, -12]}
+                        opacity={1}
+                        className="fp-airport-label"
+                      >
+                        <span>{airport.icao}</span>
+                      </Tooltip>
+                    ) : null}
+                    {airportTooltip}
+                  </Marker>
+                ) : null}
+                {showAirportWeatherIndicator ? (
+                  <Marker
+                    position={[airport.lat, airport.lon]}
+                    icon={createAirportWeatherIcon(flightRules.category)}
+                    pane="fp-airport-pane"
+                    keyboard={false}
+                    zIndexOffset={140}
+                    eventHandlers={airportEventHandlers}
+                  >
+                    {airportTooltip}
+                  </Marker>
+                ) : null}
+              </FeatureGroup>
+            )
+          }) : null}
 
           {previewRouteLegs.map((leg, index) => (
             <FeatureGroup key={`segment-${index}`}>

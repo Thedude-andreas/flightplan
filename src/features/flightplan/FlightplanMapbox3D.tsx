@@ -128,6 +128,7 @@ const mapPointSourceId = 'flightplan-3d-map-points'
 const mapPointNavaidLayerId = 'flightplan-3d-map-point-navaids'
 const mapPointAirportLayerId = 'flightplan-3d-map-point-airports'
 const mapPointEntryExitLayerId = 'flightplan-3d-map-point-entry-exit'
+const airportWeatherIconLayerId = 'flightplan-3d-airport-weather-icons'
 const airportWeatherLabelLayerId = 'flightplan-3d-airport-weather-labels'
 const mapPointLabelLayerId = 'flightplan-3d-map-point-labels'
 const holdingPatternLayerId = 'flightplan-3d-holding-patterns'
@@ -199,6 +200,7 @@ const reportingPointColor = '#732184'
 const reportingPointSymbolMinZoom = 8.5
 const reportingPointLabelMinZoom = 9
 const mapPointSymbolMinZoom = 6
+const airportSymbolMinZoom = 5.5
 const mapPointIconIds = {
   airportSmall: 'flightplan-3d-airport-small',
   airportCivil: 'flightplan-3d-airport-civil',
@@ -1363,11 +1365,13 @@ function buildMapPointGeoJson({
   airportFlightCategories,
   airports,
   navaids,
+  showAirportSymbols,
   visualPoints,
 }: {
   airportFlightCategories: Record<string, FlightplanMapboxAirportFlightCategory>
   airports: SwedishAirport[]
   navaids: SwedishNavaid[]
+  showAirportSymbols: boolean
   visualPoints: SwedishVisualPoint[]
 }) {
   const features: GeoJsonFeature[] = [
@@ -1383,19 +1387,21 @@ function buildMapPointGeoJson({
           label: airport.icao ?? airport.name ?? 'AD',
           title: airport.icao ?? airport.name ?? 'Flygplats',
           body: airport.name ?? '',
-          iconImage: isWeatherIndicator
-            ? flightCategory === 'VMC'
-              ? mapPointIconIds.weatherVmc
-              : flightCategory === 'MVMC'
-                ? mapPointIconIds.weatherMvmc
-                : flightCategory === 'IMC'
-                  ? mapPointIconIds.weatherImc
-                  : mapPointIconIds.weatherUnknown
-            : symbolKind === 'small'
-              ? mapPointIconIds.airportSmall
-              : symbolKind === 'military'
-                ? mapPointIconIds.airportMilitary
-                : mapPointIconIds.airportCivil,
+          showAirportSymbol: showAirportSymbols,
+          iconImage: symbolKind === 'small'
+            ? mapPointIconIds.airportSmall
+            : symbolKind === 'military'
+              ? mapPointIconIds.airportMilitary
+              : mapPointIconIds.airportCivil,
+          weatherIconImage: flightCategory === 'VMC'
+            ? mapPointIconIds.weatherVmc
+            : flightCategory === 'MVMC'
+              ? mapPointIconIds.weatherMvmc
+              : flightCategory === 'IMC'
+                ? mapPointIconIds.weatherImc
+                : isWeatherIndicator
+                  ? mapPointIconIds.weatherUnknown
+                  : '',
           color: flightCategory === 'VMC'
             ? '#16803c'
             : flightCategory === 'MVMC'
@@ -1405,9 +1411,11 @@ function buildMapPointGeoJson({
                 : isWeatherIndicator
                   ? '#64748b'
                   : aeronauticalSymbolBlue,
-          iconRotate: isWeatherIndicator ? 0 : getLongestRunwayBearingDegrees(airport) ?? 0,
-          iconSize: isWeatherIndicator ? 0.78 : 0.72,
-          sortPriority: isWeatherIndicator ? 90 : 80,
+          iconRotate: getLongestRunwayBearingDegrees(airport) ?? 0,
+          iconSize: 0.72,
+          weatherIconSize: 0.78,
+          sortPriority: 80,
+          weatherSortPriority: 90,
           flightCategory: flightCategory ?? 'NONE',
           flightCategoryLabel: flightCategory === 'VMC' ? 'V' : flightCategory === 'MVMC' ? 'M' : flightCategory === 'IMC' ? 'I' : '',
         }
@@ -1787,6 +1795,7 @@ export function FlightplanMapbox3D({
   mapStyle,
   navaids,
   notamFeatures,
+  showAirportSymbols,
   showObstacles,
   onMapViewChange,
   onInspectAirport,
@@ -1807,6 +1816,7 @@ export function FlightplanMapbox3D({
   mapStyle: FlightplanMapbox3DStyle
   navaids: SwedishNavaid[]
   notamFeatures: NotamMapOverlayFeature[]
+  showAirportSymbols: boolean
   showObstacles: boolean
   onMapViewChange?: (view: FlightplanMapboxView) => void
   onInspectAirport: (airport: SwedishAirport) => void
@@ -1835,8 +1845,8 @@ export function FlightplanMapbox3D({
   const notamGeoJson = useMemo(() => buildNotam3DGeoJson(notamFeatures), [notamFeatures])
   const weatherGeoJson = useMemo(() => buildWeather3DGeoJson(weatherOverlays), [weatherOverlays])
   const mapPointGeoJson = useMemo(
-    () => buildMapPointGeoJson({ airportFlightCategories, airports, navaids, visualPoints }),
-    [airportFlightCategories, airports, navaids, visualPoints],
+    () => buildMapPointGeoJson({ airportFlightCategories, airports, navaids, showAirportSymbols, visualPoints }),
+    [airportFlightCategories, airports, navaids, showAirportSymbols, visualPoints],
   )
   const holdingPatternObjects = useMemo(() => buildHoldingPattern3DObjects(visualPoints), [visualPoints])
   const activeObstacles = useMemo(
@@ -2349,8 +2359,13 @@ export function FlightplanMapbox3D({
         id: mapPointAirportLayerId,
         type: 'symbol',
         source: mapPointSourceId,
-        minzoom: mapPointSymbolMinZoom,
-        filter: ['==', ['get', 'category'], 'airport'],
+        minzoom: airportSymbolMinZoom,
+        filter: [
+          'all',
+          ['==', ['get', 'category'], 'airport'],
+          ['==', ['get', 'showAirportSymbol'], true],
+          ['==', ['get', 'flightCategoryLabel'], ''],
+        ],
         layout: {
           'icon-image': ['get', 'iconImage'],
           'icon-size': ['get', 'iconSize'],
@@ -2385,6 +2400,21 @@ export function FlightplanMapbox3D({
       holdingPatternLayerRef.current = holdingPatternLayer
       map.addLayer(holdingPatternLayer)
       map.addLayer({
+        id: airportWeatherIconLayerId,
+        type: 'symbol',
+        source: mapPointSourceId,
+        filter: ['all', ['==', ['get', 'category'], 'airport'], ['!=', ['get', 'flightCategoryLabel'], '']],
+        layout: {
+          'icon-image': ['get', 'weatherIconImage'],
+          'icon-size': ['get', 'weatherIconSize'],
+          'icon-pitch-alignment': 'map',
+          'icon-rotation-alignment': 'map',
+          'symbol-sort-key': ['get', 'weatherSortPriority'],
+          'icon-allow-overlap': true,
+          'icon-ignore-placement': true,
+        },
+      })
+      map.addLayer({
         id: airportWeatherLabelLayerId,
         type: 'symbol',
         source: mapPointSourceId,
@@ -2394,7 +2424,7 @@ export function FlightplanMapbox3D({
           'text-size': ['interpolate', ['linear'], ['zoom'], 5, 11, 12, 16],
           'text-pitch-alignment': 'map',
           'text-rotation-alignment': 'map',
-          'symbol-sort-key': ['get', 'sortPriority'],
+          'symbol-sort-key': ['get', 'weatherSortPriority'],
           'text-allow-overlap': true,
           'text-ignore-placement': true,
         },
@@ -2450,6 +2480,7 @@ export function FlightplanMapbox3D({
         mapPointNavaidLayerId,
         mapPointAirportLayerId,
         mapPointEntryExitLayerId,
+        airportWeatherIconLayerId,
         airportWeatherLabelLayerId,
         mapPointLabelLayerId,
         aloftWindLayerId,
@@ -2480,7 +2511,7 @@ export function FlightplanMapbox3D({
           const id = String(properties?.id ?? '')
           const category = String(properties?.category ?? '')
           const latestInspect = latestInspectRef.current
-          const isMapPointInteraction = layerId === mapPointNavaidLayerId || layerId === mapPointAirportLayerId || layerId === mapPointEntryExitLayerId || layerId === airportWeatherLabelLayerId || layerId === mapPointLabelLayerId
+          const isMapPointInteraction = layerId === mapPointNavaidLayerId || layerId === mapPointAirportLayerId || layerId === mapPointEntryExitLayerId || layerId === airportWeatherIconLayerId || layerId === airportWeatherLabelLayerId || layerId === mapPointLabelLayerId
 
           if (isMapPointInteraction && category === 'airport') {
             const airport = latestInspect.airportById.get(id)
