@@ -1489,6 +1489,14 @@ function createVisualRoutePoint(point: SwedishVisualPoint) {
   }
 }
 
+function createNavaidRoutePoint(navaid: SwedishNavaid) {
+  return {
+    lat: navaid.lat,
+    lon: navaid.lon,
+    name: navaid.ident ?? navaid.name ?? navaid.kind,
+  }
+}
+
 function getMetersPerPixelAtZoom(lat: number, zoom: number) {
   return (156543.03392 * Math.cos((lat * Math.PI) / 180)) / 2 ** zoom
 }
@@ -3883,7 +3891,11 @@ export function FlightplanMapEditor({
   const inspectNotamLeafletPoint = (feature: NotamMapOverlayFeature) => (event: LeafletMouseEvent) => {
     L.DomEvent.stopPropagation(event.originalEvent)
     suppressNextMapClick.current = true
-    inspectNotamFeature(feature, event.latlng.lat, event.latlng.lng)
+    if (routeEditingEnabled) {
+      addPointToEnd(event.latlng.lat, event.latlng.lng)
+    } else {
+      inspectNotamFeature(feature, event.latlng.lat, event.latlng.lng)
+    }
   }
 
   const setWaypoints = (nextWaypoints: typeof waypoints) => {
@@ -3948,18 +3960,34 @@ export function FlightplanMapEditor({
 
     const cursorPoint = mapInstance.latLngToLayerPoint([lat, lon])
 
+    const isNearCursor = (pointLat: number, pointLon: number) => {
+      const layerPoint = mapInstance.latLngToLayerPoint([pointLat, pointLon])
+      return cursorPoint.distanceTo(layerPoint) <= airportMarkerRadiusPx
+    }
+
     for (const airport of swedishAirports) {
       if (!airport.icao) {
         continue
       }
 
-      const airportPoint = mapInstance.latLngToLayerPoint([airport.lat, airport.lon])
-      if (cursorPoint.distanceTo(airportPoint) <= airportMarkerRadiusPx) {
+      if (isNearCursor(airport.lat, airport.lon)) {
         return {
           lat: airport.lat,
           lon: airport.lon,
           name: airport.icao,
         }
+      }
+    }
+
+    for (const navaid of visibleNavaids) {
+      if (isNearCursor(navaid.lat, navaid.lon)) {
+        return createNavaidRoutePoint(navaid)
+      }
+    }
+
+    for (const visualPoint of visibleVisualPoints) {
+      if (isNearCursor(visualPoint.lat, visualPoint.lon)) {
+        return createVisualRoutePoint(visualPoint)
       }
     }
 
@@ -4012,16 +4040,7 @@ export function FlightplanMapEditor({
     }
 
     setSelectedPointInfo(null)
-    const resolvedPoint = resolveRoutePoint(navaid.lat, navaid.lon)
-    const nextLabel = navaid.ident ?? navaid.name ?? navaid.kind
-    const nextPoint =
-      resolvedPoint.lat === navaid.lat && resolvedPoint.lon === navaid.lon
-        ? {
-            lat: navaid.lat,
-            lon: navaid.lon,
-            name: nextLabel,
-          }
-        : resolvedPoint
+    const nextPoint = createNavaidRoutePoint(navaid)
 
     if (waypoints.length === 0) {
       onRouteLegsChange([
@@ -4625,6 +4644,7 @@ export function FlightplanMapEditor({
           {showAirspaces ? (
             <GeoJSON
               data={airspaceGeoJson}
+              interactive={!routeEditingEnabled}
               style={(feature) => getLeafletAirspacePathOptions(feature?.properties?.kind)}
               onEachFeature={(_feature, layer) => {
                 layer.on('mouseover mousemove', (event) => {
@@ -4680,6 +4700,7 @@ export function FlightplanMapEditor({
                   return (
                     <Polygon
                       key={overlay.id}
+                      interactive={!routeEditingEnabled}
                       positions={overlay.geometry.points.map((point) => [point.lat, point.lon] as [number, number])}
                       smoothFactor={0}
                       pathOptions={{
@@ -4698,6 +4719,7 @@ export function FlightplanMapEditor({
                   return (
                     <Polygon
                       key={overlay.id}
+                      interactive={!routeEditingEnabled}
                       positions={overlay.geometry.polygons.map((polygon) => (
                         polygon.map((point) => [point.lat, point.lon] as [number, number])
                       ))}
@@ -4718,6 +4740,7 @@ export function FlightplanMapEditor({
                   return (
                     <Polyline
                       key={overlay.id}
+                      interactive={!routeEditingEnabled}
                       positions={overlay.geometry.points.map((point) => [point.lat, point.lon] as [number, number])}
                       smoothFactor={0}
                       pathOptions={{
@@ -4735,6 +4758,7 @@ export function FlightplanMapEditor({
                   return (
                     <Circle
                       key={overlay.id}
+                      interactive={!routeEditingEnabled}
                       center={[overlay.geometry.centre.lat, overlay.geometry.centre.lon]}
                       radius={overlay.geometry.radiusNm * 1852}
                       pathOptions={{
@@ -4752,6 +4776,7 @@ export function FlightplanMapEditor({
                 return (
                   <CircleMarker
                     key={overlay.id}
+                    interactive={!routeEditingEnabled}
                     center={[overlay.geometry.point.lat, overlay.geometry.point.lon]}
                     radius={6}
                     pathOptions={{
@@ -4795,6 +4820,7 @@ export function FlightplanMapEditor({
                         pane={notamMapSymbolPane}
                         position={[lat, lon]}
                         icon={createNotamPointIcon(feature)}
+                        interactive={!routeEditingEnabled}
                         keyboard={false}
                         zIndexOffset={80}
                         eventHandlers={getNotamFeatureEventHandlers(feature)}
@@ -4810,6 +4836,7 @@ export function FlightplanMapEditor({
                       pane={notamMapPane}
                       center={[lat, lon]}
                       radius={feature.radiusNm * 1852}
+                      interactive={!routeEditingEnabled}
                       pathOptions={notamMapPathOptions(feature.source, 'area', mapZoom)}
                       eventHandlers={getNotamFeatureEventHandlers(feature)}
                     />
@@ -4826,6 +4853,7 @@ export function FlightplanMapEditor({
                         pane={notamMapSymbolPane}
                         position={[lat, lon]}
                         icon={createNotamPointIcon(feature)}
+                        interactive={!routeEditingEnabled}
                         keyboard={false}
                         zIndexOffset={95}
                         eventHandlers={getNotamFeatureEventHandlers(feature)}
@@ -4849,6 +4877,7 @@ export function FlightplanMapEditor({
                         pane={notamMapSymbolPane}
                         position={[lat, lon]}
                         icon={createNotamPointIcon(feature)}
+                        interactive={!routeEditingEnabled}
                         keyboard={false}
                         zIndexOffset={80}
                         eventHandlers={getNotamFeatureEventHandlers(feature)}
@@ -4863,6 +4892,7 @@ export function FlightplanMapEditor({
                       key={`${feature.id}-polygon`}
                       pane={notamMapPane}
                       positions={feature.positions}
+                      interactive={!routeEditingEnabled}
                       pathOptions={notamMapPathOptions(feature.source, 'area', mapZoom)}
                       eventHandlers={getNotamFeatureEventHandlers(feature)}
                     />
@@ -4880,6 +4910,7 @@ export function FlightplanMapEditor({
                         pane={notamMapSymbolPane}
                         position={[lat, lon]}
                         icon={createNotamPointIcon(feature)}
+                        interactive={!routeEditingEnabled}
                         keyboard={false}
                         zIndexOffset={95}
                         eventHandlers={getNotamFeatureEventHandlers(feature)}
@@ -4896,6 +4927,7 @@ export function FlightplanMapEditor({
                       key={feature.id}
                       pane={notamMapLinePane}
                       positions={feature.positions}
+                      interactive={!routeEditingEnabled}
                       pathOptions={notamMapPathOptions(feature.source, 'line', mapZoom)}
                       eventHandlers={getNotamFeatureEventHandlers(feature)}
                     >
@@ -4913,6 +4945,7 @@ export function FlightplanMapEditor({
                     pane={notamMapSymbolPane}
                     position={[ptLat, ptLon]}
                     icon={createNotamPointIcon(feature)}
+                    interactive={!routeEditingEnabled}
                     keyboard={false}
                     zIndexOffset={80}
                     eventHandlers={getNotamFeatureEventHandlers(feature)}

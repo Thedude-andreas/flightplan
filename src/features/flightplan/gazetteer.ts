@@ -248,9 +248,24 @@ function findBestNamedPlace(lat: number, lon: number) {
 }
 
 export function getRoutePointLabel(point: RoutePointInput) {
+  const explicitName = point.name.trim()
+  const coordinateLabel = formatCoordinateLabel(point.lat, point.lon)
+  const hasExplicitName = explicitName.length > 0 && explicitName !== coordinateLabel
   const nearest = findNearestAirport(point.lat, point.lon)
   if (nearest.distanceNm <= airportDisplayToleranceNm) {
+    if (
+      hasExplicitName &&
+      explicitName !== nearest.airport.icao &&
+      explicitName !== nearest.airport.name
+    ) {
+      return explicitName
+    }
+
     return nearest.airport.icao
+  }
+
+  if (hasExplicitName) {
+    return explicitName
   }
 
   const nearbyPlace = findBestNamedPlace(point.lat, point.lon)
@@ -258,7 +273,7 @@ export function getRoutePointLabel(point: RoutePointInput) {
     return nearbyPlace.place.name
   }
 
-  return formatCoordinateLabel(point.lat, point.lon)
+  return coordinateLabel
 }
 
 export function legsToWaypoints(legs: RouteLegInput[]): RoutePointInput[] {
