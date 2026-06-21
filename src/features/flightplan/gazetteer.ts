@@ -283,8 +283,8 @@ export function waypointsToLegs(
     return {
       from,
       to: waypoints[index + 1],
-      windDirection: previous?.windDirection ?? 220,
-      windSpeedKt: previous?.windSpeedKt ?? 15,
+      windDirection: previous?.windDirection ?? 0,
+      windSpeedKt: previous?.windSpeedKt ?? 0,
       manualWind: previous?.manualWind ?? null,
       tasKt: previous?.tasKt ?? defaultTasKt,
       variation: previous?.variation ?? 0,

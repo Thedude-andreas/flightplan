@@ -78,6 +78,10 @@ type RouteRow = {
   timeAcc: string
   notes: string
 }
+
+function formatWind(direction: number, speedKt: number) {
+  return `${String(normalizeDegrees(direction)).padStart(3, '0')}/${String(speedKt).padStart(2, '0')}`
+}
 type RouteMapOrientation = 'landscape' | 'portrait'
 type RowContextMenuState = { x: number; y: number; rowIndex: number } | null
 type AltitudeDragState = {
@@ -337,7 +341,6 @@ function emptyRouteRow(index: number): RouteRow {
 function createRouteRows(
   plan: FlightPlanInput,
   derived: ReturnType<typeof calculateFlightPlan>,
-  autoFetchWindEnabled: boolean,
   tasInputUnit: 'kt' | 'mph',
   targetLength?: number,
 ): RouteRow[] {
@@ -359,10 +362,10 @@ function createRouteRows(
     const manualWind = sourceLeg.manualWind
     const hasStoredWind = sourceLeg.windDirection > 0 || sourceLeg.windSpeedKt > 0
     const displayWind = manualWind
-      ? `${manualWind.direction}/${manualWind.speedKt}`
-      : autoFetchWindEnabled || hasStoredWind
-        ? `${sourceLeg.windDirection}/${sourceLeg.windSpeedKt}`
-        : ''
+      ? formatWind(manualWind.direction, manualWind.speedKt)
+      : hasStoredWind
+        ? formatWind(sourceLeg.windDirection, sourceLeg.windSpeedKt)
+        : 'N/A'
 
     return {
       index,
@@ -977,12 +980,12 @@ export function FlightplanApp({
     flightPlanStartTimeUtc !== null &&
     currentTimeMs - flightPlanStartTimeUtc.getTime() > startTimePassedThresholdMs
   const routeRows = useMemo(
-    () => createRouteRows(effectivePlan, derived, aloftWindAutoFetchEnabled, tasInputUnit),
-    [aloftWindAutoFetchEnabled, effectivePlan, derived, tasInputUnit],
+    () => createRouteRows(effectivePlan, derived, tasInputUnit),
+    [effectivePlan, derived, tasInputUnit],
   )
   const printRouteRows = useMemo(
-    () => createRouteRows(effectivePlan, derived, aloftWindAutoFetchEnabled, tasInputUnit),
-    [aloftWindAutoFetchEnabled, effectivePlan, derived, tasInputUnit],
+    () => createRouteRows(effectivePlan, derived, tasInputUnit),
+    [effectivePlan, derived, tasInputUnit],
   )
   const printRoutePages = useMemo(() => splitPrintRouteRows(printRouteRows), [printRouteRows])
   const routeMapOrientation = useMemo<RouteMapOrientation>(() => 'landscape', [])

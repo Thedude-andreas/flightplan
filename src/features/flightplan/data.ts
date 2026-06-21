@@ -115,8 +115,8 @@ const initialFlightPlanTemplate: FlightPlanInput = {
     {
       from: { name: 'Bromma', lat: 59.3544, lon: 17.941 },
       to: { name: 'Uppsala', lat: 59.8586, lon: 17.6389 },
-      windDirection: 220,
-      windSpeedKt: 15,
+      windDirection: 0,
+      windSpeedKt: 0,
       manualWind: null,
       tasKt: DEFAULT_ROUTE_TAS_KT,
       variation: 0,
@@ -127,8 +127,8 @@ const initialFlightPlanTemplate: FlightPlanInput = {
     {
       from: { name: 'Uppsala', lat: 59.8586, lon: 17.6389 },
       to: { name: 'Gävle', lat: 60.5933, lon: 17.4594 },
-      windDirection: 230,
-      windSpeedKt: 18,
+      windDirection: 0,
+      windSpeedKt: 0,
       manualWind: null,
       tasKt: DEFAULT_ROUTE_TAS_KT,
       variation: 0,
@@ -139,8 +139,8 @@ const initialFlightPlanTemplate: FlightPlanInput = {
     {
       from: { name: 'Gävle', lat: 60.5933, lon: 17.4594 },
       to: { name: 'Söderhamn', lat: 61.2608, lon: 17.1014 },
-      windDirection: 240,
-      windSpeedKt: 16,
+      windDirection: 0,
+      windSpeedKt: 0,
       manualWind: null,
       tasKt: DEFAULT_ROUTE_TAS_KT,
       variation: 0,

@@ -2892,7 +2892,6 @@ function RouteInsertTouchDragHandler({
 export function FlightplanMapEditor({
   plan,
   derived,
-  aloftWindAutoFetchEnabled = true,
   aloftWinds = [],
   aloftWindStatus = 'idle',
   sigmetText = null,
@@ -3980,8 +3979,8 @@ export function FlightplanMapEditor({
         {
           from: nextPoint,
           to: nextPoint,
-          windDirection: aloftWindAutoFetchEnabled ? 220 : 0,
-          windSpeedKt: aloftWindAutoFetchEnabled ? 15 : 0,
+          windDirection: 0,
+          windSpeedKt: 0,
           tasKt: DEFAULT_ROUTE_TAS_KT,
           variation: 0,
           altitude: "3000'",
@@ -4029,8 +4028,8 @@ export function FlightplanMapEditor({
         {
           from: nextPoint,
           to: nextPoint,
-          windDirection: aloftWindAutoFetchEnabled ? 220 : 0,
-          windSpeedKt: aloftWindAutoFetchEnabled ? 15 : 0,
+          windDirection: 0,
+          windSpeedKt: 0,
           tasKt: DEFAULT_ROUTE_TAS_KT,
           variation: 0,
           altitude: "3000'",
@@ -4069,8 +4068,8 @@ export function FlightplanMapEditor({
         {
           from: nextPoint,
           to: nextPoint,
-          windDirection: aloftWindAutoFetchEnabled ? 220 : 0,
-          windSpeedKt: aloftWindAutoFetchEnabled ? 15 : 0,
+          windDirection: 0,
+          windSpeedKt: 0,
           tasKt: DEFAULT_ROUTE_TAS_KT,
           variation: 0,
           altitude: "3000'",
