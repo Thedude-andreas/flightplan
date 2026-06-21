@@ -136,11 +136,7 @@ function computeWeightBalance(
   }
 }
 
-function computePerformance(
-  plan: FlightPlanInput,
-  aircraft: AircraftProfile,
-  weightBalance: WeightBalanceDerived,
-): PerformanceDerived {
+function computePerformance(plan: FlightPlanInput): PerformanceDerived {
   const qnhHpa = plan.performance.qnhHpa ?? 1013.25
   const pressureAltitudeFt = plan.performance.aerodromeElevationFt + (1013.25 - qnhHpa) * 30
   const isaTemperatureC = 15 - 1.98 * (pressureAltitudeFt / 1000)
@@ -151,41 +147,32 @@ function computePerformance(
   const landingPressureAltitudeFt = landingElevationFt + (1013.25 - landingQnhHpa) * 30
   const landingIsaTemperatureC = 15 - 1.98 * (landingPressureAltitudeFt / 1000)
   const landingDensityAltitudeFt = landingPressureAltitudeFt + 120 * (landingTemperatureC - landingIsaTemperatureC)
-  const weightFactor = 1 + (weightBalance.towKg - aircraft.emptyWeightKg) / 2000
-  const elevationFactor = 1 + plan.performance.aerodromeElevationFt / 5000
-  const temperatureFactor = 1 + Math.max(0, plan.performance.temperatureC - 15) * 0.01
-  const landingElevationFactor = 1 + landingElevationFt / 5000
-  const landingTemperatureFactor = 1 + Math.max(0, landingTemperatureC - 15) * 0.01
-  const surfaceFactor =
-    plan.performance.runwaySurface === 'Gräs'
-      ? plan.performance.runwayCondition === 'Mjuk'
-        ? 1.28
-        : 1.15
-      : plan.performance.runwayCondition === 'Våt'
-        ? 1.08
-        : 1
-  const windFactor = 1 - Math.min(0.2, plan.performance.headwindKt * 0.01)
-
-  const takeoffPohM = aircraft.performance.takeoff50FtM
-  const landingPohM = aircraft.performance.landing50FtM
-  const takeoffCorrectedM = takeoffPohM * weightFactor * elevationFactor * temperatureFactor * surfaceFactor * windFactor
-  const landingCorrectedM = landingPohM * weightFactor * landingElevationFactor * landingTemperatureFactor * surfaceFactor * windFactor
-  const takeoffRequiredM = takeoffCorrectedM * 1.33
-  const landingRequiredM = landingCorrectedM * 1.43
+  const takeoffPohM = plan.performance.takeoffPohM ?? null
+  const landingPohM = plan.performance.landingPohM ?? null
+  const takeoffCorrectedM = plan.performance.takeoffCorrectedM ?? null
+  const landingCorrectedM = plan.performance.landingCorrectedM ?? null
+  const takeoffRequiredM = takeoffCorrectedM == null ? null : takeoffCorrectedM * 1.33
+  const landingRequiredM = landingCorrectedM == null ? null : landingCorrectedM * 1.43
 
   return {
     pressureAltitudeFt: round(pressureAltitudeFt),
     densityAltitudeFt: round(densityAltitudeFt),
     landingPressureAltitudeFt: round(landingPressureAltitudeFt),
     landingDensityAltitudeFt: round(landingDensityAltitudeFt),
-    takeoffPohM: round(takeoffPohM),
-    takeoffCorrectedM: round(takeoffCorrectedM),
-    takeoffRequiredM: round(takeoffRequiredM),
-    landingPohM: round(landingPohM),
-    landingCorrectedM: round(landingCorrectedM),
-    landingRequiredM: round(landingRequiredM),
-    takeoffMarginM: round(plan.performance.availableTakeoffDistanceM - takeoffRequiredM),
-    landingMarginM: round(plan.performance.availableLandingDistanceM - landingRequiredM),
+    takeoffPohM: takeoffPohM == null ? null : round(takeoffPohM),
+    takeoffCorrectedM: takeoffCorrectedM == null ? null : round(takeoffCorrectedM),
+    takeoffRequiredM: takeoffRequiredM == null ? null : round(takeoffRequiredM),
+    landingPohM: landingPohM == null ? null : round(landingPohM),
+    landingCorrectedM: landingCorrectedM == null ? null : round(landingCorrectedM),
+    landingRequiredM: landingRequiredM == null ? null : round(landingRequiredM),
+    takeoffMarginM:
+      plan.performance.availableTakeoffDistanceM == null || takeoffRequiredM == null
+        ? null
+        : round(plan.performance.availableTakeoffDistanceM - takeoffRequiredM),
+    landingMarginM:
+      plan.performance.availableLandingDistanceM == null || landingRequiredM == null
+        ? null
+        : round(plan.performance.availableLandingDistanceM - landingRequiredM),
   }
 }
 
@@ -220,7 +207,7 @@ export function calculateFlightPlan(plan: FlightPlanInput, aircraftProfiles: Air
   }
 
   const weightBalance = computeWeightBalance(plan, aircraft, totalOnBoardLiters)
-  const performance = computePerformance(plan, aircraft, weightBalance)
+  const performance = computePerformance(plan)
 
   return {
     aircraft,

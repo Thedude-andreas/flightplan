@@ -77,8 +77,12 @@ export type RadioNavEntry = {
 }
 
 export type PerformanceInput = {
-  availableTakeoffDistanceM: number
-  availableLandingDistanceM: number
+  availableTakeoffDistanceM: number | null
+  availableLandingDistanceM: number | null
+  takeoffPohM: number | null
+  takeoffCorrectedM: number | null
+  landingPohM: number | null
+  landingCorrectedM: number | null
   aerodromeElevationFt: number
   temperatureC: number
   qnhHpa?: number
@@ -159,14 +163,14 @@ export type PerformanceDerived = {
   densityAltitudeFt: number
   landingPressureAltitudeFt: number
   landingDensityAltitudeFt: number
-  takeoffPohM: number
-  takeoffCorrectedM: number
-  takeoffRequiredM: number
-  landingPohM: number
-  landingCorrectedM: number
-  landingRequiredM: number
-  takeoffMarginM: number
-  landingMarginM: number
+  takeoffPohM: number | null
+  takeoffCorrectedM: number | null
+  takeoffRequiredM: number | null
+  landingPohM: number | null
+  landingCorrectedM: number | null
+  landingRequiredM: number | null
+  takeoffMarginM: number | null
+  landingMarginM: number | null
 }
 
 export type FlightPlanDerived = {

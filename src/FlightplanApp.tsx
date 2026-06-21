@@ -595,6 +595,40 @@ function findStartAirport(point: FlightPlanInput['routeLegs'][number]['from'] | 
   return nearest && nearest.distanceNm <= 0.25 ? nearest.airport : null
 }
 
+function parseRunwayLengthMeters(dimensionsMeters: string | null) {
+  const match = dimensionsMeters?.match(/(\d+(?:[.,]\d+)?)/)
+  if (!match) {
+    return null
+  }
+
+  const value = Number(match[1].replace(',', '.'))
+  return Number.isFinite(value) && value > 0 ? Math.round(value) : null
+}
+
+function getLongestRunwayLengthMeters(airport: SwedishAirport | null) {
+  if (!airport) {
+    return null
+  }
+
+  const lengths = airport.runways
+    .map((runway) => parseRunwayLengthMeters(runway.dimensionsMeters))
+    .filter((length): length is number => length !== null)
+
+  return lengths.length > 0 ? Math.max(...lengths) : null
+}
+
+function formatOptionalMeters(value: number | null) {
+  return value == null ? '#Unknown' : `${formatNumber(value)} m`
+}
+
+function getOptionalMarginClassName(value: number | null) {
+  if (value == null) {
+    return 'fp-status-warn'
+  }
+
+  return value >= 0 ? 'fp-status-ok' : 'fp-status-warn'
+}
+
 function toNearbyAirport(airport: SwedishAirport, point: { lat: number; lon: number }): NearbyAirport | null {
   if (!airport.icao || !airport.name) {
     return null
@@ -1013,6 +1047,28 @@ export function FlightplanApp({
     [performanceStartPoint, plan.header.departureAerodrome, plan.header.date, plan.header.plannedStartTime],
   )
   const performanceLandingPoint = plan.routeLegs.at(-1)?.to ?? null
+  const performanceRunwayKey = useMemo(
+    () =>
+      JSON.stringify({
+        startPoint: performanceStartPoint
+          ? {
+              lat: Math.round(performanceStartPoint.lat * 100000) / 100000,
+              lon: Math.round(performanceStartPoint.lon * 100000) / 100000,
+              name: performanceStartPoint.name,
+            }
+          : null,
+        departureAerodrome: plan.header.departureAerodrome,
+        landingPoint: performanceLandingPoint
+          ? {
+              lat: Math.round(performanceLandingPoint.lat * 100000) / 100000,
+              lon: Math.round(performanceLandingPoint.lon * 100000) / 100000,
+              name: performanceLandingPoint.name,
+            }
+          : null,
+        destinationAerodrome: plan.header.destinationAerodrome,
+      }),
+    [performanceLandingPoint, performanceStartPoint, plan.header.departureAerodrome, plan.header.destinationAerodrome],
+  )
   const performanceLandingDateTime = useMemo(
     () => addMinutesToUtcDateTime(plan.header.date, plan.header.plannedStartTime, derived.totals.flightTimeMinutes),
     [derived.totals.flightTimeMinutes, plan.header.date, plan.header.plannedStartTime],
@@ -1216,6 +1272,33 @@ export function FlightplanApp({
   useEffect(() => {
     setActiveTab(initialActiveTab)
   }, [initialActiveTab])
+
+  useEffect(() => {
+    const startAirport = findStartAirport(performanceStartPoint, plan.header.departureAerodrome)
+    const landingAirport = findStartAirport(performanceLandingPoint, plan.header.destinationAerodrome)
+    const availableTakeoffDistanceM = getLongestRunwayLengthMeters(startAirport)
+    const availableLandingDistanceM = getLongestRunwayLengthMeters(landingAirport)
+
+    setPlan((current) => {
+      if (
+        current.performance.availableTakeoffDistanceM === availableTakeoffDistanceM &&
+        current.performance.availableLandingDistanceM === availableLandingDistanceM
+      ) {
+        return current
+      }
+
+      return normalizePlanForAircraft({
+        ...current,
+        performance: {
+          ...current.performance,
+          availableTakeoffDistanceM,
+          availableLandingDistanceM,
+        },
+      })
+    })
+  // performanceRunwayKey intentionally captures route/header fields that should autofill runway lengths.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [performanceRunwayKey])
 
   useEffect(() => {
     const startAirport = findStartAirport(performanceStartPoint, plan.header.departureAerodrome)
@@ -1606,7 +1689,7 @@ export function FlightplanApp({
 
   const updatePerformance = (
     key: keyof FlightPlanInput['performance'],
-    value: string | number,
+    value: string | number | null,
   ) => {
     updatePlan((current) => ({
       ...current,
@@ -2228,7 +2311,7 @@ export function FlightplanApp({
                 <div className="fp-input-grid">
                   <EditorNumber label="Reserv minuter" value={plan.fuel.reserveMinutes} onChange={(value) => updateFuel('reserveMinutes', value)} />
                   <EditorNumber label="Extra ombord liter" value={plan.fuel.extraOnBoardLiters} onChange={(value) => updateFuel('extraOnBoardLiters', value)} />
-                  <EditorNumber label="Förbrukning override lit/tim" value={plan.fuel.burnOverrideLph ?? 0} allowBlank placeholder={hasSelectedAircraft ? String(derived.aircraft.fuelBurnLph) : ''} onChangeOptional={(value) => updateFuel('burnOverrideLph', value)} />
+                  <EditorNumber label="Förbrukning override lit/tim" value={plan.fuel.burnOverrideLph ?? null} allowBlank placeholder={hasSelectedAircraft ? String(derived.aircraft.fuelBurnLph) : ''} onChangeOptional={(value) => updateFuel('burnOverrideLph', value)} />
                 </div>
                 {hasSelectedAircraft ? (
                   <div className="fp-stat-block">
@@ -2289,8 +2372,12 @@ export function FlightplanApp({
                   </button>
                 </div>
                 <div className="fp-input-grid">
-                  <EditorNumber label="Tillgänglig startsträcka m" value={plan.performance.availableTakeoffDistanceM} onChange={(value) => updatePerformance('availableTakeoffDistanceM', value)} />
-                  <EditorNumber label="Tillgänglig landningssträcka m" value={plan.performance.availableLandingDistanceM} onChange={(value) => updatePerformance('availableLandingDistanceM', value)} />
+                  <EditorNumber label="Tillgänglig startsträcka m" value={plan.performance.availableTakeoffDistanceM} allowBlank placeholder="#Unknown" onChangeOptional={(value) => updatePerformance('availableTakeoffDistanceM', value ?? null)} />
+                  <EditorNumber label="Tillgänglig landningssträcka m" value={plan.performance.availableLandingDistanceM} allowBlank placeholder="#Unknown" onChangeOptional={(value) => updatePerformance('availableLandingDistanceM', value ?? null)} />
+                  <EditorNumber label="T/O enligt POH m" value={plan.performance.takeoffPohM ?? null} allowBlank placeholder="#Unknown" onChangeOptional={(value) => updatePerformance('takeoffPohM', value ?? null)} />
+                  <EditorNumber label="T/O inkl korrektioner m" value={plan.performance.takeoffCorrectedM ?? null} allowBlank placeholder="#Unknown" onChangeOptional={(value) => updatePerformance('takeoffCorrectedM', value ?? null)} />
+                  <EditorNumber label="LDG enligt POH m" value={plan.performance.landingPohM ?? null} allowBlank placeholder="#Unknown" onChangeOptional={(value) => updatePerformance('landingPohM', value ?? null)} />
+                  <EditorNumber label="LDG inkl korrektioner m" value={plan.performance.landingCorrectedM ?? null} allowBlank placeholder="#Unknown" onChangeOptional={(value) => updatePerformance('landingCorrectedM', value ?? null)} />
                   <EditorNumber label="Fälthöjd ft" value={plan.performance.aerodromeElevationFt} onChange={(value) => updatePerformance('aerodromeElevationFt', value)} />
                   <EditorNumber label="Temperatur °C" value={plan.performance.temperatureC} onChange={(value) => updatePerformance('temperatureC', value)} />
                   <EditorNumber label="QNH hPa" value={plan.performance.qnhHpa ?? 1013} onChange={(value) => updatePerformance('qnhHpa', value)} />
@@ -2325,8 +2412,8 @@ export function FlightplanApp({
                   <div><span>Landning DA</span><strong>{formatNumber(derived.performance.landingDensityAltitudeFt)} ft</strong></div>
                   {hasSelectedAircraft ? (
                     <>
-                      <div><span>Startmarginal</span><strong className={derived.performance.takeoffMarginM >= 0 ? 'fp-status-ok' : 'fp-status-warn'}>{formatNumber(derived.performance.takeoffMarginM)} m</strong></div>
-                      <div><span>Landningsmarginal</span><strong className={derived.performance.landingMarginM >= 0 ? 'fp-status-ok' : 'fp-status-warn'}>{formatNumber(derived.performance.landingMarginM)} m</strong></div>
+                      <div><span>Startmarginal</span><strong className={getOptionalMarginClassName(derived.performance.takeoffMarginM)}>{formatOptionalMeters(derived.performance.takeoffMarginM)}</strong></div>
+                      <div><span>Landningsmarginal</span><strong className={getOptionalMarginClassName(derived.performance.landingMarginM)}>{formatOptionalMeters(derived.performance.landingMarginM)}</strong></div>
                     </>
                   ) : null}
                 </div>
@@ -2939,7 +3026,7 @@ function EditorNumber({
   allowBlank = false,
 }: {
   label: string
-  value: number
+  value: number | null
   onChange?: (value: number) => void
   onChangeOptional?: (value: number | undefined) => void
   placeholder?: string
@@ -2951,7 +3038,7 @@ function EditorNumber({
       <input
         type="number"
         step="0.0001"
-        value={allowBlank && onChangeOptional && value === 0 ? '' : value}
+        value={allowBlank && value == null ? '' : (value ?? '')}
         placeholder={placeholder}
         onChange={(event) => {
           if (allowBlank && onChangeOptional) {
@@ -3200,9 +3287,9 @@ function FlightPlanDocument({
           </div>
           {hasSelectedAircraft ? (
             <>
-              <div className="fp-metric-row"><span>T/O TILL 50 FOT ENL POH</span><strong>{formatNumber(derived.performance.takeoffPohM)} m</strong></div>
-              <div className="fp-metric-row"><span>T/O INKL KORREKTIONER</span><strong>{formatNumber(derived.performance.takeoffCorrectedM)} m</strong></div>
-              <div className="fp-metric-row fp-highlight-row"><span>TILLGÄNGLIG STARTSTRÄCKA</span><strong>{formatNumber(plan.performance.availableTakeoffDistanceM)} m</strong></div>
+              <div className="fp-metric-row"><span>T/O TILL 50 FOT ENL POH</span><strong>{formatOptionalMeters(derived.performance.takeoffPohM)}</strong></div>
+              <div className="fp-metric-row"><span>T/O INKL KORREKTIONER</span><strong>{formatOptionalMeters(derived.performance.takeoffCorrectedM)}</strong></div>
+              <div className="fp-metric-row fp-highlight-row"><span>TILLGÄNGLIG STARTSTRÄCKA</span><strong>{formatOptionalMeters(plan.performance.availableTakeoffDistanceM)}</strong></div>
             </>
           ) : null}
           <div className="fp-metric-row"><span>LANDNING DENSITETSHÖJD</span><strong>{formatNumber(derived.performance.landingDensityAltitudeFt)} ft</strong></div>
@@ -3212,9 +3299,9 @@ function FlightPlanDocument({
           </div>
           {hasSelectedAircraft ? (
             <>
-              <div className="fp-metric-row"><span>LDG FR 50 FOT ENL POH</span><strong>{formatNumber(derived.performance.landingPohM)} m</strong></div>
-              <div className="fp-metric-row"><span>LDG INKL KORREKTIONER</span><strong>{formatNumber(derived.performance.landingCorrectedM)} m</strong></div>
-              <div className="fp-metric-row fp-highlight-row"><span>TILLGÄNGLIG LAND.STRÄCKA</span><strong>{formatNumber(plan.performance.availableLandingDistanceM)} m</strong></div>
+              <div className="fp-metric-row"><span>LDG FR 50 FOT ENL POH</span><strong>{formatOptionalMeters(derived.performance.landingPohM)}</strong></div>
+              <div className="fp-metric-row"><span>LDG INKL KORREKTIONER</span><strong>{formatOptionalMeters(derived.performance.landingCorrectedM)}</strong></div>
+              <div className="fp-metric-row fp-highlight-row"><span>TILLGÄNGLIG LAND.STRÄCKA</span><strong>{formatOptionalMeters(plan.performance.availableLandingDistanceM)}</strong></div>
             </>
           ) : null}
         </div>
