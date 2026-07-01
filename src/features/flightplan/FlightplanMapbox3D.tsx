@@ -2315,7 +2315,9 @@ export function FlightplanMapbox3D({
   onInspectNotamFeature,
   onInspectPoint,
   onInspectVisualPoint,
+  onRoutePointAdd,
   plan,
+  routeEditingEnabled,
   derived,
   visualPoints,
   weatherOverlays,
@@ -2336,7 +2338,9 @@ export function FlightplanMapbox3D({
   onInspectNotamFeature: (feature: NotamMapOverlayFeature, lat: number, lon: number) => void
   onInspectPoint: (lat: number, lon: number) => void
   onInspectVisualPoint: (point: SwedishVisualPoint) => void
+  onRoutePointAdd: (lat: number, lon: number) => void
   plan: FlightPlanInput
+  routeEditingEnabled: boolean
   derived: FlightPlanDerived
   visualPoints: SwedishVisualPoint[]
   weatherOverlays: RouteWeatherOverlay[]
@@ -2387,6 +2391,8 @@ export function FlightplanMapbox3D({
     onInspectNotamFeature,
     onInspectPoint,
     onInspectVisualPoint,
+    onRoutePointAdd,
+    routeEditingEnabled,
     visualPointById,
   })
   const latestViewChangeRef = useRef(onMapViewChange)
@@ -2438,6 +2444,8 @@ export function FlightplanMapbox3D({
       onInspectNotamFeature,
       onInspectPoint,
       onInspectVisualPoint,
+      onRoutePointAdd,
+      routeEditingEnabled,
       visualPointById,
     }
   }, [
@@ -2449,6 +2457,8 @@ export function FlightplanMapbox3D({
     onInspectNotamFeature,
     onInspectPoint,
     onInspectVisualPoint,
+    onRoutePointAdd,
+    routeEditingEnabled,
     visualPointById,
   ])
 
@@ -2712,6 +2722,11 @@ export function FlightplanMapbox3D({
         }
 
         suppressNextMapClickRef.current = true
+        if (latestInspectRef.current.routeEditingEnabled) {
+          latestInspectRef.current.onRoutePointAdd(event.lngLat.lat, event.lngLat.lng)
+          return
+        }
+
         latestInspectRef.current.onInspectPoint(event.lngLat.lat, event.lngLat.lng)
       })
       updateOrCreateGeoJsonSource(map, notamVolumeSourceId, latestMapData.notamGeoJson.volumes)
@@ -3130,6 +3145,11 @@ export function FlightplanMapbox3D({
           if (isMapPointInteraction && category === 'airport') {
             const airport = latestInspect.airportById.get(id)
             if (airport) {
+              if (latestInspect.routeEditingEnabled) {
+                latestInspect.onRoutePointAdd(airport.lat, airport.lon)
+                return
+              }
+
               latestInspect.onInspectAirport(airport)
               return
             }
@@ -3138,6 +3158,11 @@ export function FlightplanMapbox3D({
           if (isMapPointInteraction && category === 'navaid') {
             const navaid = latestInspect.navaidById.get(id)
             if (navaid) {
+              if (latestInspect.routeEditingEnabled) {
+                latestInspect.onRoutePointAdd(navaid.lat, navaid.lon)
+                return
+              }
+
               latestInspect.onInspectNavaid(navaid)
               return
             }
@@ -3146,9 +3171,19 @@ export function FlightplanMapbox3D({
           if (isMapPointInteraction && category === 'visual-point') {
             const visualPoint = latestInspect.visualPointById.get(id)
             if (visualPoint) {
+              if (latestInspect.routeEditingEnabled) {
+                latestInspect.onRoutePointAdd(visualPoint.lat, visualPoint.lon)
+                return
+              }
+
               latestInspect.onInspectVisualPoint(visualPoint)
               return
             }
+          }
+
+          if (latestInspect.routeEditingEnabled) {
+            latestInspect.onRoutePointAdd(event.lngLat.lat, event.lngLat.lng)
+            return
           }
 
           if (layerId === notamVolumeLayerId || layerId === notamLineLayerId || layerId === notamPointLayerId || layerId === notamObstacleSymbolLayerId || layerId === notamObstacleLightOutSymbolLayerId) {
@@ -3207,7 +3242,11 @@ export function FlightplanMapbox3D({
           return
         }
 
-        latestInspectRef.current.onInspectPoint(event.lngLat.lat, event.lngLat.lng)
+        if (latestInspectRef.current.routeEditingEnabled) {
+          latestInspectRef.current.onRoutePointAdd(event.lngLat.lat, event.lngLat.lng)
+        } else {
+          latestInspectRef.current.onInspectPoint(event.lngLat.lat, event.lngLat.lng)
+        }
       })
 
       if (latestMapData.routeProfile.route) {

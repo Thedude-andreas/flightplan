@@ -4576,7 +4576,9 @@ export function FlightplanMapEditor({
               onInspectNotamFeature={inspectNotamFeature}
               onInspectPoint={inspectPoint}
               onInspectVisualPoint={inspectVisualPoint}
+              onRoutePointAdd={addPointToEnd}
               plan={plan}
+              routeEditingEnabled={routeEditingEnabled}
               derived={derived}
               visualPoints={showVisualPoints ? swedishVisualPoints : []}
               weatherOverlays={showWeatherOverlays ? routeWeatherOverlays : []}
