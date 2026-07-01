@@ -106,6 +106,9 @@ const routeSourceId = 'flightplan-3d-route'
 const routeLayerId = 'flightplan-3d-route-line'
 const routeCasingLayerId = 'flightplan-3d-route-casing'
 const routeGateFrameLayerId = 'flightplan-3d-route-gate-frame'
+const routeWaypointSourceId = 'flightplan-3d-route-waypoints'
+const routeWaypointLayerId = 'flightplan-3d-route-waypoint-points'
+const routeWaypointLabelLayerId = 'flightplan-3d-route-waypoint-labels'
 const airspaceSourceId = 'flightplan-3d-airspaces'
 const airspaceLayerId = 'flightplan-3d-airspaces'
 const airspaceHitLayerId = 'flightplan-3d-airspaces-hit'
@@ -240,6 +243,13 @@ const mapboxStyleUrls: Record<FlightplanMapbox3DStyle, string> = {
   topo: 'mapbox://styles/mapbox/outdoors-v12',
   standard: 'mapbox://styles/mapbox/standard',
   light: 'mapbox://styles/mapbox/light-v11',
+}
+
+function emptyGeoJsonFeatureCollection(): GeoJsonFeatureCollection {
+  return {
+    type: 'FeatureCollection',
+    features: [],
+  }
 }
 
 function getInitialTerrainDiagnostic(): TerrainDiagnostic {
@@ -508,6 +518,38 @@ function buildRouteProfile(plan: FlightPlanInput, derived: FlightPlanDerived) {
       topOfDescentDistanceNm,
     },
   }
+}
+
+function buildRouteWaypointGeoJson(plan: FlightPlanInput) {
+  if (plan.routeLegs.length === 0) {
+    return emptyGeoJsonFeatureCollection()
+  }
+
+  const waypoints = [
+    plan.routeLegs[0].from,
+    ...plan.routeLegs.map((leg) => leg.to),
+  ].filter((point, index, points) => (
+    index === 0 ||
+    point.lat !== points[index - 1].lat ||
+    point.lon !== points[index - 1].lon ||
+    point.name !== points[index - 1].name
+  ))
+
+  return {
+    type: 'FeatureCollection',
+    features: waypoints.map((point, index) => ({
+      type: 'Feature',
+      properties: {
+        id: `route-waypoint-${index}`,
+        label: point.name?.trim() || `WP${index + 1}`,
+        index: index + 1,
+      },
+      geometry: {
+        type: 'Point',
+        coordinates: [point.lon, point.lat],
+      },
+    })),
+  } satisfies GeoJsonFeatureCollection
 }
 
 function buildAirspaceGeoJson(airspaces: SwedishAirspace[]) {
@@ -2358,6 +2400,7 @@ export function FlightplanMapbox3D({
   const [mapboxObstacleView, setMapboxObstacleView] = useState<FlightplanMapboxObstacleView | null>(null)
   const [mapboxObstacles, setMapboxObstacles] = useState<SwedishObstacle[]>([])
   const routeProfile = useMemo(() => buildRouteProfile(plan, derived), [derived, plan])
+  const routeWaypointGeoJson = useMemo(() => buildRouteWaypointGeoJson(plan), [plan])
   const airspaceGeoJson = useMemo(() => buildAirspaceGeoJson(airspaces), [airspaces])
   const notamGeoJson = useMemo(() => buildNotam3DGeoJson(notamFeatures), [notamFeatures])
   const notamObstacleObjects = useMemo(() => buildNotamObstacle3DObjects(notamFeatures), [notamFeatures])
@@ -2409,6 +2452,7 @@ export function FlightplanMapbox3D({
     obstacleSymbolGeoJson,
     plan,
     routeProfile,
+    routeWaypointGeoJson,
     weatherGeoJson,
   })
 
@@ -2430,9 +2474,10 @@ export function FlightplanMapbox3D({
       obstacleSymbolGeoJson,
       plan,
       routeProfile,
+      routeWaypointGeoJson,
       weatherGeoJson,
     }
-  }, [airspaceGeoJson, aloftWindGeoJson, holdingPatternObjects, mapPointGeoJson, notamGeoJson, notamObstacleObjects, notamObstacleSymbolGeoJson, obstacleGeoJson, obstacleObjects, obstacleSymbolGeoJson, plan, routeProfile, weatherGeoJson])
+  }, [airspaceGeoJson, aloftWindGeoJson, holdingPatternObjects, mapPointGeoJson, notamGeoJson, notamObstacleObjects, notamObstacleSymbolGeoJson, obstacleGeoJson, obstacleObjects, obstacleSymbolGeoJson, plan, routeProfile, routeWaypointGeoJson, weatherGeoJson])
 
   useEffect(() => {
     latestInspectRef.current = {
@@ -3249,66 +3294,96 @@ export function FlightplanMapbox3D({
         }
       })
 
-      if (latestMapData.routeProfile.route) {
-        updateOrCreateGeoJsonSource(map, routeSourceId, latestMapData.routeProfile.route)
-        map.addLayer({
-          id: routeCasingLayerId,
-          type: 'line',
-          source: routeSourceId,
-          maxzoom: routeGateMinZoom,
-          layout: {
-            'line-elevation-reference': 'sea',
-            'line-z-offset': [
-              '+',
-              [
-                'at-interpolated',
-                ['*', ['line-progress'], ['-', ['length', ['get', 'elevation']], 1]],
-                ['get', 'elevation'],
-              ],
-              routeVisualClearanceMeters,
+      updateOrCreateGeoJsonSource(map, routeSourceId, latestMapData.routeProfile.route ?? emptyGeoJsonFeatureCollection())
+      map.addLayer({
+        id: routeCasingLayerId,
+        type: 'line',
+        source: routeSourceId,
+        maxzoom: routeGateMinZoom,
+        layout: {
+          'line-elevation-reference': 'sea',
+          'line-z-offset': [
+            '+',
+            [
+              'at-interpolated',
+              ['*', ['line-progress'], ['-', ['length', ['get', 'elevation']], 1]],
+              ['get', 'elevation'],
             ],
-            'line-join': 'round',
-            'line-cap': 'round',
-          },
-          paint: {
-            'line-color': '#101828',
-            'line-width': 8,
-            'line-opacity': 0.9,
-            'line-occlusion-opacity': 1,
-          },
-        })
-        map.addLayer({
-          id: routeLayerId,
-          type: 'line',
-          source: routeSourceId,
-          maxzoom: routeGateMinZoom,
-          layout: {
-            'line-elevation-reference': 'sea',
-            'line-z-offset': [
-              '+',
-              [
-                'at-interpolated',
-                ['*', ['line-progress'], ['-', ['length', ['get', 'elevation']], 1]],
-                ['get', 'elevation'],
-              ],
-              routeVisualClearanceMeters,
+            routeVisualClearanceMeters,
+          ],
+          'line-join': 'round',
+          'line-cap': 'round',
+        },
+        paint: {
+          'line-color': '#101828',
+          'line-width': 8,
+          'line-opacity': 0.9,
+          'line-occlusion-opacity': 1,
+        },
+      })
+      map.addLayer({
+        id: routeLayerId,
+        type: 'line',
+        source: routeSourceId,
+        maxzoom: routeGateMinZoom,
+        layout: {
+          'line-elevation-reference': 'sea',
+          'line-z-offset': [
+            '+',
+            [
+              'at-interpolated',
+              ['*', ['line-progress'], ['-', ['length', ['get', 'elevation']], 1]],
+              ['get', 'elevation'],
             ],
-            'line-join': 'round',
-            'line-cap': 'round',
-          },
-          paint: {
-            'line-color': routeAccentColor,
-            'line-emissive-strength': 1,
-            'line-width': 4,
-            'line-occlusion-opacity': 1,
-          },
-        })
-        const routeGateLayer = createRouteGateFrameLayer(latestMapData.routeProfile.gates)
-        routeGateLayerRef.current = routeGateLayer
-        map.addLayer(routeGateLayer)
-        map.moveLayer(routeLayerId)
-        map.moveLayer(routeCasingLayerId, routeLayerId)
-      }
+            routeVisualClearanceMeters,
+          ],
+          'line-join': 'round',
+          'line-cap': 'round',
+        },
+        paint: {
+          'line-color': routeAccentColor,
+          'line-emissive-strength': 1,
+          'line-width': 4,
+          'line-occlusion-opacity': 1,
+        },
+      })
+      const routeGateLayer = createRouteGateFrameLayer(latestMapData.routeProfile.gates)
+      routeGateLayerRef.current = routeGateLayer
+      map.addLayer(routeGateLayer)
+      map.moveLayer(routeLayerId)
+      map.moveLayer(routeCasingLayerId, routeLayerId)
+
+      updateOrCreateGeoJsonSource(map, routeWaypointSourceId, latestMapData.routeWaypointGeoJson)
+      map.addLayer({
+        id: routeWaypointLayerId,
+        type: 'circle',
+        source: routeWaypointSourceId,
+        paint: {
+          'circle-color': routeAccentColor,
+          'circle-radius': ['interpolate', ['linear'], ['zoom'], 4, 5, 10, 8, 14, 11],
+          'circle-stroke-color': '#ffffff',
+          'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 4, 1.5, 12, 3],
+          'circle-opacity': 0.96,
+          'circle-stroke-opacity': 1,
+        },
+      })
+      map.addLayer({
+        id: routeWaypointLabelLayerId,
+        type: 'symbol',
+        source: routeWaypointSourceId,
+        layout: {
+          'text-field': ['get', 'label'],
+          'text-size': ['interpolate', ['linear'], ['zoom'], 5, 10, 12, 13],
+          'text-offset': [0, 1.25],
+          'text-anchor': 'top',
+          'text-allow-overlap': true,
+        },
+        paint: {
+          'text-color': '#111827',
+          'text-halo-color': '#ffffff',
+          'text-halo-width': 1.4,
+        },
+      })
 
       updateOrCreateGeoJsonSource(map, tocTodSourceId, latestMapData.routeProfile.markers)
       map.addLayer({
@@ -3475,12 +3550,11 @@ export function FlightplanMapbox3D({
       return
     }
 
-    if (routeProfile.route) {
-      updateOrCreateGeoJsonSource(map, routeSourceId, routeProfile.route)
-      routeGateLayerRef.current?.setGates(routeProfile.gates)
-      updateOrCreateGeoJsonSource(map, tocTodSourceId, routeProfile.markers)
-    }
-  }, [plan, routeProfile])
+    updateOrCreateGeoJsonSource(map, routeSourceId, routeProfile.route ?? emptyGeoJsonFeatureCollection())
+    routeGateLayerRef.current?.setGates(routeProfile.gates)
+    updateOrCreateGeoJsonSource(map, routeWaypointSourceId, routeWaypointGeoJson)
+    updateOrCreateGeoJsonSource(map, tocTodSourceId, routeProfile.markers)
+  }, [routeProfile, routeWaypointGeoJson])
 
   if (!mapboxAccessToken) {
     return (
