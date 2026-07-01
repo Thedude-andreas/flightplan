@@ -453,9 +453,24 @@ function buildRouteProfile(plan: FlightPlanInput, derived: FlightPlanDerived) {
   const topOfClimbDistanceNm = Math.min(climbDistanceNm, totalDistanceNm)
   const topOfDescentDistanceNm = Math.max(0, totalDistanceNm - descentDistanceNm)
   const sampleCount = Math.max(24, Math.min(180, Math.ceil(totalDistanceNm * 2)))
+  const waypointDistances = plan.routeLegs.reduce<number[]>((distances, _leg, index) => {
+    const previousDistanceNm = distances[index] ?? 0
+    const legDistanceNm = derived.routeLegs[index]?.distanceNm ?? 0
+    distances.push(previousDistanceNm + legDistanceNm)
+    return distances
+  }, [0])
+  const sampleDistances = [
+    ...Array.from({ length: sampleCount + 1 }, (_, index) => (totalDistanceNm * index) / sampleCount),
+    ...waypointDistances,
+    topOfClimbDistanceNm,
+    topOfDescentDistanceNm,
+  ]
+    .filter((distanceNm) => Number.isFinite(distanceNm))
+    .map((distanceNm) => Math.max(0, Math.min(totalDistanceNm, distanceNm)))
+    .sort((a, b) => a - b)
+    .filter((distanceNm, index, distances) => index === 0 || Math.abs(distanceNm - distances[index - 1]) > 0.0001)
 
-  const profilePoints: RouteProfilePoint[] = Array.from({ length: sampleCount + 1 }, (_, index) => {
-    const distanceNm = (totalDistanceNm * index) / sampleCount
+  const profilePoints: RouteProfilePoint[] = sampleDistances.map((distanceNm) => {
     const position = interpolateRoutePosition(plan, derived, distanceNm)
     let altitudeFt = cruiseAltitudeFt
 
@@ -957,15 +972,13 @@ function createRouteObjectsLayer(
     toneMapped: false,
   })
   const waypointHaloMaterial = new THREE.MeshBasicMaterial({
-    color: '#ffffff',
-    transparent: true,
-    opacity: 0.9,
+    color: '#111827',
     depthTest: false,
     depthWrite: false,
     toneMapped: false,
   })
   const routeDirectionMaterial = new THREE.MeshBasicMaterial({
-    color: routeAccentColor,
+    color: '#111827',
     depthTest: false,
     depthWrite: false,
     toneMapped: false,
@@ -1021,9 +1034,13 @@ function createRouteObjectsLayer(
     }
 
     const displayScale = getRouteObjectDisplayScale(map.getZoom())
+    const showRouteDirections = map.getZoom() < routeGateMinZoom
     scene.traverse((object) => {
       if (object.userData.isRouteDisplayObject === true) {
         object.scale.setScalar(displayScale)
+      }
+      if (object.userData.routeObjectKind === 'direction') {
+        object.visible = showRouteDirections
       }
     })
   }
@@ -1396,14 +1413,16 @@ function addRouteWaypointSphere(
   haloMaterial: THREE.Material,
 ) {
   const { coordinate, scale } = getMercatorRouteObjectTransform(waypoint.lat, waypoint.lon, waypoint.altitudeMeters)
-  const halo = new THREE.Mesh(new THREE.SphereGeometry(routeWaypointRadiusMeters * 1.32 * scale, 20, 14), haloMaterial)
+  const halo = new THREE.Mesh(new THREE.SphereGeometry(routeWaypointRadiusMeters * 1.18 * scale, 24, 16), haloMaterial)
   halo.position.set(coordinate.x, coordinate.y, coordinate.z)
   halo.userData.isRouteDisplayObject = true
+  halo.userData.routeObjectKind = 'waypoint'
   scene.add(halo)
 
-  const sphere = new THREE.Mesh(new THREE.SphereGeometry(routeWaypointRadiusMeters * scale, 24, 16), material)
+  const sphere = new THREE.Mesh(new THREE.SphereGeometry(routeWaypointRadiusMeters * 0.82 * scale, 28, 18), material)
   sphere.position.set(coordinate.x, coordinate.y, coordinate.z)
   sphere.userData.isRouteDisplayObject = true
+  sphere.userData.routeObjectKind = 'waypoint'
   scene.add(sphere)
 }
 
@@ -1420,6 +1439,7 @@ function addRouteDirectionCone(
   cone.position.set(coordinate.x, coordinate.y, coordinate.z)
   cone.rotation.z = getMercatorBearingAngle(direction.lat, direction.lon, direction.bearingDeg) - Math.PI / 2
   cone.userData.isRouteDisplayObject = true
+  cone.userData.routeObjectKind = 'direction'
   scene.add(cone)
 }
 
@@ -1444,6 +1464,7 @@ function addAloftWindArrow(
   group.position.set(coordinate.x, coordinate.y, coordinate.z)
   group.rotation.z = getMercatorBearingAngle(wind.lat, wind.lon, wind.directionDeg) - Math.PI / 2
   group.userData.isRouteDisplayObject = true
+  group.userData.routeObjectKind = 'wind'
   scene.add(group)
 }
 
