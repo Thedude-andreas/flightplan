@@ -43,6 +43,30 @@ type RouteGateFrame = {
   heightMeters: number
 }
 
+type RouteWaypoint3DObject = {
+  id: string
+  lat: number
+  lon: number
+  altitudeMeters: number
+}
+
+type RouteDirection3DObject = {
+  id: string
+  lat: number
+  lon: number
+  altitudeMeters: number
+  bearingDeg: number
+}
+
+type AloftWind3DObject = {
+  id: string
+  lat: number
+  lon: number
+  altitudeMeters: number
+  directionDeg: number
+  speedKt: number
+}
+
 type Obstacle3DObject = {
   id: string
   lat: number
@@ -107,8 +131,6 @@ const routeLayerId = 'flightplan-3d-route-line'
 const routeCasingLayerId = 'flightplan-3d-route-casing'
 const routeGateFrameLayerId = 'flightplan-3d-route-gate-frame'
 const routeWaypointSourceId = 'flightplan-3d-route-waypoints'
-const routeWaypointLayerId = 'flightplan-3d-route-waypoint-points'
-const routeWaypointLabelLayerId = 'flightplan-3d-route-waypoint-labels'
 const airspaceSourceId = 'flightplan-3d-airspaces'
 const airspaceLayerId = 'flightplan-3d-airspaces'
 const airspaceHitLayerId = 'flightplan-3d-airspaces-hit'
@@ -211,6 +233,13 @@ const routeVisualClearanceMeters = 70
 const routeGateHalfWidthNm = 0.11
 const routeGateHalfHeightMeters = 140
 const routeGateRibHalfSizeMeters = 3
+const routeWaypointRadiusMeters = 58
+const routeDirectionConeRadiusMeters = 44
+const routeDirectionConeLengthMeters = 135
+const aloftWindArrowLengthMeters = 155
+const aloftWindArrowRadiusMeters = 14
+const aloftWindArrowHeadRadiusMeters = 42
+const aloftWindArrowHeadLengthMeters = 78
 const reportingPointColor = '#732184'
 const reportingPointSymbolMinZoom = 8.5
 const reportingPointLabelMinZoom = 9
@@ -408,6 +437,7 @@ function buildRouteProfile(plan: FlightPlanInput, derived: FlightPlanDerived) {
         type: 'FeatureCollection',
         features: [],
       } satisfies GeoJsonFeatureCollection,
+      profilePoints: [] satisfies RouteProfilePoint[],
       summary: null,
     }
   }
@@ -512,6 +542,7 @@ function buildRouteProfile(plan: FlightPlanInput, derived: FlightPlanDerived) {
       type: 'FeatureCollection',
       features: markers,
     } satisfies GeoJsonFeatureCollection,
+    profilePoints,
     summary: {
       cruiseAltitudeFt,
       topOfClimbDistanceNm,
@@ -550,6 +581,99 @@ function buildRouteWaypointGeoJson(plan: FlightPlanInput) {
       },
     })),
   } satisfies GeoJsonFeatureCollection
+}
+
+function interpolateProfileAltitudeMeters(profilePoints: RouteProfilePoint[], distanceNm: number) {
+  if (profilePoints.length === 0) {
+    return routeVisualClearanceMeters
+  }
+
+  if (distanceNm <= profilePoints[0].distanceNm) {
+    return profilePoints[0].altitudeFt * feetToMeters + routeVisualClearanceMeters
+  }
+
+  for (let index = 1; index < profilePoints.length; index += 1) {
+    const previous = profilePoints[index - 1]
+    const next = profilePoints[index]
+    if (distanceNm <= next.distanceNm) {
+      const span = Math.max(0.000001, next.distanceNm - previous.distanceNm)
+      const fraction = Math.max(0, Math.min(1, (distanceNm - previous.distanceNm) / span))
+      return (previous.altitudeFt + (next.altitudeFt - previous.altitudeFt) * fraction) * feetToMeters + routeVisualClearanceMeters
+    }
+  }
+
+  return profilePoints[profilePoints.length - 1].altitudeFt * feetToMeters + routeVisualClearanceMeters
+}
+
+function buildRoute3DObjects(
+  plan: FlightPlanInput,
+  derived: FlightPlanDerived,
+  profilePoints: RouteProfilePoint[],
+) {
+  const waypointObjects: RouteWaypoint3DObject[] = []
+  const directionObjects: RouteDirection3DObject[] = []
+  let accumulatedDistanceNm = 0
+
+  if (plan.routeLegs.length === 0) {
+    return { waypoints: waypointObjects, directions: directionObjects }
+  }
+
+  waypointObjects.push({
+    id: 'route-waypoint-0',
+    lat: plan.routeLegs[0].from.lat,
+    lon: plan.routeLegs[0].from.lon,
+    altitudeMeters: interpolateProfileAltitudeMeters(profilePoints, 0),
+  })
+
+  for (let index = 0; index < plan.routeLegs.length; index += 1) {
+    const leg = plan.routeLegs[index]
+    const derivedLeg = derived.routeLegs[index]
+    const legDistanceNm = derivedLeg?.distanceNm ?? 0
+    const waypointDistanceNm = accumulatedDistanceNm + legDistanceNm
+
+    if (
+      leg.to.lat !== leg.from.lat ||
+      leg.to.lon !== leg.from.lon ||
+      leg.to.name !== leg.from.name ||
+      index > 0
+    ) {
+      waypointObjects.push({
+        id: `route-waypoint-${index + 1}`,
+        lat: leg.to.lat,
+        lon: leg.to.lon,
+        altitudeMeters: interpolateProfileAltitudeMeters(profilePoints, waypointDistanceNm),
+      })
+    }
+
+    if (legDistanceNm > 0.05) {
+      const midpointDistanceNm = accumulatedDistanceNm + legDistanceNm / 2
+      const midpoint = interpolateRoutePosition(plan, derived, midpointDistanceNm)
+      if (midpoint) {
+        directionObjects.push({
+          id: `route-direction-${index}`,
+          lat: midpoint.lat,
+          lon: midpoint.lon,
+          altitudeMeters: interpolateProfileAltitudeMeters(profilePoints, midpointDistanceNm),
+          bearingDeg: derivedLeg?.trueTrack ?? initialBearingDegrees(leg.from.lat, leg.from.lon, leg.to.lat, leg.to.lon),
+        })
+      }
+    }
+
+    accumulatedDistanceNm = waypointDistanceNm
+  }
+
+  return { waypoints: waypointObjects, directions: directionObjects }
+}
+
+function buildAloftWind3DObjects(aloftWinds: RouteLegAloftWind[]) {
+  return aloftWinds.map((wind, index) => ({
+    id: `wind-${index}`,
+    lat: wind.midpoint.lat,
+    lon: wind.midpoint.lon,
+    altitudeMeters: Math.max(routeVisualClearanceMeters, wind.altitudeMetersMsl + routeVisualClearanceMeters),
+    directionDeg: wind.direction,
+    speedKt: wind.speedKt,
+  })) satisfies AloftWind3DObject[]
 }
 
 function buildAirspaceGeoJson(airspaces: SwedishAirspace[]) {
@@ -719,6 +843,10 @@ type RouteGateCustomLayer = mapboxgl.CustomLayerInterface & {
   setGates: (gates: RouteGateFrame[]) => void
 }
 
+type RouteObjectsCustomLayer = mapboxgl.CustomLayerInterface & {
+  setRouteObjects: (waypoints: RouteWaypoint3DObject[], directions: RouteDirection3DObject[], winds: AloftWind3DObject[]) => void
+}
+
 type ObstacleVolumeCustomLayer = mapboxgl.CustomLayerInterface & {
   setObstacles: (obstacles: Obstacle3DObject[]) => void
 }
@@ -804,6 +932,132 @@ function createRouteGateFrameLayer(initialGates: RouteGateFrame[]): RouteGateCus
     },
     setGates(nextGates) {
       gates = nextGates
+      rebuildScene()
+      map?.triggerRepaint()
+    },
+  }
+}
+
+function createRouteObjectsLayer(
+  initialWaypoints: RouteWaypoint3DObject[],
+  initialDirections: RouteDirection3DObject[],
+  initialWinds: AloftWind3DObject[],
+): RouteObjectsCustomLayer {
+  let map: mapboxgl.Map | null = null
+  let camera: THREE.Camera | null = null
+  let renderer: THREE.WebGLRenderer | null = null
+  let scene: THREE.Scene | null = null
+  let waypoints = initialWaypoints
+  let directions = initialDirections
+  let winds = initialWinds
+  const waypointMaterial = new THREE.MeshBasicMaterial({
+    color: routeAccentColor,
+    depthTest: false,
+    depthWrite: false,
+    toneMapped: false,
+  })
+  const waypointHaloMaterial = new THREE.MeshBasicMaterial({
+    color: '#ffffff',
+    transparent: true,
+    opacity: 0.9,
+    depthTest: false,
+    depthWrite: false,
+    toneMapped: false,
+  })
+  const routeDirectionMaterial = new THREE.MeshBasicMaterial({
+    color: routeAccentColor,
+    depthTest: false,
+    depthWrite: false,
+    toneMapped: false,
+  })
+  const windMaterial = new THREE.MeshBasicMaterial({
+    color: '#0f766e',
+    depthTest: false,
+    depthWrite: false,
+    toneMapped: false,
+  })
+
+  function disposeScene() {
+    if (!scene) {
+      return
+    }
+
+    for (const child of [...scene.children]) {
+      if (child instanceof THREE.Mesh || child instanceof THREE.Group) {
+        child.traverse((object) => {
+          if (object instanceof THREE.Mesh) {
+            object.geometry.dispose()
+          }
+        })
+      }
+
+      scene.remove(child)
+    }
+  }
+
+  function rebuildScene() {
+    if (!scene) {
+      return
+    }
+
+    disposeScene()
+
+    for (const waypoint of waypoints) {
+      addRouteWaypointSphere(scene, waypoint, waypointMaterial, waypointHaloMaterial)
+    }
+
+    for (const direction of directions) {
+      addRouteDirectionCone(scene, direction, routeDirectionMaterial)
+    }
+
+    for (const wind of winds) {
+      addAloftWindArrow(scene, wind, windMaterial)
+    }
+  }
+
+  return {
+    id: 'flightplan-3d-route-objects',
+    type: 'custom',
+    slot: 'top',
+    renderingMode: '3d',
+    onAdd(nextMap, gl) {
+      map = nextMap
+      camera = new THREE.Camera()
+      scene = new THREE.Scene()
+      renderer = new THREE.WebGLRenderer({
+        canvas: nextMap.getCanvas(),
+        context: gl,
+        antialias: true,
+      })
+      renderer.autoClear = false
+      rebuildScene()
+    },
+    onRemove() {
+      disposeScene()
+      waypointMaterial.dispose()
+      waypointHaloMaterial.dispose()
+      routeDirectionMaterial.dispose()
+      windMaterial.dispose()
+      renderer?.dispose()
+      map = null
+      camera = null
+      renderer = null
+      scene = null
+    },
+    render(_gl, matrix) {
+      if (!map || !camera || !renderer || !scene) {
+        return
+      }
+
+      camera.projectionMatrix = new THREE.Matrix4().fromArray(matrix)
+      renderer.resetState()
+      renderer.clearDepth()
+      renderer.render(scene, camera)
+    },
+    setRouteObjects(nextWaypoints, nextDirections, nextWinds) {
+      waypoints = nextWaypoints
+      directions = nextDirections
+      winds = nextWinds
       rebuildScene()
       map?.triggerRepaint()
     },
@@ -1099,6 +1353,68 @@ function addGateBox(
   mesh.position.set(coordinate.x, coordinate.y, coordinate.z)
   mesh.rotation.z = options.rotationZ
   scene.add(mesh)
+}
+
+function getMercatorRouteObjectTransform(lat: number, lon: number, altitudeMeters: number) {
+  const coordinate = mapboxgl.MercatorCoordinate.fromLngLat({ lng: lon, lat }, altitudeMeters)
+  return {
+    coordinate,
+    scale: coordinate.meterInMercatorCoordinateUnits(),
+  }
+}
+
+function addRouteWaypointSphere(
+  scene: THREE.Scene,
+  waypoint: RouteWaypoint3DObject,
+  material: THREE.Material,
+  haloMaterial: THREE.Material,
+) {
+  const { coordinate, scale } = getMercatorRouteObjectTransform(waypoint.lat, waypoint.lon, waypoint.altitudeMeters)
+  const halo = new THREE.Mesh(new THREE.SphereGeometry(routeWaypointRadiusMeters * 1.32 * scale, 20, 14), haloMaterial)
+  halo.position.set(coordinate.x, coordinate.y, coordinate.z)
+  scene.add(halo)
+
+  const sphere = new THREE.Mesh(new THREE.SphereGeometry(routeWaypointRadiusMeters * scale, 24, 16), material)
+  sphere.position.set(coordinate.x, coordinate.y, coordinate.z)
+  scene.add(sphere)
+}
+
+function addRouteDirectionCone(
+  scene: THREE.Scene,
+  direction: RouteDirection3DObject,
+  material: THREE.Material,
+) {
+  const { coordinate, scale } = getMercatorRouteObjectTransform(direction.lat, direction.lon, direction.altitudeMeters)
+  const cone = new THREE.Mesh(
+    new THREE.ConeGeometry(routeDirectionConeRadiusMeters * scale, routeDirectionConeLengthMeters * scale, 28),
+    material,
+  )
+  cone.position.set(coordinate.x, coordinate.y, coordinate.z)
+  cone.rotation.z = getMercatorBearingAngle(direction.lat, direction.lon, direction.bearingDeg) - Math.PI / 2
+  scene.add(cone)
+}
+
+function addAloftWindArrow(
+  scene: THREE.Scene,
+  wind: AloftWind3DObject,
+  material: THREE.Material,
+) {
+  const { coordinate, scale } = getMercatorRouteObjectTransform(wind.lat, wind.lon, wind.altitudeMeters)
+  const group = new THREE.Group()
+  const speedScale = Math.max(0.72, Math.min(1.55, wind.speedKt / 25))
+  const shaftLength = aloftWindArrowLengthMeters * speedScale * scale
+  const shaftRadius = aloftWindArrowRadiusMeters * scale
+  const headLength = aloftWindArrowHeadLengthMeters * scale
+  const headRadius = aloftWindArrowHeadRadiusMeters * scale
+  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(shaftRadius, shaftRadius, shaftLength, 16), material)
+  shaft.position.y = -headLength / 2
+  const head = new THREE.Mesh(new THREE.ConeGeometry(headRadius, headLength, 24), material)
+  head.position.y = shaftLength / 2
+  group.add(shaft)
+  group.add(head)
+  group.position.set(coordinate.x, coordinate.y, coordinate.z)
+  group.rotation.z = getMercatorBearingAngle(wind.lat, wind.lon, wind.directionDeg) - Math.PI / 2
+  scene.add(group)
 }
 
 function addHoldingPatternMesh(
@@ -2390,6 +2706,7 @@ export function FlightplanMapbox3D({
   const containerRef = useRef<HTMLDivElement | null>(null)
   const mapRef = useRef<mapboxgl.Map | null>(null)
   const routeGateLayerRef = useRef<RouteGateCustomLayer | null>(null)
+  const routeObjectsLayerRef = useRef<RouteObjectsCustomLayer | null>(null)
   const holdingPatternLayerRef = useRef<HoldingPatternCustomLayer | null>(null)
   const obstacleVolumeLayerRef = useRef<ObstacleVolumeCustomLayer | null>(null)
   const notamObstacleVolumeLayerRef = useRef<ObstacleVolumeCustomLayer | null>(null)
@@ -2400,6 +2717,10 @@ export function FlightplanMapbox3D({
   const [mapboxObstacleView, setMapboxObstacleView] = useState<FlightplanMapboxObstacleView | null>(null)
   const [mapboxObstacles, setMapboxObstacles] = useState<SwedishObstacle[]>([])
   const routeProfile = useMemo(() => buildRouteProfile(plan, derived), [derived, plan])
+  const route3DObjects = useMemo(
+    () => buildRoute3DObjects(plan, derived, routeProfile.profilePoints),
+    [derived, plan, routeProfile.profilePoints],
+  )
   const routeWaypointGeoJson = useMemo(() => buildRouteWaypointGeoJson(plan), [plan])
   const airspaceGeoJson = useMemo(() => buildAirspaceGeoJson(airspaces), [airspaces])
   const notamGeoJson = useMemo(() => buildNotam3DGeoJson(notamFeatures), [notamFeatures])
@@ -2421,6 +2742,7 @@ export function FlightplanMapbox3D({
   const obstacleSymbolGeoJson = useMemo(() => buildObstacleSymbolGeoJson(activeObstacles), [activeObstacles])
   const notamObstacleSymbolGeoJson = useMemo(() => buildNotamObstacleSymbolGeoJson(notamFeatures), [notamFeatures])
   const aloftWindGeoJson = useMemo(() => buildAloftWindGeoJson(aloftWinds), [aloftWinds])
+  const aloftWindObjects = useMemo(() => buildAloftWind3DObjects(aloftWinds), [aloftWinds])
   const airportById = useMemo(() => new Map(airports.map((airport) => [airport.icao ?? `${airport.name}-${airport.lat}-${airport.lon}`, airport])), [airports])
   const navaidById = useMemo(() => new Map(navaids.map((navaid) => [navaid.id, navaid])), [navaids])
   const visualPointById = useMemo(() => new Map(visualPoints.map((point) => [point.id, point])), [visualPoints])
@@ -2442,6 +2764,7 @@ export function FlightplanMapbox3D({
   const latestMapDataRef = useRef({
     airspaceGeoJson,
     aloftWindGeoJson,
+    aloftWindObjects,
     holdingPatternObjects,
     mapPointGeoJson,
     notamGeoJson,
@@ -2452,6 +2775,7 @@ export function FlightplanMapbox3D({
     obstacleSymbolGeoJson,
     plan,
     routeProfile,
+    route3DObjects,
     routeWaypointGeoJson,
     weatherGeoJson,
   })
@@ -2464,6 +2788,7 @@ export function FlightplanMapbox3D({
     latestMapDataRef.current = {
       airspaceGeoJson,
       aloftWindGeoJson,
+      aloftWindObjects,
       holdingPatternObjects,
       mapPointGeoJson,
       notamGeoJson,
@@ -2474,10 +2799,11 @@ export function FlightplanMapbox3D({
       obstacleSymbolGeoJson,
       plan,
       routeProfile,
+      route3DObjects,
       routeWaypointGeoJson,
       weatherGeoJson,
     }
-  }, [airspaceGeoJson, aloftWindGeoJson, holdingPatternObjects, mapPointGeoJson, notamGeoJson, notamObstacleObjects, notamObstacleSymbolGeoJson, obstacleGeoJson, obstacleObjects, obstacleSymbolGeoJson, plan, routeProfile, routeWaypointGeoJson, weatherGeoJson])
+  }, [airspaceGeoJson, aloftWindGeoJson, aloftWindObjects, holdingPatternObjects, mapPointGeoJson, notamGeoJson, notamObstacleObjects, notamObstacleSymbolGeoJson, obstacleGeoJson, obstacleObjects, obstacleSymbolGeoJson, plan, route3DObjects, routeProfile, routeWaypointGeoJson, weatherGeoJson])
 
   useEffect(() => {
     latestInspectRef.current = {
@@ -2615,6 +2941,11 @@ export function FlightplanMapbox3D({
         updateOrCreateGeoJsonSource(map, notamObstacleSymbolSourceId, latestMapDataRef.current.notamObstacleSymbolGeoJson)
         obstacleVolumeLayerRef.current?.setObstacles(latestMapDataRef.current.obstacleObjects)
         notamObstacleVolumeLayerRef.current?.setObstacles(latestMapDataRef.current.notamObstacleObjects)
+        routeObjectsLayerRef.current?.setRouteObjects(
+          latestMapDataRef.current.route3DObjects.waypoints,
+          latestMapDataRef.current.route3DObjects.directions,
+          latestMapDataRef.current.aloftWindObjects,
+        )
         refreshMapView()
         return
       }
@@ -3128,18 +3459,12 @@ export function FlightplanMapbox3D({
       updateOrCreateGeoJsonSource(map, aloftWindSourceId, latestMapData.aloftWindGeoJson)
       map.addLayer({
         id: aloftWindLayerId,
-        type: 'symbol',
+        type: 'circle',
         source: aloftWindSourceId,
-        layout: {
-          'text-field': '>',
-          'text-size': 18,
-          'text-rotate': ['get', 'direction'],
-          'text-allow-overlap': true,
-        },
         paint: {
-          'text-color': '#0f172a',
-          'text-halo-color': '#ffffff',
-          'text-halo-width': 1,
+          'circle-color': '#0f766e',
+          'circle-radius': ['interpolate', ['linear'], ['zoom'], 4, 14, 11, 28],
+          'circle-opacity': 0.001,
         },
       })
 
@@ -3354,36 +3679,13 @@ export function FlightplanMapbox3D({
       map.moveLayer(routeCasingLayerId, routeLayerId)
 
       updateOrCreateGeoJsonSource(map, routeWaypointSourceId, latestMapData.routeWaypointGeoJson)
-      map.addLayer({
-        id: routeWaypointLayerId,
-        type: 'circle',
-        source: routeWaypointSourceId,
-        paint: {
-          'circle-color': routeAccentColor,
-          'circle-radius': ['interpolate', ['linear'], ['zoom'], 4, 5, 10, 8, 14, 11],
-          'circle-stroke-color': '#ffffff',
-          'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 4, 1.5, 12, 3],
-          'circle-opacity': 0.96,
-          'circle-stroke-opacity': 1,
-        },
-      })
-      map.addLayer({
-        id: routeWaypointLabelLayerId,
-        type: 'symbol',
-        source: routeWaypointSourceId,
-        layout: {
-          'text-field': ['get', 'label'],
-          'text-size': ['interpolate', ['linear'], ['zoom'], 5, 10, 12, 13],
-          'text-offset': [0, 1.25],
-          'text-anchor': 'top',
-          'text-allow-overlap': true,
-        },
-        paint: {
-          'text-color': '#111827',
-          'text-halo-color': '#ffffff',
-          'text-halo-width': 1.4,
-        },
-      })
+      const routeObjectsLayer = createRouteObjectsLayer(
+        latestMapData.route3DObjects.waypoints,
+        latestMapData.route3DObjects.directions,
+        latestMapData.aloftWindObjects,
+      )
+      routeObjectsLayerRef.current = routeObjectsLayer
+      map.addLayer(routeObjectsLayer)
 
       updateOrCreateGeoJsonSource(map, tocTodSourceId, latestMapData.routeProfile.markers)
       map.addLayer({
@@ -3428,6 +3730,7 @@ export function FlightplanMapbox3D({
       resizeObserver?.disconnect()
       persistCamera()
       routeGateLayerRef.current = null
+      routeObjectsLayerRef.current = null
       holdingPatternLayerRef.current = null
       obstacleVolumeLayerRef.current = null
       notamObstacleVolumeLayerRef.current = null
@@ -3552,9 +3855,10 @@ export function FlightplanMapbox3D({
 
     updateOrCreateGeoJsonSource(map, routeSourceId, routeProfile.route ?? emptyGeoJsonFeatureCollection())
     routeGateLayerRef.current?.setGates(routeProfile.gates)
+    routeObjectsLayerRef.current?.setRouteObjects(route3DObjects.waypoints, route3DObjects.directions, aloftWindObjects)
     updateOrCreateGeoJsonSource(map, routeWaypointSourceId, routeWaypointGeoJson)
     updateOrCreateGeoJsonSource(map, tocTodSourceId, routeProfile.markers)
-  }, [routeProfile, routeWaypointGeoJson])
+  }, [aloftWindObjects, route3DObjects, routeProfile, routeWaypointGeoJson])
 
   if (!mapboxAccessToken) {
     return (
