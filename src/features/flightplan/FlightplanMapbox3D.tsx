@@ -1015,6 +1015,19 @@ function createRouteObjectsLayer(
     }
   }
 
+  function updateObjectScale() {
+    if (!map || !scene) {
+      return
+    }
+
+    const displayScale = getRouteObjectDisplayScale(map.getZoom())
+    scene.traverse((object) => {
+      if (object.userData.isRouteDisplayObject === true) {
+        object.scale.setScalar(displayScale)
+      }
+    })
+  }
+
   return {
     id: 'flightplan-3d-route-objects',
     type: 'custom',
@@ -1050,6 +1063,7 @@ function createRouteObjectsLayer(
       }
 
       camera.projectionMatrix = new THREE.Matrix4().fromArray(matrix)
+      updateObjectScale()
       renderer.resetState()
       renderer.clearDepth()
       renderer.render(scene, camera)
@@ -1363,6 +1377,18 @@ function getMercatorRouteObjectTransform(lat: number, lon: number, altitudeMeter
   }
 }
 
+function getRouteObjectDisplayScale(zoom: number) {
+  if (zoom <= 6) return 72
+  if (zoom <= 7) return 46
+  if (zoom <= 8) return 28
+  if (zoom <= 9) return 16
+  if (zoom <= 10) return 9
+  if (zoom <= 11) return 5
+  if (zoom <= 12) return 3
+  if (zoom <= 13) return 2
+  return 1.25
+}
+
 function addRouteWaypointSphere(
   scene: THREE.Scene,
   waypoint: RouteWaypoint3DObject,
@@ -1372,10 +1398,12 @@ function addRouteWaypointSphere(
   const { coordinate, scale } = getMercatorRouteObjectTransform(waypoint.lat, waypoint.lon, waypoint.altitudeMeters)
   const halo = new THREE.Mesh(new THREE.SphereGeometry(routeWaypointRadiusMeters * 1.32 * scale, 20, 14), haloMaterial)
   halo.position.set(coordinate.x, coordinate.y, coordinate.z)
+  halo.userData.isRouteDisplayObject = true
   scene.add(halo)
 
   const sphere = new THREE.Mesh(new THREE.SphereGeometry(routeWaypointRadiusMeters * scale, 24, 16), material)
   sphere.position.set(coordinate.x, coordinate.y, coordinate.z)
+  sphere.userData.isRouteDisplayObject = true
   scene.add(sphere)
 }
 
@@ -1391,6 +1419,7 @@ function addRouteDirectionCone(
   )
   cone.position.set(coordinate.x, coordinate.y, coordinate.z)
   cone.rotation.z = getMercatorBearingAngle(direction.lat, direction.lon, direction.bearingDeg) - Math.PI / 2
+  cone.userData.isRouteDisplayObject = true
   scene.add(cone)
 }
 
@@ -1414,6 +1443,7 @@ function addAloftWindArrow(
   group.add(head)
   group.position.set(coordinate.x, coordinate.y, coordinate.z)
   group.rotation.z = getMercatorBearingAngle(wind.lat, wind.lon, wind.directionDeg) - Math.PI / 2
+  group.userData.isRouteDisplayObject = true
   scene.add(group)
 }
 
