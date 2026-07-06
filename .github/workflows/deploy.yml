@@ -1,0 +1,106 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Deploy target
+        required: true
+        type: choice
+        default: test
+        options:
+          - test
+          - production
+          - both
+
+jobs:
+  deploy-test:
+    if: ${{ inputs.target == 'test' || inputs.target == 'both' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install deploy tools
+        run: sudo apt-get update && sudo apt-get install -y lftp openssh-client
+
+      - name: Write test deploy env
+        run: |
+          cat > .deploy.test.env <<'EOF'
+          DEPLOY_HOST=${{ secrets.TEST_DEPLOY_HOST }}
+          DEPLOY_PORT=${{ secrets.TEST_DEPLOY_PORT }}
+          DEPLOY_USER=${{ secrets.TEST_DEPLOY_USER }}
+          DEPLOY_PASS=${{ secrets.TEST_DEPLOY_PASS }}
+          DEPLOY_PATH=${{ secrets.TEST_DEPLOY_PATH }}
+          DEPLOY_EXPECTED_PATH_FRAGMENT=${{ secrets.TEST_DEPLOY_EXPECTED_PATH_FRAGMENT }}
+          DEPLOY_PUBLIC_URL=${{ secrets.TEST_DEPLOY_PUBLIC_URL }}
+          DEPLOY_HOSTKEY_ENTRY=${{ secrets.TEST_DEPLOY_HOSTKEY_ENTRY }}
+          VITE_SUPABASE_URL=${{ secrets.TEST_VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY=${{ secrets.TEST_VITE_SUPABASE_ANON_KEY }}
+          VITE_PUBLIC_APP_URL=${{ secrets.TEST_VITE_PUBLIC_APP_URL }}
+          VITE_AVIATION_DATA_BASE_URL=${{ secrets.TEST_VITE_AVIATION_DATA_BASE_URL }}
+          VITE_MAPBOX_ACCESS_TOKEN=${{ secrets.TEST_VITE_MAPBOX_ACCESS_TOKEN }}
+          EOF
+
+      - name: Check test target
+        run: npm run deploy:test:check
+
+      - name: Deploy test
+        run: npm run deploy:test
+
+  deploy-production:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: deploy-test
+    if: ${{ always() && (inputs.target == 'production' || (inputs.target == 'both' && needs.deploy-test.result == 'success')) }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install deploy tools
+        run: sudo apt-get update && sudo apt-get install -y lftp openssh-client
+
+      - name: Write production deploy env
+        run: |
+          cat > .deploy.env <<'EOF'
+          DEPLOY_HOST=${{ secrets.PROD_DEPLOY_HOST }}
+          DEPLOY_PORT=${{ secrets.PROD_DEPLOY_PORT }}
+          DEPLOY_USER=${{ secrets.PROD_DEPLOY_USER }}
+          DEPLOY_PASS=${{ secrets.PROD_DEPLOY_PASS }}
+          DEPLOY_PATH=${{ secrets.PROD_DEPLOY_PATH }}
+          DEPLOY_EXPECTED_PATH_FRAGMENT=${{ secrets.PROD_DEPLOY_EXPECTED_PATH_FRAGMENT }}
+          DEPLOY_PUBLIC_URL=${{ secrets.PROD_DEPLOY_PUBLIC_URL }}
+          DEPLOY_HOSTKEY_ENTRY=${{ secrets.PROD_DEPLOY_HOSTKEY_ENTRY }}
+          VITE_SUPABASE_URL=${{ secrets.PROD_VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY=${{ secrets.PROD_VITE_SUPABASE_ANON_KEY }}
+          VITE_PUBLIC_APP_URL=${{ secrets.PROD_VITE_PUBLIC_APP_URL }}
+          VITE_AVIATION_DATA_BASE_URL=${{ secrets.PROD_VITE_AVIATION_DATA_BASE_URL }}
+          VITE_MAPBOX_ACCESS_TOKEN=${{ secrets.PROD_VITE_MAPBOX_ACCESS_TOKEN }}
+          EOF
+
+      - name: Check production target
+        run: npm run deploy:check
+
+      - name: Deploy production
+        run: npm run deploy
