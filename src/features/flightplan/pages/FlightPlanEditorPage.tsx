@@ -9,7 +9,6 @@ import { getErrorMessage } from '../../../lib/supabase/errors'
 import type { DraftEnvelope, SaveState } from '../../../shared/types/persistence'
 import { listAircraftProfiles } from '../../aircraft/api/aircraftProfilesRepository'
 import { toLegacyAircraftProfile } from '../../aircraft/profileUtils'
-import { getCurrentCompetencyPermission } from '../../competency/api/competencyRepository'
 import { createFlightPlan, getFlightPlanById, updateFlightPlan } from '../api/flightPlansRepository'
 import { preloadSwedishAviationData } from '../aviationData'
 import {
@@ -129,7 +128,6 @@ export function FlightPlanEditorPage() {
   const [editorActiveTab, setEditorActiveTab] = useState<EditorWorkspaceTab>('map')
   const [editorMapViewport, setEditorMapViewport] = useState<FlightplanMapViewport | null>(null)
   const [aircraftOptions, setAircraftOptions] = useState<AircraftProfile[]>(staticAircraftProfiles)
-  const [canAccessCompetency, setCanAccessCompetency] = useState(false)
 
   const draftKey = useMemo(() => {
     if (!user) {
@@ -241,26 +239,6 @@ export function FlightPlanEditorPage() {
       isActive = false
     }
   }, [id, user])
-
-  useEffect(() => {
-    let isMounted = true
-
-    void getCurrentCompetencyPermission()
-      .then((permission) => {
-        if (isMounted) {
-          setCanAccessCompetency(Boolean(permission?.moduleAccess))
-        }
-      })
-      .catch(() => {
-        if (isMounted) {
-          setCanAccessCompetency(false)
-        }
-      })
-
-    return () => {
-      isMounted = false
-    }
-  }, [])
 
   useEffect(() => {
     let isActive = true
@@ -519,11 +497,6 @@ export function FlightPlanEditorPage() {
             <Link to={mapPanelLink('/app/aircraft')} className="fp-map-action-menu__item">
               Flygplan
             </Link>
-            {canAccessCompetency ? (
-              <Link to={mapPanelLink('/app/competency')} className="fp-map-action-menu__item">
-                Kompetens
-              </Link>
-            ) : null}
             <Link to={mapPanelLink('/app/account')} className="fp-map-action-menu__item">
               Konto
             </Link>

@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react'
-import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import { Navigate, Route, Routes } from 'react-router-dom'
 import { ProtectedRoute } from '../features/auth/components/ProtectedRoute'
 
 const AccountPage = lazy(async () => ({
@@ -10,18 +10,6 @@ const AircraftProfilesPage = lazy(async () => ({
 }))
 const AircraftProfileEditorPage = lazy(async () => ({
   default: (await import('../features/aircraft/pages/AircraftProfileEditorPage')).AircraftProfileEditorPage,
-}))
-const CompetencyLayoutPage = lazy(async () => ({
-  default: (await import('../features/competency/pages/CompetencyLayoutPage')).CompetencyLayoutPage,
-}))
-const CompetencyAdminPage = lazy(async () => ({
-  default: (await import('../features/competency/pages/CompetencyAdminPage')).CompetencyAdminPage,
-}))
-const CompetencyManagerPage = lazy(async () => ({
-  default: (await import('../features/competency/pages/CompetencyManagerPage')).CompetencyManagerPage,
-}))
-const CompetencyNeedsPage = lazy(async () => ({
-  default: (await import('../features/competency/pages/CompetencyNeedsPage')).CompetencyNeedsPage,
 }))
 const ForgotPasswordPage = lazy(async () => ({
   default: (await import('../features/auth/pages/ForgotPasswordPage')).ForgotPasswordPage,
@@ -57,11 +45,6 @@ const PublicLayout = lazy(async () => ({
   default: (await import('../layouts/PublicLayout')).PublicLayout,
 }))
 
-function CompetencyIndexRedirect() {
-  const location = useLocation()
-  return <Navigate to={`needs${location.search}`} replace />
-}
-
 export function AppRouter() {
   return (
     <Suspense fallback={<div className="auth-status-card">Laddar...</div>}>
@@ -85,12 +68,6 @@ export function AppRouter() {
             <Route path="aircraft" element={<AircraftProfilesPage />} />
             <Route path="aircraft/new" element={<AircraftProfileEditorPage />} />
             <Route path="aircraft/:id" element={<AircraftProfileEditorPage />} />
-            <Route path="competency" element={<CompetencyLayoutPage />}>
-              <Route index element={<CompetencyIndexRedirect />} />
-              <Route path="admin" element={<CompetencyAdminPage />} />
-              <Route path="manager" element={<CompetencyManagerPage />} />
-              <Route path="needs" element={<CompetencyNeedsPage />} />
-            </Route>
             <Route path="account" element={<AccountPage />} />
           </Route>
         </Route>
