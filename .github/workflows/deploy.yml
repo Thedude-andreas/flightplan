@@ -41,7 +41,7 @@ jobs:
           DEPLOY_HOST=${{ secrets.TEST_DEPLOY_HOST }}
           DEPLOY_PORT=${{ secrets.TEST_DEPLOY_PORT }}
           DEPLOY_USER=${{ secrets.TEST_DEPLOY_USER }}
-          DEPLOY_PASS=${{ secrets.TEST_DEPLOY_PASS }}
+          DEPLOY_PASS=${{ secrets.SFTP_PASS }}
           DEPLOY_PATH=${{ secrets.TEST_DEPLOY_PATH }}
           DEPLOY_EXPECTED_PATH_FRAGMENT=${{ secrets.TEST_DEPLOY_EXPECTED_PATH_FRAGMENT }}
           DEPLOY_PUBLIC_URL=${{ secrets.TEST_DEPLOY_PUBLIC_URL }}
