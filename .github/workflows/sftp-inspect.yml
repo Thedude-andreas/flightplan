@@ -19,9 +19,11 @@ jobs:
           DEPLOY_USER: ${{ secrets.TEST_DEPLOY_USER }}
           DEPLOY_PASS: ${{ secrets.SFTP_PASS }}
         run: |
-          lftp <<'EOF'
+          lftp <<EOF
           set cmd:fail-exit yes
           set sftp:auto-confirm yes
+          set net:max-retries 1
+          set net:timeout 20
           open -u "$DEPLOY_USER","$DEPLOY_PASS" "sftp://$DEPLOY_HOST:$DEPLOY_PORT"
           pwd
           cls -la
