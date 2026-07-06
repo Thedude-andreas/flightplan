@@ -33,5 +33,8 @@ jobs:
           cd ..
           pwd
           cls -la
+          cd webroots
+          pwd
+          cls -la
           bye
           EOF
