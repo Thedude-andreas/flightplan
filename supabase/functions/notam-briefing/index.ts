@@ -1,4 +1,4 @@
-import { createClient } from 'jsr:@supabase/supabase-js@2'
+import { createClient } from 'jsr:@supabase/supabase-js@2.101.1'
 import { extractText, getDocumentProxy } from './vendor/unpdf.mjs'
 
 const corsHeaders = {
@@ -34,6 +34,11 @@ type CachedSupplement = {
   validFrom: string | null
   validTo: string | null
   rawText: string | null
+}
+
+type CachedDatasourceSupplement = Omit<CachedSupplement, 'rawText' | 'source' | 'url'> & {
+  source: 'eaip-datasource'
+  url: string
 }
 
 type CachedPayload = {
@@ -144,7 +149,8 @@ async function extractPdfText(pdfBytes: Uint8Array) {
     disableFontFace: true,
   })
   const { text } = await extractText(pdf, { mergePages: true })
-  return normalizeWhitespace(stripPageArtifacts(text))
+  const normalizedText = Array.isArray(text) ? text.join('\n') : text
+  return normalizeWhitespace(stripPageArtifacts(normalizedText))
 }
 
 function extractCurrentBulletinUrl(listingHtml: string) {
@@ -200,7 +206,7 @@ function extractAirportSections(aerodromesText: string | null): CachedSections {
     sections[icao] = {
       airportName,
       rawText,
-      hasNotams: Boolean(rawText) && !/No information received or matching the query/i.test(rawText),
+      hasNotams: Boolean(rawText) && !/No information received or matching the query/i.test(rawText ?? ''),
     }
   }
 
@@ -404,7 +410,7 @@ async function extractDatasourceSupplements(eAipRootUrl: string) {
         validTo: validity.validTo,
       }
     })
-    .filter((value): value is Omit<CachedSupplement, 'rawText'> => Boolean(value))
+    .filter((value): value is CachedDatasourceSupplement => Boolean(value))
 
   return mapWithConcurrencyLimit(supplements, 6, async (supplement) => {
     try {
