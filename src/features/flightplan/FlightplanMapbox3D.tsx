@@ -1795,6 +1795,14 @@ function buildNotam3DGeoJson(features: NotamMapOverlayFeature[]) {
         continue
       }
 
+      pointFeatures.push({
+        type: 'Feature',
+        properties: { id: feature.id, title, body: feature.source, color, category: 'notam', visualKind: feature.visualKind ?? 'area' },
+        geometry: {
+          type: 'Point',
+          coordinates: [lon, lat],
+        },
+      })
       volumeFeatures.push({
         type: 'Feature',
         properties,
@@ -1814,6 +1822,15 @@ function buildNotam3DGeoJson(features: NotamMapOverlayFeature[]) {
         coordinates.push(first)
       }
 
+      const [lat, lon] = getNotamFeatureMarkerPosition(feature)
+      pointFeatures.push({
+        type: 'Feature',
+        properties: { id: feature.id, title, body: feature.source, color, category: 'notam', visualKind: feature.visualKind ?? 'area' },
+        geometry: {
+          type: 'Point',
+          coordinates: [lon, lat],
+        },
+      })
       volumeFeatures.push({
         type: 'Feature',
         properties,
