@@ -1155,6 +1155,7 @@ export function FlightplanApp({
             notamState.warningsText,
             notamState.supplements,
             notamMapValidityFilter,
+            filteredNotamResults,
           )
         : {
             features: [],
@@ -1166,6 +1167,7 @@ export function FlightplanApp({
       notamState.warningsText,
       notamState.supplements,
       notamMapValidityFilter,
+      filteredNotamResults,
     ],
   )
   const notamMapFeatures = notamMapOverlay.features

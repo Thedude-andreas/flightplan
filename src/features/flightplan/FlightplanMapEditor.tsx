@@ -939,7 +939,7 @@ function getOverlayStrokeWeight(
 }
 
 function notamMapPathOptions(source: NotamMapOverlayFeature['source'], kind: 'area' | 'line', zoom: number) {
-  if (source === 'notam-enroute') {
+  if (source === 'notam-enroute' || source === 'notam-aerodrome') {
     return kind === 'area'
       ? {
           color: '#b45309',
@@ -969,7 +969,7 @@ function notamMapPathOptions(source: NotamMapOverlayFeature['source'], kind: 'ar
 }
 
 function createNotamMapSymbolIcon(source: NotamMapOverlayFeature['source']) {
-  const variant = source === 'notam-enroute' ? 'enroute' : source === 'notam-warning' ? 'warning' : 'sup'
+  const variant = source === 'notam-enroute' || source === 'notam-aerodrome' ? 'enroute' : source === 'notam-warning' ? 'warning' : 'sup'
   return divIcon({
     className: `fp-notam-map-symbol fp-notam-map-symbol--${variant}`,
     html: '<span></span>',

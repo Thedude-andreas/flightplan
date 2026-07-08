@@ -8,7 +8,7 @@ import {
 import type { NearbyAirport } from './weather'
 import { expandFirBoundaryDmsSegments } from './firBoundary'
 import type { FlightPlanInput } from './types'
-import type { NotamSupplement } from './notam'
+import type { AirportNotam, NotamSupplement } from './notam'
 
 const earthRadiusNm = 3440.065
 const METERS_PER_NAUTICAL_MILE = 1852
@@ -897,7 +897,7 @@ export type NotamMapGeometryKind = 'point' | 'polyline' | 'polygon' | 'circle'
 
 export type NotamMapOverlayFeature = {
   id: string
-  source: 'notam-enroute' | 'notam-warning' | 'aip-sup'
+  source: 'notam-aerodrome' | 'notam-enroute' | 'notam-warning' | 'aip-sup'
   sourceEntryId: string
   visualKind?: 'obstacle' | 'obstacle-light-out'
   label: string
@@ -945,6 +945,11 @@ function createEmptyCoverage(): NotamMapCoverageCheck {
     renderedEntries: 0,
     missingEntries: [],
     bySource: {
+      'notam-aerodrome': {
+        expectedEntries: 0,
+        renderedEntries: 0,
+        missingEntries: 0,
+      },
       'notam-enroute': {
         expectedEntries: 0,
         renderedEntries: 0,
@@ -1298,6 +1303,10 @@ function splitIndependentObstacleEntries(rawText: string) {
 }
 
 function notamMapSourceLabel(source: NotamMapOverlayFeature['source']) {
+  if (source === 'notam-aerodrome') {
+    return 'Aerodrome NOTAM'
+  }
+
   if (source === 'notam-enroute') {
     return 'En-route NOTAM'
   }
@@ -1439,9 +1448,20 @@ export function buildNotamMapOverlayResult(
   warningsText: string | null,
   supplements: NotamSupplement[],
   validityFilter: NotamValidityFilter,
+  aerodromeNotams: AirportNotam[] = [],
 ): NotamMapOverlayResult {
   const features: NotamMapOverlayFeature[] = []
   const coverage = createEmptyCoverage()
+
+  for (const airport of aerodromeNotams) {
+    for (const [index, entry] of splitSectionEntries(airport.rawText).entries()) {
+      if (!isNotamEntryVisibleForValidityFilter(entry, validityFilter)) {
+        continue
+      }
+
+      pushGeometryFromCoordinateText(features, coverage, entry, 'notam-aerodrome', `ad-${airport.icao}-${index}`)
+    }
+  }
 
   for (const [index, entry] of splitSectionEntries(enRouteText).entries()) {
     if (!isNotamEntryVisibleForValidityFilter(entry, validityFilter)) {

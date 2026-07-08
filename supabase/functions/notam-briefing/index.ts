@@ -153,9 +153,12 @@ async function extractPdfText(pdfBytes: Uint8Array) {
   return normalizeWhitespace(stripPageArtifacts(normalizedText))
 }
 
-function extractCurrentBulletinUrl(listingHtml: string) {
-  const matches = [...listingHtml.matchAll(/href="(https:\/\/aro\.lfv\.se\/FileList\/pibsweden\/\/ESAA(?:%20| )FIR(?:%20| )VFR(?:%20| )24hr_[^"]+\.pdf)"/gi)]
-  const url = matches[0]?.[1]
+function extractCurrentBulletinUrl(listingHtml: string, briefingDate: string | null) {
+  const bulletinPattern = briefingDate
+    ? /href="(https:\/\/aro\.lfv\.se\/FileList\/pibsweden\/\/ESAA(?:%20| )FIR(?:%20| )99days_[^"]+\.pdf)"/i
+    : /href="(https:\/\/aro\.lfv\.se\/FileList\/pibsweden\/\/ESAA(?:%20| )FIR(?:%20| )VFR(?:%20| )24hr_[^"]+\.pdf)"/i
+  const fallbackPattern = /href="(https:\/\/aro\.lfv\.se\/FileList\/pibsweden\/\/ESAA(?:%20| )FIR(?:%20| )VFR(?:%20| )24hr_[^"]+\.pdf)"/i
+  const url = listingHtml.match(bulletinPattern)?.[1] ?? listingHtml.match(fallbackPattern)?.[1]
   if (!url) {
     throw new Error('Kunde inte hitta aktuell LFV VFR-briefing.')
   }
@@ -459,7 +462,7 @@ async function buildFreshCacheEntry(briefingKey: string, briefingDate: string | 
   }
 
   const listingHtml = await listingResponse.text()
-  const sourceUrl = extractCurrentBulletinUrl(listingHtml)
+  const sourceUrl = extractCurrentBulletinUrl(listingHtml, briefingDate)
 
   const pdfResponse = await fetch(sourceUrl)
   if (!pdfResponse.ok) {
