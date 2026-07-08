@@ -8,7 +8,7 @@ const corsHeaders = {
 }
 
 const cacheTtlMinutes = 30
-const briefingKeyPrefix = 'lfv-esaa-fir-vfr-24hr-v4'
+const briefingKeyPrefix = 'lfv-esaa-fir-vfr-24hr-v5'
 const listingUrl = 'https://www.aro.lfv.se/Links/Link/ShowFileList?path=%5Cpibsweden%5C&torlinkName=NOTAM+Sweden&type=AIS'
 const eAipIndexUrl = 'https://aro.lfv.se/content/eaip/default_offline.html'
 const eAipBaseUrl = 'https://aro.lfv.se/content/eaip/'
