@@ -8,11 +8,16 @@ const corsHeaders = {
 }
 
 const cacheTtlMinutes = 30
-const briefingKey = 'lfv-esaa-fir-vfr-24hr-v3'
+const briefingKeyPrefix = 'lfv-esaa-fir-vfr-24hr-v4'
 const listingUrl = 'https://www.aro.lfv.se/Links/Link/ShowFileList?path=%5Cpibsweden%5C&torlinkName=NOTAM+Sweden&type=AIS'
 const eAipIndexUrl = 'https://aro.lfv.se/content/eaip/default_offline.html'
 const eAipBaseUrl = 'https://aro.lfv.se/content/eaip/'
 const eAipDatasourcePath = 'v2/js/datasource.js'
+
+type EaipIssue = {
+  effectiveDate: string
+  rootUrl: string
+}
 
 type CachedSections = Record<string, {
   airportName: string | null
@@ -254,6 +259,19 @@ function parseDayMonthYear(value: string) {
   return `${match[3]}-${month}-${match[1].padStart(2, '0')}`
 }
 
+function normalizeBriefingDate(value: unknown) {
+  if (typeof value !== 'string') {
+    return null
+  }
+
+  const trimmed = value.trim()
+  return /^\d{4}-\d{2}-\d{2}$/.test(trimmed) ? trimmed : null
+}
+
+function makeBriefingKey(briefingDate: string | null) {
+  return briefingDate ? `${briefingKeyPrefix}:${briefingDate}` : `${briefingKeyPrefix}:current`
+}
+
 function parsePeriodText(periodText: string | null) {
   if (!periodText) {
     return { validFrom: null, validTo: null }
@@ -269,6 +287,44 @@ function parsePeriodText(periodText: string | null) {
         ? parseDayMonthYear(toMatch[1])
         : null,
   }
+}
+
+function parseEaipIssues(indexHtml: string): EaipIssue[] {
+  const issues: EaipIssue[] = []
+  const linkPattern = /href="([^"]*AIRAC AIP AMDT [^"]*index-v2\.html)"[^>]*>\s*(\d{1,2}\s+[A-Z]{3}\s+\d{4})/gi
+
+  for (const match of indexHtml.matchAll(linkPattern)) {
+    const issuePath = match[1]
+    const effectiveDate = parseDayMonthYear(match[2])
+    if (!issuePath || !effectiveDate) {
+      continue
+    }
+
+    const normalizedPath = issuePath.replace(/\\/g, '/').replace(/ /g, '%20')
+    issues.push({
+      effectiveDate,
+      rootUrl: new URL(normalizedPath.replace(/index-v2\.html$/i, ''), eAipBaseUrl).toString(),
+    })
+  }
+
+  return issues.sort((left, right) => left.effectiveDate.localeCompare(right.effectiveDate))
+}
+
+function selectEaipIssueForDate(indexHtml: string, briefingDate: string | null) {
+  if (!briefingDate) {
+    return null
+  }
+
+  const issues = parseEaipIssues(indexHtml)
+  if (issues.length === 0) {
+    return null
+  }
+
+  const effectiveIssue = issues
+    .filter((issue) => issue.effectiveDate <= briefingDate)
+    .at(-1)
+
+  return effectiveIssue ?? issues[0]
 }
 
 function parseDatasourceObject(source: string) {
@@ -390,7 +446,7 @@ function extractTriggerSupplements(...texts: Array<string | null>) {
   }))
 }
 
-async function buildFreshCacheEntry() {
+async function buildFreshCacheEntry(briefingKey: string, briefingDate: string | null) {
   const listingResponse = await fetch(listingUrl)
   if (!listingResponse.ok) {
     throw new Error(`LFV-listning misslyckades (${listingResponse.status}).`)
@@ -416,7 +472,7 @@ async function buildFreshCacheEntry() {
     const eAipIndexResponse = await fetch(eAipIndexUrl)
     if (eAipIndexResponse.ok) {
       const eAipIndexHtml = await eAipIndexResponse.text()
-      const eAipRootUrl = extractCurrentEaipRootUrl(eAipIndexHtml)
+      const eAipRootUrl = selectEaipIssueForDate(eAipIndexHtml, briefingDate)?.rootUrl ?? extractCurrentEaipRootUrl(eAipIndexHtml)
       if (eAipRootUrl) {
         supplementSourceUrl = new URL(eAipDatasourcePath, eAipRootUrl).toString()
         const datasourceSupplements = await extractDatasourceSupplements(eAipRootUrl)
@@ -460,7 +516,13 @@ Deno.serve(async (request) => {
   }
 
   try {
-    const { icaos, forceRefresh } = await request.json() as { icaos?: string[]; forceRefresh?: boolean }
+    const { icaos, forceRefresh, briefingDate: rawBriefingDate } = await request.json() as {
+      icaos?: string[]
+      forceRefresh?: boolean
+      briefingDate?: string
+    }
+    const briefingDate = normalizeBriefingDate(rawBriefingDate)
+    const briefingKey = makeBriefingKey(briefingDate)
     const normalizedIcaos = Array.from(new Set(
       (icaos ?? [])
         .filter((value): value is string => typeof value === 'string')
@@ -495,7 +557,7 @@ Deno.serve(async (request) => {
       ? cachedRow
       : await (async () => {
           try {
-            const freshEntry = await buildFreshCacheEntry()
+            const freshEntry = await buildFreshCacheEntry(briefingKey, briefingDate)
             const { data, error } = await supabase
               .from('notam_briefing_cache')
               .upsert(freshEntry, { onConflict: 'briefing_key' })

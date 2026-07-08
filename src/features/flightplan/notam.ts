@@ -31,15 +31,25 @@ export type NotamResponse = {
   notams: AirportNotam[]
 }
 
-export async function fetchNotamsForAirports(icaos: string[], forceRefresh = false) {
+export type FetchNotamsOptions = {
+  forceRefresh?: boolean
+  briefingDate?: string
+}
+
+export async function fetchNotamsForAirports(icaos: string[], options: FetchNotamsOptions | boolean = {}) {
   const supabase = getSupabaseClient()
+  const resolvedOptions = typeof options === 'boolean' ? { forceRefresh: options } : options
 
   if (!supabase) {
     throw new Error('Supabase är inte konfigurerat. NOTAM-proxy kräver backend-stöd.')
   }
 
   const { data, error } = await supabase.functions.invoke('notam-briefing', {
-    body: { icaos, forceRefresh },
+    body: {
+      icaos,
+      forceRefresh: Boolean(resolvedOptions.forceRefresh),
+      briefingDate: resolvedOptions.briefingDate,
+    },
   })
 
   if (error) {

@@ -3025,6 +3025,12 @@ export function FlightplanMapEditor({
     : null
   const isNotamMapNoticeOpen = notamMapNoticeKey != null && openNotamMapNoticeKey === notamMapNoticeKey
   const hasPendingStartPoint = useMemo(() => isPlaceholderLeg(plan.routeLegs), [plan.routeLegs])
+
+  useEffect(() => {
+    pendingAirportNotamRef.current.clear()
+    setAirportNotamByIcao({})
+  }, [plan.header.date])
+
   const waypoints = useMemo(() => {
     if (hasPendingStartPoint) {
       return plan.routeLegs.length > 0 ? [plan.routeLegs[0].from] : []
@@ -3823,7 +3829,7 @@ export function FlightplanMapEditor({
     }))
     updateSelectedAirportNotam(icao, loadingLookup)
 
-    fetchNotamsForAirports([icao])
+    fetchNotamsForAirports([icao], { briefingDate: plan.header.date })
       .then((response) => {
         const entry = response.notams.find((result) => result.icao === icao) ?? null
         const lookup: AirportNotamLookup = { status: 'ready', entry }

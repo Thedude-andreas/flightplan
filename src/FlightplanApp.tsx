@@ -1613,7 +1613,10 @@ export function FlightplanApp({
       refreshError: null,
     })
 
-    fetchNotamsForAirports(nearbyRouteAirports.map((airport) => airport.icao), forceRefresh)
+    fetchNotamsForAirports(nearbyRouteAirports.map((airport) => airport.icao), {
+      forceRefresh,
+      briefingDate: plan.header.date,
+    })
       .then((response) => {
         if (cancelled) {
           return
@@ -1659,7 +1662,7 @@ export function FlightplanApp({
     return () => {
       cancelled = true
     }
-  }, [activePanel, activeTab, nearbyRouteAirports, notamRefreshToken])
+  }, [activePanel, activeTab, nearbyRouteAirports, notamRefreshToken, plan.header.date])
 
   const updatePlan = (updater: (current: FlightPlanInput) => FlightPlanInput) => {
     setPlan((current) => normalizePlanForAircraft(updater(current)))
