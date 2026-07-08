@@ -8,7 +8,7 @@ const corsHeaders = {
 }
 
 const cacheTtlMinutes = 30
-const briefingKeyPrefix = 'lfv-esaa-fir-vfr-24hr-v6'
+const briefingKeyPrefix = 'lfv-esaa-fir-vfr-24hr-v7'
 const listingUrl = 'https://www.aro.lfv.se/Links/Link/ShowFileList?path=%5Cpibsweden%5C&torlinkName=NOTAM+Sweden&type=AIS'
 const eAipIndexUrl = 'https://aro.lfv.se/content/eaip/default_offline.html'
 const eAipBaseUrl = 'https://aro.lfv.se/content/eaip/'
@@ -497,6 +497,41 @@ function addWarningNotamReferences(airports: CachedSections, warningsText: strin
   return airports
 }
 
+function splitCachedNotamEntries(rawText: string | null) {
+  if (!rawText) {
+    return []
+  }
+
+  return stripPageArtifacts(rawText)
+    .split(/\s+\+\s+/g)
+    .map(normalizeNotamEntry)
+    .filter(Boolean)
+}
+
+function appendWarningReferenceDetails(warningsText: string | null, airports: CachedSections) {
+  if (!warningsText) {
+    return warningsText
+  }
+
+  const referencedEntries: string[] = []
+  for (const match of warningsText.matchAll(/\bplease\s+see\s+NOTAM\s+([A-Z]\d{4}\/\d{2})\s*:-\s*([A-Z]{4})\b/gi)) {
+    const notamId = match[1].toUpperCase()
+    const icao = match[2].toUpperCase()
+    const entry = splitCachedNotamEntries(airports[icao]?.rawText ?? null)
+      .find((candidate) => candidate.includes(notamId))
+
+    if (entry && !referencedEntries.some((candidate) => candidate.includes(notamId))) {
+      referencedEntries.push(entry)
+    }
+  }
+
+  if (referencedEntries.length === 0) {
+    return warningsText
+  }
+
+  return normalizeWhitespace(`${warningsText} + ${referencedEntries.join(' + ')}`)
+}
+
 async function buildFreshCacheEntry(briefingKey: string, briefingDate: string | null) {
   const listingResponse = await fetch(listingUrl)
   if (!listingResponse.ok) {
@@ -514,8 +549,9 @@ async function buildFreshCacheEntry(briefingKey: string, briefingDate: string | 
   const pdfText = await extractPdfText(new Uint8Array(await pdfResponse.arrayBuffer()))
   const aerodromesText = extractSectionText(pdfText, 'AERODROMES ', ['EN-ROUTE ', 'NAV WARNINGS ', 'MISCELLANEOUS '])
   const enRouteText = extractSectionText(pdfText, 'EN-ROUTE ', ['NAV WARNINGS ', 'MISCELLANEOUS '])
-  const warningsText = extractSectionText(pdfText, 'NAV WARNINGS ', ['MISCELLANEOUS '])
-  const airports = addWarningNotamReferences(extractAirportSections(aerodromesText), warningsText)
+  const rawWarningsText = extractSectionText(pdfText, 'NAV WARNINGS ', ['MISCELLANEOUS '])
+  const airports = addWarningNotamReferences(extractAirportSections(aerodromesText), rawWarningsText)
+  const warningsText = appendWarningReferenceDetails(rawWarningsText, airports)
 
   let supplementSourceUrl: string | null = null
   let supplements: CachedSupplement[] = extractTriggerSupplements(enRouteText, warningsText)
