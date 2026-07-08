@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import mapboxgl from 'mapbox-gl'
 import * as THREE from 'three'
 import 'mapbox-gl/dist/mapbox-gl.css'
@@ -2905,6 +2905,35 @@ export function FlightplanMapbox3D({
     routeWaypointGeoJson,
     weatherGeoJson,
   })
+  const runWhenStyleReady = useCallback((updater: (map: mapboxgl.Map) => void) => {
+    const map = mapRef.current
+    if (!map) {
+      return undefined
+    }
+
+    let didRun = false
+    const run = () => {
+      if (didRun || !map.isStyleLoaded()) {
+        return
+      }
+
+      didRun = true
+      updater(map)
+    }
+
+    run()
+    if (didRun) {
+      return undefined
+    }
+
+    map.once('style.load', run)
+    map.once('idle', run)
+
+    return () => {
+      map.off('style.load', run)
+      map.off('idle', run)
+    }
+  }, [])
 
   useEffect(() => {
     latestViewChangeRef.current = onMapViewChange
@@ -3062,11 +3091,24 @@ export function FlightplanMapbox3D({
 
     const installStyleLayers = async () => {
       if (map.getLayer(airspaceLayerId)) {
+        updateOrCreateGeoJsonSource(map, airspaceSourceId, latestMapDataRef.current.airspaceGeoJson)
+        updateOrCreateGeoJsonSource(map, notamVolumeSourceId, latestMapDataRef.current.notamGeoJson.volumes)
+        updateOrCreateGeoJsonSource(map, notamLineSourceId, latestMapDataRef.current.notamGeoJson.lines)
+        updateOrCreateGeoJsonSource(map, notamPointSourceId, latestMapDataRef.current.notamGeoJson.points)
+        updateOrCreateGeoJsonSource(map, weatherAreaSourceId, latestMapDataRef.current.weatherGeoJson.areas)
+        updateOrCreateGeoJsonSource(map, weatherLineSourceId, latestMapDataRef.current.weatherGeoJson.lines)
+        updateOrCreateGeoJsonSource(map, mapPointSourceId, latestMapDataRef.current.mapPointGeoJson)
         updateOrCreateGeoJsonSource(map, obstacleVolumeSourceId, latestMapDataRef.current.obstacleGeoJson)
         updateOrCreateGeoJsonSource(map, obstacleSymbolSourceId, latestMapDataRef.current.obstacleSymbolGeoJson)
         updateOrCreateGeoJsonSource(map, notamObstacleSymbolSourceId, latestMapDataRef.current.notamObstacleSymbolGeoJson)
+        updateOrCreateGeoJsonSource(map, aloftWindSourceId, latestMapDataRef.current.aloftWindGeoJson)
+        updateOrCreateGeoJsonSource(map, routeSourceId, latestMapDataRef.current.routeProfile.route ?? emptyGeoJsonFeatureCollection())
+        updateOrCreateGeoJsonSource(map, routeWaypointSourceId, latestMapDataRef.current.routeWaypointGeoJson)
+        updateOrCreateGeoJsonSource(map, tocTodSourceId, latestMapDataRef.current.routeProfile.markers)
+        holdingPatternLayerRef.current?.setHoldings(latestMapDataRef.current.holdingPatternObjects)
         obstacleVolumeLayerRef.current?.setObstacles(latestMapDataRef.current.obstacleObjects)
         notamObstacleVolumeLayerRef.current?.setObstacles(latestMapDataRef.current.notamObstacleObjects)
+        routeGateLayerRef.current?.setGates(latestMapDataRef.current.routeProfile.gates)
         routeObjectsLayerRef.current?.setRouteObjects(
           latestMapDataRef.current.route3DObjects.waypoints,
           latestMapDataRef.current.route3DObjects.directions,
@@ -3896,95 +3938,68 @@ export function FlightplanMapbox3D({
   }, [mapboxObstacleView, showObstacles])
 
   useEffect(() => {
-    const map = mapRef.current
-    if (!map?.isStyleLoaded()) {
-      return
-    }
-
-    updateOrCreateGeoJsonSource(map, airspaceSourceId, airspaceGeoJson)
-  }, [airspaceGeoJson])
+    return runWhenStyleReady((map) => {
+      updateOrCreateGeoJsonSource(map, airspaceSourceId, airspaceGeoJson)
+    })
+  }, [airspaceGeoJson, runWhenStyleReady])
 
   useEffect(() => {
-    const map = mapRef.current
-    if (!map?.isStyleLoaded()) {
-      return
-    }
-
-    updateOrCreateGeoJsonSource(map, notamVolumeSourceId, notamGeoJson.volumes)
-    updateOrCreateGeoJsonSource(map, notamLineSourceId, notamGeoJson.lines)
-    updateOrCreateGeoJsonSource(map, notamPointSourceId, notamGeoJson.points)
-    updateOrCreateGeoJsonSource(map, notamObstacleSymbolSourceId, notamObstacleSymbolGeoJson)
-  }, [notamGeoJson, notamObstacleSymbolGeoJson])
+    return runWhenStyleReady((map) => {
+      updateOrCreateGeoJsonSource(map, notamVolumeSourceId, notamGeoJson.volumes)
+      updateOrCreateGeoJsonSource(map, notamLineSourceId, notamGeoJson.lines)
+      updateOrCreateGeoJsonSource(map, notamPointSourceId, notamGeoJson.points)
+      updateOrCreateGeoJsonSource(map, notamObstacleSymbolSourceId, notamObstacleSymbolGeoJson)
+    })
+  }, [notamGeoJson, notamObstacleSymbolGeoJson, runWhenStyleReady])
 
   useEffect(() => {
-    const map = mapRef.current
-    if (!map?.isStyleLoaded()) {
-      return
-    }
-
-    updateOrCreateGeoJsonSource(map, weatherAreaSourceId, weatherGeoJson.areas)
-    updateOrCreateGeoJsonSource(map, weatherLineSourceId, weatherGeoJson.lines)
-  }, [weatherGeoJson])
+    return runWhenStyleReady((map) => {
+      updateOrCreateGeoJsonSource(map, weatherAreaSourceId, weatherGeoJson.areas)
+      updateOrCreateGeoJsonSource(map, weatherLineSourceId, weatherGeoJson.lines)
+    })
+  }, [runWhenStyleReady, weatherGeoJson])
 
   useEffect(() => {
-    const map = mapRef.current
-    if (!map?.isStyleLoaded()) {
-      return
-    }
-
-    updateOrCreateGeoJsonSource(map, mapPointSourceId, mapPointGeoJson)
-  }, [mapPointGeoJson])
+    return runWhenStyleReady((map) => {
+      updateOrCreateGeoJsonSource(map, mapPointSourceId, mapPointGeoJson)
+    })
+  }, [mapPointGeoJson, runWhenStyleReady])
 
   useEffect(() => {
-    const map = mapRef.current
-    if (!map?.isStyleLoaded()) {
-      return
-    }
-
-    holdingPatternLayerRef.current?.setHoldings(holdingPatternObjects)
-  }, [holdingPatternObjects])
+    return runWhenStyleReady(() => {
+      holdingPatternLayerRef.current?.setHoldings(holdingPatternObjects)
+    })
+  }, [holdingPatternObjects, runWhenStyleReady])
 
   useEffect(() => {
-    const map = mapRef.current
-    if (!map?.isStyleLoaded()) {
-      return
-    }
-
-    updateOrCreateGeoJsonSource(map, obstacleVolumeSourceId, obstacleGeoJson)
-    updateOrCreateGeoJsonSource(map, obstacleSymbolSourceId, obstacleSymbolGeoJson)
-    obstacleVolumeLayerRef.current?.setObstacles(obstacleObjects)
-  }, [obstacleGeoJson, obstacleObjects, obstacleSymbolGeoJson])
+    return runWhenStyleReady((map) => {
+      updateOrCreateGeoJsonSource(map, obstacleVolumeSourceId, obstacleGeoJson)
+      updateOrCreateGeoJsonSource(map, obstacleSymbolSourceId, obstacleSymbolGeoJson)
+      obstacleVolumeLayerRef.current?.setObstacles(obstacleObjects)
+    })
+  }, [obstacleGeoJson, obstacleObjects, obstacleSymbolGeoJson, runWhenStyleReady])
 
   useEffect(() => {
-    const map = mapRef.current
-    if (!map?.isStyleLoaded()) {
-      return
-    }
-
-    notamObstacleVolumeLayerRef.current?.setObstacles(notamObstacleObjects)
-  }, [notamObstacleObjects])
+    return runWhenStyleReady(() => {
+      notamObstacleVolumeLayerRef.current?.setObstacles(notamObstacleObjects)
+    })
+  }, [notamObstacleObjects, runWhenStyleReady])
 
   useEffect(() => {
-    const map = mapRef.current
-    if (!map?.isStyleLoaded()) {
-      return
-    }
-
-    updateOrCreateGeoJsonSource(map, aloftWindSourceId, aloftWindGeoJson)
-  }, [aloftWindGeoJson])
+    return runWhenStyleReady((map) => {
+      updateOrCreateGeoJsonSource(map, aloftWindSourceId, aloftWindGeoJson)
+    })
+  }, [aloftWindGeoJson, runWhenStyleReady])
 
   useEffect(() => {
-    const map = mapRef.current
-    if (!map?.isStyleLoaded()) {
-      return
-    }
-
-    updateOrCreateGeoJsonSource(map, routeSourceId, routeProfile.route ?? emptyGeoJsonFeatureCollection())
-    routeGateLayerRef.current?.setGates(routeProfile.gates)
-    routeObjectsLayerRef.current?.setRouteObjects(route3DObjects.waypoints, route3DObjects.directions, aloftWindObjects)
-    updateOrCreateGeoJsonSource(map, routeWaypointSourceId, routeWaypointGeoJson)
-    updateOrCreateGeoJsonSource(map, tocTodSourceId, routeProfile.markers)
-  }, [aloftWindObjects, route3DObjects, routeProfile, routeWaypointGeoJson])
+    return runWhenStyleReady((map) => {
+      updateOrCreateGeoJsonSource(map, routeSourceId, routeProfile.route ?? emptyGeoJsonFeatureCollection())
+      routeGateLayerRef.current?.setGates(routeProfile.gates)
+      routeObjectsLayerRef.current?.setRouteObjects(route3DObjects.waypoints, route3DObjects.directions, aloftWindObjects)
+      updateOrCreateGeoJsonSource(map, routeWaypointSourceId, routeWaypointGeoJson)
+      updateOrCreateGeoJsonSource(map, tocTodSourceId, routeProfile.markers)
+    })
+  }, [aloftWindObjects, route3DObjects, routeProfile, routeWaypointGeoJson, runWhenStyleReady])
 
   if (!mapboxAccessToken) {
     return (

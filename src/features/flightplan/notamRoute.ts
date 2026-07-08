@@ -688,13 +688,21 @@ function parseNotamDateTime(value: string) {
 }
 
 function getNotamValidityPeriod(rawText: string) {
-  const normalized = sanitizeNotamSourceText(rawText).replace(/\s+/g, ' ')
-  const fromMatch = normalized.match(/\bFROM:\s*(\d{1,2}\s+[A-Z]{3}\s+\d{4}\s+\d{2}:?\d{2})/i)
-  const toMatch = normalized.match(/\bTO:\s*(\d{1,2}\s+[A-Z]{3}\s+\d{4}\s+\d{2}:?\d{2})(?:\s+EST)?|\bTO:\s*(PERM|UFN)/i)
+  const normalized = repairPdfColumnDateLabels(sanitizeNotamSourceText(rawText)).replace(/\s+/g, ' ')
+  const fromMatches = [...normalized.matchAll(/\bFROM:\s*(\d{1,2}\s+[A-Z]{3}\s+\d{4}\s+\d{2}:?\d{2})/gi)]
+    .map((match) => parseNotamDateTime(match[1]))
+    .filter((value): value is Date => Boolean(value))
+  const toMatches = [...normalized.matchAll(/\bTO:\s*(\d{1,2}\s+[A-Z]{3}\s+\d{4}\s+\d{2}:?\d{2})(?:\s+EST)?|\bTO:\s*(PERM|UFN)/gi)]
+    .map((match) => match[2] ? null : parseNotamDateTime(match[1]))
+    .filter((value): value is Date => Boolean(value))
 
   return {
-    validFrom: fromMatch ? parseNotamDateTime(fromMatch[1]) : null,
-    validTo: toMatch?.[1] ? parseNotamDateTime(toMatch[1]) : null,
+    validFrom: fromMatches.length > 0
+      ? new Date(Math.min(...fromMatches.map((value) => value.getTime())))
+      : null,
+    validTo: toMatches.length > 0
+      ? new Date(Math.max(...toMatches.map((value) => value.getTime())))
+      : null,
   }
 }
 
