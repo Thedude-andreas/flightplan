@@ -200,6 +200,7 @@ const feetToMeters = 0.3048
 const metersPerNm = 1852
 const airspaceFillOpacity = 0.18
 const notamVolumeFillOpacity = 0.22
+const notamAreaToVolumeThresholdPx = 12
 const routeAccentColor = '#ff35c4'
 const aeronauticalSymbolBlue = '#005da8'
 const routeGateMinZoom = 10.4
@@ -753,10 +754,60 @@ function initialBearingDegrees(fromLat: number, fromLon: number, toLat: number, 
   return bearing < 0 ? bearing + 360 : bearing
 }
 
+function distanceNmBetween(fromLat: number, fromLon: number, toLat: number, toLon: number) {
+  const lat1 = (fromLat * Math.PI) / 180
+  const lat2 = (toLat * Math.PI) / 180
+  const dLat = ((toLat - fromLat) * Math.PI) / 180
+  const dLon = ((toLon - fromLon) * Math.PI) / 180
+  const sinLat = Math.sin(dLat / 2)
+  const sinLon = Math.sin(dLon / 2)
+  const a = sinLat * sinLat + Math.cos(lat1) * Math.cos(lat2) * sinLon * sinLon
+  return 3440.065 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+}
+
 function circlePolygonCoordinates(lat: number, lon: number, radiusNm: number) {
   const points = Array.from({ length: 64 }, (_, index) => destinationPoint(lat, lon, (index / 64) * 360, radiusNm))
   points.push(points[0])
   return [points]
+}
+
+function getMetersPerPixelAtZoom(lat: number, zoom: number) {
+  return (156543.03392 * Math.cos((lat * Math.PI) / 180)) / 2 ** zoom
+}
+
+function getNotamAreaScreenSizePx(feature: NotamMapOverlayFeature, zoom: number) {
+  if (feature.kind === 'circle' && feature.radiusNm != null) {
+    const [lat] = feature.positions[0] ?? []
+    if (lat == null) {
+      return 0
+    }
+
+    return (feature.radiusNm * metersPerNm) / getMetersPerPixelAtZoom(lat, zoom)
+  }
+
+  if (feature.kind === 'polygon' && feature.positions.length >= 3) {
+    const lats = feature.positions.map(([lat]) => lat)
+    const lons = feature.positions.map(([, lon]) => lon)
+    const south = Math.min(...lats)
+    const north = Math.max(...lats)
+    const west = Math.min(...lons)
+    const east = Math.max(...lons)
+    const centerLat = (south + north) / 2
+    const widthMeters = distanceNmBetween(centerLat, west, centerLat, east) * metersPerNm
+    const heightMeters = distanceNmBetween(south, west, north, west) * metersPerNm
+
+    return Math.max(widthMeters, heightMeters) / getMetersPerPixelAtZoom(centerLat, zoom)
+  }
+
+  return Number.POSITIVE_INFINITY
+}
+
+function shouldRenderNotamAreaAsVolume(feature: NotamMapOverlayFeature, zoom: number) {
+  if (feature.kind !== 'circle' && feature.kind !== 'polygon') {
+    return true
+  }
+
+  return getNotamAreaScreenSizePx(feature, zoom) > notamAreaToVolumeThresholdPx
 }
 
 function obstacleUnitToMeters(value: number | null, unit: string | null) {
@@ -1758,7 +1809,7 @@ function getNotamFeatureMarkerPosition(feature: NotamMapOverlayFeature): [number
   return feature.positions[0] ?? [0, 0]
 }
 
-function buildNotam3DGeoJson(features: NotamMapOverlayFeature[]) {
+function buildNotam3DGeoJson(features: NotamMapOverlayFeature[], zoom: number) {
   const volumeFeatures: GeoJsonFeature[] = []
   const lineFeatures: GeoJsonFeature[] = []
   const pointFeatures: GeoJsonFeature[] = []
@@ -1795,22 +1846,25 @@ function buildNotam3DGeoJson(features: NotamMapOverlayFeature[]) {
         continue
       }
 
-      pointFeatures.push({
-        type: 'Feature',
-        properties: { id: feature.id, title, body: feature.source, color, category: 'notam', visualKind: feature.visualKind ?? 'area' },
-        geometry: {
-          type: 'Point',
-          coordinates: [lon, lat],
-        },
-      })
-      volumeFeatures.push({
-        type: 'Feature',
-        properties,
-        geometry: {
-          type: 'Polygon',
-          coordinates: circlePolygonCoordinates(lat, lon, feature.radiusNm),
-        },
-      })
+      if (shouldRenderNotamAreaAsVolume(feature, zoom)) {
+        volumeFeatures.push({
+          type: 'Feature',
+          properties,
+          geometry: {
+            type: 'Polygon',
+            coordinates: circlePolygonCoordinates(lat, lon, feature.radiusNm),
+          },
+        })
+      } else {
+        pointFeatures.push({
+          type: 'Feature',
+          properties: { id: feature.id, title, body: feature.source, color, category: 'notam', visualKind: feature.visualKind ?? 'area' },
+          geometry: {
+            type: 'Point',
+            coordinates: [lon, lat],
+          },
+        })
+      }
       continue
     }
 
@@ -1822,23 +1876,26 @@ function buildNotam3DGeoJson(features: NotamMapOverlayFeature[]) {
         coordinates.push(first)
       }
 
-      const [lat, lon] = getNotamFeatureMarkerPosition(feature)
-      pointFeatures.push({
-        type: 'Feature',
-        properties: { id: feature.id, title, body: feature.source, color, category: 'notam', visualKind: feature.visualKind ?? 'area' },
-        geometry: {
-          type: 'Point',
-          coordinates: [lon, lat],
-        },
-      })
-      volumeFeatures.push({
-        type: 'Feature',
-        properties,
-        geometry: {
-          type: 'Polygon',
-          coordinates: [coordinates],
-        },
-      })
+      if (shouldRenderNotamAreaAsVolume(feature, zoom)) {
+        volumeFeatures.push({
+          type: 'Feature',
+          properties,
+          geometry: {
+            type: 'Polygon',
+            coordinates: [coordinates],
+          },
+        })
+      } else {
+        const [lat, lon] = getNotamFeatureMarkerPosition(feature)
+        pointFeatures.push({
+          type: 'Feature',
+          properties: { id: feature.id, title, body: feature.source, color, category: 'notam', visualKind: feature.visualKind ?? 'area' },
+          geometry: {
+            type: 'Point',
+            coordinates: [lon, lat],
+          },
+        })
+      }
       continue
     }
 
@@ -2784,6 +2841,7 @@ export function FlightplanMapbox3D({
   const [terrainDiagnostic, setTerrainDiagnostic] = useState<TerrainDiagnostic>(getInitialTerrainDiagnostic)
   const [mapboxObstacleView, setMapboxObstacleView] = useState<FlightplanMapboxObstacleView | null>(null)
   const [mapboxObstacles, setMapboxObstacles] = useState<SwedishObstacle[]>([])
+  const currentMapboxZoom = mapboxObstacleView?.zoom ?? initialViewport?.zoom ?? swedenOverviewCamera.zoom
   const routeProfile = useMemo(() => buildRouteProfile(plan, derived), [derived, plan])
   const route3DObjects = useMemo(
     () => buildRoute3DObjects(plan, derived, routeProfile.profilePoints),
@@ -2791,7 +2849,7 @@ export function FlightplanMapbox3D({
   )
   const routeWaypointGeoJson = useMemo(() => buildRouteWaypointGeoJson(plan), [plan])
   const airspaceGeoJson = useMemo(() => buildAirspaceGeoJson(airspaces), [airspaces])
-  const notamGeoJson = useMemo(() => buildNotam3DGeoJson(notamFeatures), [notamFeatures])
+  const notamGeoJson = useMemo(() => buildNotam3DGeoJson(notamFeatures, currentMapboxZoom), [currentMapboxZoom, notamFeatures])
   const notamObstacleObjects = useMemo(() => buildNotamObstacle3DObjects(notamFeatures), [notamFeatures])
   const weatherGeoJson = useMemo(() => buildWeather3DGeoJson(weatherOverlays), [weatherOverlays])
   const mapPointGeoJson = useMemo(
