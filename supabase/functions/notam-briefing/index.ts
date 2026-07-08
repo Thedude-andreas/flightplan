@@ -74,9 +74,16 @@ function normalizeWhitespace(value: string) {
 }
 
 function stripPageArtifacts(value: string) {
+  const keepLastNotamId = (_match: string, notamIds: string) => {
+    const lastNotamId = notamIds.trim().split(/\s+/).pop()
+    return lastNotamId ? ` + ${lastNotamId} ` : ' '
+  }
+
   return value
-    .replace(/\bPage\s+\d+\s+of\s+\d+(?:\s+[A-Z]\d{4}\/\d{2})*/gi, ' ')
-    .replace(/\bPage\s*of\s*\d+\s+\d+(?:\s+[A-Z]\d{4}\/\d{2})*/gi, ' ')
+    .replace(/\bPage\s+\d+\s+of\s+\d+((?:\s+[A-Z]\d{4}\/\d{2})+)\s+\+/gi, keepLastNotamId)
+    .replace(/\bPage\s*of\s*\d+\s+\d+((?:\s+[A-Z]\d{4}\/\d{2})+)\s+\+/gi, keepLastNotamId)
+    .replace(/\bPage\s+\d+\s+of\s+\d+/gi, ' ')
+    .replace(/\bPage\s*of\s*\d+\s+\d+/gi, ' ')
 }
 
 function hasNotamCoordinates(value: string) {
@@ -106,7 +113,7 @@ function isDanglingPageBreakEntry(value: string) {
     return false
   }
 
-  return /(?:\bWI\s+A\s+CIRCLE\s+WITH|\bCIRCLE\s+WITH|\bRADIUS|\bRADIE|\bWITHIN\s+A\s+RADIUS\s+OF|\bAREA\s+BOUNDED\s+BY:?)$/i.test(normalized)
+  return /(?:\bWI\s+A\s+CI(?:R)?CLE\s+WITH|\bCI(?:R)?CLE\s+WITH|\bRADIUS|\bRADIE|\bWITHIN\s+A\s+RADIUS\s+OF|\bAREA\s+BOUNDED\s+BY:?|\bESTABLISHED\s+FOR)$/i.test(normalized)
 }
 
 function removeDanglingPageBreakEntries(value: string) {

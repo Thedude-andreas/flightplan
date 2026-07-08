@@ -155,7 +155,7 @@ export function formatNotamText(value: string | null) {
     .replace(/\s+(UPPER:)/g, '\n$1')
     .replace(/\s+(Tider\/Hours)/g, '\n$1')
     .replace(/\s+(AREA BOUNDED BY:)/g, '\n$1')
-    .replace(/\s+(WI A CIRCLE WITH RADIUS)/g, '\n$1')
+    .replace(/\s+(WI A CI(?:R)?CLE WITH RADIUS)/g, '\n$1')
     .replace(/\s+(CENTERED ON|CENTRED ON)/g, '\n$1')
     .replace(/\s+(FLIGHT WI THE AREA)/g, '\n$1')
     .replace(/\s+(The following traffic on mission is exempted)/g, '\n$1')
@@ -993,8 +993,8 @@ function updateCoverage(
 function extractCircleRadiusNm(rawText: string): number | null {
   const normalized = stripNotamPdfPageArtifacts(rawText).replace(/\s+/g, ' ')
   const patterns: Array<{ pattern: RegExp; unit: 'nm' | 'm' }> = [
-    { pattern: /(?:WI\s+A\s+)?CIRCLE\s+WITH\s+RADIUS\s+(\d+(?:\.\d+)?)\s*NM/i, unit: 'nm' },
-    { pattern: /(?:WI\s+A\s+)?CIRCLE\s+WITH\s+RADIUS\s+(\d+(?:\.\d+)?)\s*M(?:ETERS?|ETRES?)?\b/i, unit: 'm' },
+    { pattern: /(?:WI\s+A\s+)?CI(?:R)?CLE\s+WITH\s+RADIUS\s+(\d+(?:\.\d+)?)\s*NM/i, unit: 'nm' },
+    { pattern: /(?:WI\s+A\s+)?CI(?:R)?CLE\s+WITH\s+RADIUS\s+(\d+(?:\.\d+)?)\s*M(?:ETERS?|ETRES?)?\b/i, unit: 'm' },
     { pattern: /(?:EN\s+)?CIRKEL\s+MED\s+RADIE\s+(\d+(?:\.\d+)?)\s*NM/i, unit: 'nm' },
     { pattern: /(?:EN\s+)?CIRKEL\s+MED\s+RADIE\s+(\d+(?:\.\d+)?)\s*M(?:ETER)?\b/i, unit: 'm' },
     { pattern: /INOM\s+EN\s+RADIE\s+AV\s+(\d+(?:\.\d+)?)\s*NM/i, unit: 'nm' },
@@ -1045,7 +1045,7 @@ function shouldRenderAsPolyline(rawText: string, points: RoutePoint[]) {
 
   const normalized = stripNotamPdfPageArtifacts(rawText).replace(/\s+/g, ' ').toUpperCase()
 
-  if (/AREA\s+BOUNDED\s+BY|POLYGON|CIRCLE\s+WITH\s+RADIUS/.test(normalized)) {
+  if (/AREA\s+BOUNDED\s+BY|POLYGON|CI(?:R)?CLE\s+WITH\s+RADIUS/.test(normalized)) {
     return false
   }
 
@@ -1074,7 +1074,7 @@ function getGeometryExpectationReason(rawText: string) {
     return 'Area/polygon nämns men koordinaterna kunde inte tolkas.'
   }
 
-  if (/(?:CIRCLE|CIRKEL|RADIUS|RADIE|CENTERED\s+ON|CENTRED\s+ON|CENTRE[D]?\s+ON)/.test(normalized)) {
+  if (/(?:CIRCLE|CICLE|CIRKEL|RADIUS|RADIE|CENTERED\s+ON|CENTRED\s+ON|CENTRE[D]?\s+ON)/.test(normalized)) {
     return 'Cirkel/radie nämns men mittpunkt eller radie kunde inte tolkas.'
   }
 
