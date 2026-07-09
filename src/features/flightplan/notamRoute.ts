@@ -8,7 +8,7 @@ import {
 import type { NearbyAirport } from './weather'
 import { expandFirBoundaryDmsSegments } from './firBoundary'
 import type { FlightPlanInput } from './types'
-import type { NotamSupplement } from './notam'
+import type { AirportNotam, NotamSupplement } from './notam'
 
 const earthRadiusNm = 3440.065
 const METERS_PER_NAUTICAL_MILE = 1852
@@ -155,7 +155,7 @@ export function formatNotamText(value: string | null) {
     .replace(/\s+(UPPER:)/g, '\n$1')
     .replace(/\s+(Tider\/Hours)/g, '\n$1')
     .replace(/\s+(AREA BOUNDED BY:)/g, '\n$1')
-    .replace(/\s+(WI A CIRCLE WITH RADIUS)/g, '\n$1')
+    .replace(/\s+(WI A CI(?:R)?CLE WITH RADIUS)/g, '\n$1')
     .replace(/\s+(CENTERED ON|CENTRED ON)/g, '\n$1')
     .replace(/\s+(FLIGHT WI THE AREA)/g, '\n$1')
     .replace(/\s+(The following traffic on mission is exempted)/g, '\n$1')
@@ -688,13 +688,21 @@ function parseNotamDateTime(value: string) {
 }
 
 function getNotamValidityPeriod(rawText: string) {
-  const normalized = sanitizeNotamSourceText(rawText).replace(/\s+/g, ' ')
-  const fromMatch = normalized.match(/\bFROM:\s*(\d{1,2}\s+[A-Z]{3}\s+\d{4}\s+\d{2}:?\d{2})/i)
-  const toMatch = normalized.match(/\bTO:\s*(\d{1,2}\s+[A-Z]{3}\s+\d{4}\s+\d{2}:?\d{2})(?:\s+EST)?|\bTO:\s*(PERM|UFN)/i)
+  const normalized = repairPdfColumnDateLabels(sanitizeNotamSourceText(rawText)).replace(/\s+/g, ' ')
+  const fromMatches = [...normalized.matchAll(/\bFROM:\s*(\d{1,2}\s+[A-Z]{3}\s+\d{4}\s+\d{2}:?\d{2})/gi)]
+    .map((match) => parseNotamDateTime(match[1]))
+    .filter((value): value is Date => Boolean(value))
+  const toMatches = [...normalized.matchAll(/\bTO:\s*(\d{1,2}\s+[A-Z]{3}\s+\d{4}\s+\d{2}:?\d{2})(?:\s+EST)?|\bTO:\s*(PERM|UFN)/gi)]
+    .map((match) => match[2] ? null : parseNotamDateTime(match[1]))
+    .filter((value): value is Date => Boolean(value))
 
   return {
-    validFrom: fromMatch ? parseNotamDateTime(fromMatch[1]) : null,
-    validTo: toMatch?.[1] ? parseNotamDateTime(toMatch[1]) : null,
+    validFrom: fromMatches.length > 0
+      ? new Date(Math.min(...fromMatches.map((value) => value.getTime())))
+      : null,
+    validTo: toMatches.length > 0
+      ? new Date(Math.max(...toMatches.map((value) => value.getTime())))
+      : null,
   }
 }
 
@@ -897,7 +905,7 @@ export type NotamMapGeometryKind = 'point' | 'polyline' | 'polygon' | 'circle'
 
 export type NotamMapOverlayFeature = {
   id: string
-  source: 'notam-enroute' | 'notam-warning' | 'aip-sup'
+  source: 'notam-aerodrome' | 'notam-enroute' | 'notam-warning' | 'aip-sup'
   sourceEntryId: string
   visualKind?: 'obstacle' | 'obstacle-light-out'
   label: string
@@ -945,6 +953,11 @@ function createEmptyCoverage(): NotamMapCoverageCheck {
     renderedEntries: 0,
     missingEntries: [],
     bySource: {
+      'notam-aerodrome': {
+        expectedEntries: 0,
+        renderedEntries: 0,
+        missingEntries: 0,
+      },
       'notam-enroute': {
         expectedEntries: 0,
         renderedEntries: 0,
@@ -988,8 +1001,8 @@ function updateCoverage(
 function extractCircleRadiusNm(rawText: string): number | null {
   const normalized = stripNotamPdfPageArtifacts(rawText).replace(/\s+/g, ' ')
   const patterns: Array<{ pattern: RegExp; unit: 'nm' | 'm' }> = [
-    { pattern: /(?:WI\s+A\s+)?CIRCLE\s+WITH\s+RADIUS\s+(\d+(?:\.\d+)?)\s*NM/i, unit: 'nm' },
-    { pattern: /(?:WI\s+A\s+)?CIRCLE\s+WITH\s+RADIUS\s+(\d+(?:\.\d+)?)\s*M(?:ETERS?|ETRES?)?\b/i, unit: 'm' },
+    { pattern: /(?:WI\s+A\s+)?CI(?:R)?CLE\s+WITH\s+RADIUS\s+(\d+(?:\.\d+)?)\s*NM/i, unit: 'nm' },
+    { pattern: /(?:WI\s+A\s+)?CI(?:R)?CLE\s+WITH\s+RADIUS\s+(\d+(?:\.\d+)?)\s*M(?:ETERS?|ETRES?)?\b/i, unit: 'm' },
     { pattern: /(?:EN\s+)?CIRKEL\s+MED\s+RADIE\s+(\d+(?:\.\d+)?)\s*NM/i, unit: 'nm' },
     { pattern: /(?:EN\s+)?CIRKEL\s+MED\s+RADIE\s+(\d+(?:\.\d+)?)\s*M(?:ETER)?\b/i, unit: 'm' },
     { pattern: /INOM\s+EN\s+RADIE\s+AV\s+(\d+(?:\.\d+)?)\s*NM/i, unit: 'nm' },
@@ -1040,7 +1053,7 @@ function shouldRenderAsPolyline(rawText: string, points: RoutePoint[]) {
 
   const normalized = stripNotamPdfPageArtifacts(rawText).replace(/\s+/g, ' ').toUpperCase()
 
-  if (/AREA\s+BOUNDED\s+BY|POLYGON|CIRCLE\s+WITH\s+RADIUS/.test(normalized)) {
+  if (/AREA\s+BOUNDED\s+BY|POLYGON|CI(?:R)?CLE\s+WITH\s+RADIUS/.test(normalized)) {
     return false
   }
 
@@ -1069,7 +1082,7 @@ function getGeometryExpectationReason(rawText: string) {
     return 'Area/polygon nämns men koordinaterna kunde inte tolkas.'
   }
 
-  if (/(?:CIRCLE|CIRKEL|RADIUS|RADIE|CENTERED\s+ON|CENTRED\s+ON|CENTRE[D]?\s+ON)/.test(normalized)) {
+  if (/(?:CIRCLE|CICLE|CIRKEL|RADIUS|RADIE|CENTERED\s+ON|CENTRED\s+ON|CENTRE[D]?\s+ON)/.test(normalized)) {
     return 'Cirkel/radie nämns men mittpunkt eller radie kunde inte tolkas.'
   }
 
@@ -1298,6 +1311,10 @@ function splitIndependentObstacleEntries(rawText: string) {
 }
 
 function notamMapSourceLabel(source: NotamMapOverlayFeature['source']) {
+  if (source === 'notam-aerodrome') {
+    return 'Aerodrome NOTAM'
+  }
+
   if (source === 'notam-enroute') {
     return 'En-route NOTAM'
   }
@@ -1439,9 +1456,20 @@ export function buildNotamMapOverlayResult(
   warningsText: string | null,
   supplements: NotamSupplement[],
   validityFilter: NotamValidityFilter,
+  aerodromeNotams: AirportNotam[] = [],
 ): NotamMapOverlayResult {
   const features: NotamMapOverlayFeature[] = []
   const coverage = createEmptyCoverage()
+
+  for (const airport of aerodromeNotams) {
+    for (const [index, entry] of splitSectionEntries(airport.rawText).entries()) {
+      if (!isNotamEntryVisibleForValidityFilter(entry, validityFilter)) {
+        continue
+      }
+
+      pushGeometryFromCoordinateText(features, coverage, entry, 'notam-aerodrome', `ad-${airport.icao}-${index}`)
+    }
+  }
 
   for (const [index, entry] of splitSectionEntries(enRouteText).entries()) {
     if (!isNotamEntryVisibleForValidityFilter(entry, validityFilter)) {

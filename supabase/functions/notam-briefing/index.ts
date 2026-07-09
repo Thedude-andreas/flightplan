@@ -1,4 +1,4 @@
-import { createClient } from 'jsr:@supabase/supabase-js@2'
+import { createClient } from 'jsr:@supabase/supabase-js@2.101.1'
 import { extractText, getDocumentProxy } from './vendor/unpdf.mjs'
 
 const corsHeaders = {
@@ -8,11 +8,16 @@ const corsHeaders = {
 }
 
 const cacheTtlMinutes = 30
-const briefingKey = 'lfv-esaa-fir-vfr-24hr-v3'
+const briefingKeyPrefix = 'lfv-esaa-fir-vfr-24hr-v7'
 const listingUrl = 'https://www.aro.lfv.se/Links/Link/ShowFileList?path=%5Cpibsweden%5C&torlinkName=NOTAM+Sweden&type=AIS'
 const eAipIndexUrl = 'https://aro.lfv.se/content/eaip/default_offline.html'
 const eAipBaseUrl = 'https://aro.lfv.se/content/eaip/'
 const eAipDatasourcePath = 'v2/js/datasource.js'
+
+type EaipIssue = {
+  effectiveDate: string
+  rootUrl: string
+}
 
 type CachedSections = Record<string, {
   airportName: string | null
@@ -29,6 +34,11 @@ type CachedSupplement = {
   validFrom: string | null
   validTo: string | null
   rawText: string | null
+}
+
+type CachedDatasourceSupplement = Omit<CachedSupplement, 'rawText' | 'source' | 'url'> & {
+  source: 'eaip-datasource'
+  url: string
 }
 
 type CachedPayload = {
@@ -64,9 +74,16 @@ function normalizeWhitespace(value: string) {
 }
 
 function stripPageArtifacts(value: string) {
+  const keepLastNotamId = (_match: string, notamIds: string) => {
+    const lastNotamId = notamIds.trim().split(/\s+/).pop()
+    return lastNotamId ? ` + ${lastNotamId} ` : ' '
+  }
+
   return value
-    .replace(/\bPage\s+\d+\s+of\s+\d+(?:\s+[A-Z]\d{4}\/\d{2})*/gi, ' ')
-    .replace(/\bPage\s*of\s*\d+\s+\d+(?:\s+[A-Z]\d{4}\/\d{2})*/gi, ' ')
+    .replace(/\bPage\s+\d+\s+of\s+\d+((?:\s+[A-Z]\d{4}\/\d{2})+)\s+\+/gi, keepLastNotamId)
+    .replace(/\bPage\s*of\s*\d+\s+\d+((?:\s+[A-Z]\d{4}\/\d{2})+)\s+\+/gi, keepLastNotamId)
+    .replace(/\bPage\s+\d+\s+of\s+\d+/gi, ' ')
+    .replace(/\bPage\s*of\s*\d+\s+\d+/gi, ' ')
 }
 
 function hasNotamCoordinates(value: string) {
@@ -96,7 +113,7 @@ function isDanglingPageBreakEntry(value: string) {
     return false
   }
 
-  return /(?:\bWI\s+A\s+CIRCLE\s+WITH|\bCIRCLE\s+WITH|\bRADIUS|\bRADIE|\bWITHIN\s+A\s+RADIUS\s+OF|\bAREA\s+BOUNDED\s+BY:?)$/i.test(normalized)
+  return /(?:\bWI\s+A\s+CI(?:R)?CLE\s+WITH|\bCI(?:R)?CLE\s+WITH|\bRADIUS|\bRADIE|\bWITHIN\s+A\s+RADIUS\s+OF|\bAREA\s+BOUNDED\s+BY:?|\bESTABLISHED\s+FOR)$/i.test(normalized)
 }
 
 function removeDanglingPageBreakEntries(value: string) {
@@ -139,12 +156,16 @@ async function extractPdfText(pdfBytes: Uint8Array) {
     disableFontFace: true,
   })
   const { text } = await extractText(pdf, { mergePages: true })
-  return normalizeWhitespace(stripPageArtifacts(text))
+  const normalizedText = Array.isArray(text) ? text.join('\n') : text
+  return normalizeWhitespace(stripPageArtifacts(normalizedText))
 }
 
-function extractCurrentBulletinUrl(listingHtml: string) {
-  const matches = [...listingHtml.matchAll(/href="(https:\/\/aro\.lfv\.se\/FileList\/pibsweden\/\/ESAA(?:%20| )FIR(?:%20| )VFR(?:%20| )24hr_[^"]+\.pdf)"/gi)]
-  const url = matches[0]?.[1]
+function extractCurrentBulletinUrl(listingHtml: string, briefingDate: string | null) {
+  const bulletinPattern = briefingDate
+    ? /href="(https:\/\/aro\.lfv\.se\/FileList\/pibsweden\/\/ESAA(?:%20| )FIR(?:%20| )99days_[^"]+\.pdf)"/i
+    : /href="(https:\/\/aro\.lfv\.se\/FileList\/pibsweden\/\/ESAA(?:%20| )FIR(?:%20| )VFR(?:%20| )24hr_[^"]+\.pdf)"/i
+  const fallbackPattern = /href="(https:\/\/aro\.lfv\.se\/FileList\/pibsweden\/\/ESAA(?:%20| )FIR(?:%20| )VFR(?:%20| )24hr_[^"]+\.pdf)"/i
+  const url = listingHtml.match(bulletinPattern)?.[1] ?? listingHtml.match(fallbackPattern)?.[1]
   if (!url) {
     throw new Error('Kunde inte hitta aktuell LFV VFR-briefing.')
   }
@@ -195,7 +216,7 @@ function extractAirportSections(aerodromesText: string | null): CachedSections {
     sections[icao] = {
       airportName,
       rawText,
-      hasNotams: Boolean(rawText) && !/No information received or matching the query/i.test(rawText),
+      hasNotams: Boolean(rawText) && !/No information received or matching the query/i.test(rawText ?? ''),
     }
   }
 
@@ -254,6 +275,19 @@ function parseDayMonthYear(value: string) {
   return `${match[3]}-${month}-${match[1].padStart(2, '0')}`
 }
 
+function normalizeBriefingDate(value: unknown) {
+  if (typeof value !== 'string') {
+    return null
+  }
+
+  const trimmed = value.trim()
+  return /^\d{4}-\d{2}-\d{2}$/.test(trimmed) ? trimmed : null
+}
+
+function makeBriefingKey(briefingDate: string | null) {
+  return briefingDate ? `${briefingKeyPrefix}:${briefingDate}` : `${briefingKeyPrefix}:current`
+}
+
 function parsePeriodText(periodText: string | null) {
   if (!periodText) {
     return { validFrom: null, validTo: null }
@@ -269,6 +303,44 @@ function parsePeriodText(periodText: string | null) {
         ? parseDayMonthYear(toMatch[1])
         : null,
   }
+}
+
+function parseEaipIssues(indexHtml: string): EaipIssue[] {
+  const issues: EaipIssue[] = []
+  const linkPattern = /href="([^"]*AIRAC AIP AMDT [^"]*index-v2\.html)"[^>]*>\s*(\d{1,2}\s+[A-Z]{3}\s+\d{4})/gi
+
+  for (const match of indexHtml.matchAll(linkPattern)) {
+    const issuePath = match[1]
+    const effectiveDate = parseDayMonthYear(match[2])
+    if (!issuePath || !effectiveDate) {
+      continue
+    }
+
+    const normalizedPath = issuePath.replace(/\\/g, '/').replace(/ /g, '%20')
+    issues.push({
+      effectiveDate,
+      rootUrl: new URL(normalizedPath.replace(/index-v2\.html$/i, ''), eAipBaseUrl).toString(),
+    })
+  }
+
+  return issues.sort((left, right) => left.effectiveDate.localeCompare(right.effectiveDate))
+}
+
+function selectEaipIssueForDate(indexHtml: string, briefingDate: string | null) {
+  if (!briefingDate) {
+    return null
+  }
+
+  const issues = parseEaipIssues(indexHtml)
+  if (issues.length === 0) {
+    return null
+  }
+
+  const effectiveIssue = issues
+    .filter((issue) => issue.effectiveDate <= briefingDate)
+    .at(-1)
+
+  return effectiveIssue ?? issues[0]
 }
 
 function parseDatasourceObject(source: string) {
@@ -348,7 +420,7 @@ async function extractDatasourceSupplements(eAipRootUrl: string) {
         validTo: validity.validTo,
       }
     })
-    .filter((value): value is Omit<CachedSupplement, 'rawText'> => Boolean(value))
+    .filter((value): value is CachedDatasourceSupplement => Boolean(value))
 
   return mapWithConcurrencyLimit(supplements, 6, async (supplement) => {
     try {
@@ -390,14 +462,84 @@ function extractTriggerSupplements(...texts: Array<string | null>) {
   }))
 }
 
-async function buildFreshCacheEntry() {
+function addWarningNotamReferences(airports: CachedSections, warningsText: string | null): CachedSections {
+  if (!warningsText) {
+    return airports
+  }
+
+  const referencesByAirport = new Map<string, Set<string>>()
+  for (const match of warningsText.matchAll(/\bplease\s+see\s+NOTAM\s+([A-Z]\d{4}\/\d{2})\s*:-\s*([A-Z]{4})\b/gi)) {
+    const notamId = match[1].toUpperCase()
+    const icao = match[2].toUpperCase()
+    const references = referencesByAirport.get(icao) ?? new Set<string>()
+    references.add(notamId)
+    referencesByAirport.set(icao, references)
+  }
+
+  for (const [icao, references] of referencesByAirport) {
+    const airport = airports[icao]
+    const rawText = airport?.rawText
+    if (!airport || !rawText) {
+      continue
+    }
+
+    const missingReferences = [...references].filter((notamId) => !rawText.includes(notamId))
+    if (missingReferences.length === 0) {
+      continue
+    }
+
+    airports[icao] = {
+      ...airport,
+      rawText: normalizeWhitespace(`+ ${missingReferences.join(' ')} ${rawText.replace(/^\+\s*/, '')}`),
+    }
+  }
+
+  return airports
+}
+
+function splitCachedNotamEntries(rawText: string | null) {
+  if (!rawText) {
+    return []
+  }
+
+  return stripPageArtifacts(rawText)
+    .split(/\s+\+\s+/g)
+    .map(normalizeNotamEntry)
+    .filter(Boolean)
+}
+
+function appendWarningReferenceDetails(warningsText: string | null, airports: CachedSections) {
+  if (!warningsText) {
+    return warningsText
+  }
+
+  const referencedEntries: string[] = []
+  for (const match of warningsText.matchAll(/\bplease\s+see\s+NOTAM\s+([A-Z]\d{4}\/\d{2})\s*:-\s*([A-Z]{4})\b/gi)) {
+    const notamId = match[1].toUpperCase()
+    const icao = match[2].toUpperCase()
+    const entry = splitCachedNotamEntries(airports[icao]?.rawText ?? null)
+      .find((candidate) => candidate.includes(notamId))
+
+    if (entry && !referencedEntries.some((candidate) => candidate.includes(notamId))) {
+      referencedEntries.push(entry)
+    }
+  }
+
+  if (referencedEntries.length === 0) {
+    return warningsText
+  }
+
+  return normalizeWhitespace(`${warningsText} + ${referencedEntries.join(' + ')}`)
+}
+
+async function buildFreshCacheEntry(briefingKey: string, briefingDate: string | null) {
   const listingResponse = await fetch(listingUrl)
   if (!listingResponse.ok) {
     throw new Error(`LFV-listning misslyckades (${listingResponse.status}).`)
   }
 
   const listingHtml = await listingResponse.text()
-  const sourceUrl = extractCurrentBulletinUrl(listingHtml)
+  const sourceUrl = extractCurrentBulletinUrl(listingHtml, briefingDate)
 
   const pdfResponse = await fetch(sourceUrl)
   if (!pdfResponse.ok) {
@@ -407,7 +549,9 @@ async function buildFreshCacheEntry() {
   const pdfText = await extractPdfText(new Uint8Array(await pdfResponse.arrayBuffer()))
   const aerodromesText = extractSectionText(pdfText, 'AERODROMES ', ['EN-ROUTE ', 'NAV WARNINGS ', 'MISCELLANEOUS '])
   const enRouteText = extractSectionText(pdfText, 'EN-ROUTE ', ['NAV WARNINGS ', 'MISCELLANEOUS '])
-  const warningsText = extractSectionText(pdfText, 'NAV WARNINGS ', ['MISCELLANEOUS '])
+  const rawWarningsText = extractSectionText(pdfText, 'NAV WARNINGS ', ['MISCELLANEOUS '])
+  const airports = addWarningNotamReferences(extractAirportSections(aerodromesText), rawWarningsText)
+  const warningsText = appendWarningReferenceDetails(rawWarningsText, airports)
 
   let supplementSourceUrl: string | null = null
   let supplements: CachedSupplement[] = extractTriggerSupplements(enRouteText, warningsText)
@@ -416,7 +560,7 @@ async function buildFreshCacheEntry() {
     const eAipIndexResponse = await fetch(eAipIndexUrl)
     if (eAipIndexResponse.ok) {
       const eAipIndexHtml = await eAipIndexResponse.text()
-      const eAipRootUrl = extractCurrentEaipRootUrl(eAipIndexHtml)
+      const eAipRootUrl = selectEaipIssueForDate(eAipIndexHtml, briefingDate)?.rootUrl ?? extractCurrentEaipRootUrl(eAipIndexHtml)
       if (eAipRootUrl) {
         supplementSourceUrl = new URL(eAipDatasourcePath, eAipRootUrl).toString()
         const datasourceSupplements = await extractDatasourceSupplements(eAipRootUrl)
@@ -441,7 +585,7 @@ async function buildFreshCacheEntry() {
     bulletin_published_at: parsePublishedAtFromBulletinUrl(sourceUrl),
     fetched_at: new Date().toISOString(),
     sections: {
-      airports: extractAirportSections(aerodromesText),
+      airports,
       enRouteText,
       warningsText,
       supplementSourceUrl,
@@ -460,7 +604,13 @@ Deno.serve(async (request) => {
   }
 
   try {
-    const { icaos, forceRefresh } = await request.json() as { icaos?: string[]; forceRefresh?: boolean }
+    const { icaos, forceRefresh, briefingDate: rawBriefingDate } = await request.json() as {
+      icaos?: string[]
+      forceRefresh?: boolean
+      briefingDate?: string
+    }
+    const briefingDate = normalizeBriefingDate(rawBriefingDate)
+    const briefingKey = makeBriefingKey(briefingDate)
     const normalizedIcaos = Array.from(new Set(
       (icaos ?? [])
         .filter((value): value is string => typeof value === 'string')
@@ -495,7 +645,7 @@ Deno.serve(async (request) => {
       ? cachedRow
       : await (async () => {
           try {
-            const freshEntry = await buildFreshCacheEntry()
+            const freshEntry = await buildFreshCacheEntry(briefingKey, briefingDate)
             const { data, error } = await supabase
               .from('notam_briefing_cache')
               .upsert(freshEntry, { onConflict: 'briefing_key' })
