@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react'
 
 const betaDisclaimerStoragePrefix = 'vfrplan.betaDisclaimerAccepted'
-const maxRecentUpdateDays = 5
 
 type RecentCommit = {
   hash: string
@@ -64,7 +63,7 @@ function groupCommitsByDate(commits: RecentCommit[]): RecentUpdateDay[] {
     })
   }
 
-  return Array.from(grouped.values()).slice(0, maxRecentUpdateDays)
+  return Array.from(grouped.values())
 }
 
 export function BetaDisclaimerDialog() {
