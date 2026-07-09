@@ -8,6 +8,10 @@ type RecentCommit = {
   subject: string
 }
 
+const recentUpdateWindowDays = 30
+const minimumRecentCommits = 10
+const gitCommitFormat = '--date=short --pretty=format:%h%x09%ad%x09%s'
+
 function resolveAppVersion() {
   try {
     return execSync('git rev-parse --short HEAD', { encoding: 'utf8' }).trim()
@@ -16,23 +20,42 @@ function resolveAppVersion() {
   }
 }
 
+function readRecentCommits(command: string): RecentCommit[] {
+  const output = execSync(command, { encoding: 'utf8' }).trim()
+
+  if (!output) {
+    return []
+  }
+
+  return output.split('\n').map((line) => {
+    const [hash = '', date = '', ...subjectParts] = line.split('\t')
+
+    return {
+      hash,
+      date,
+      subject: subjectParts.join('\t'),
+    }
+  })
+}
+
+function mergeCommits(primary: RecentCommit[], fallback: RecentCommit[]) {
+  const commitsByHash = new Map<string, RecentCommit>()
+
+  for (const commit of [...primary, ...fallback]) {
+    if (!commitsByHash.has(commit.hash)) {
+      commitsByHash.set(commit.hash, commit)
+    }
+  }
+
+  return Array.from(commitsByHash.values())
+}
+
 function resolveRecentCommits(): RecentCommit[] {
   try {
-    const output = execSync('git log -30 --date=short --pretty=format:%h%x09%ad%x09%s', { encoding: 'utf8' }).trim()
+    const commitsInWindow = readRecentCommits(`git log --since="${recentUpdateWindowDays} days ago" ${gitCommitFormat}`)
+    const latestCommits = readRecentCommits(`git log -${minimumRecentCommits} ${gitCommitFormat}`)
 
-    if (!output) {
-      return []
-    }
-
-    return output.split('\n').map((line) => {
-      const [hash = '', date = '', ...subjectParts] = line.split('\t')
-
-      return {
-        hash,
-        date,
-        subject: subjectParts.join('\t'),
-      }
-    })
+    return mergeCommits(commitsInWindow, latestCommits)
   } catch {
     return []
   }
