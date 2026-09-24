@@ -8,7 +8,7 @@ const corsHeaders = {
 }
 
 const cacheTtlMinutes = 30
-const briefingKeyPrefix = 'lfv-esaa-fir-vfr-24hr-v7'
+const briefingKeyPrefix = 'lfv-esaa-fir-vfr-24hr-v8'
 const listingUrl = 'https://www.aro.lfv.se/Links/Link/ShowFileList?path=%5Cpibsweden%5C&torlinkName=NOTAM+Sweden&type=AIS'
 const eAipIndexUrl = 'https://aro.lfv.se/content/eaip/default_offline.html'
 const eAipBaseUrl = 'https://aro.lfv.se/content/eaip/'
@@ -234,7 +234,7 @@ function parsePublishedAtFromBulletinUrl(sourceUrl: string) {
 }
 
 function extractCurrentEaipRootUrl(indexHtml: string) {
-  const match = indexHtml.match(/href="([^"]*AIRAC AIP AMDT [^"]*index-v2\.html)"/i)
+  const match = indexHtml.match(/href="([^"]*(?:AIRAC )?AIP AMDT [^"]*index-v2\.html)"/i)
   const issuePath = match?.[1]
   if (!issuePath) {
     return null
@@ -307,7 +307,7 @@ function parsePeriodText(periodText: string | null) {
 
 function parseEaipIssues(indexHtml: string): EaipIssue[] {
   const issues: EaipIssue[] = []
-  const linkPattern = /href="([^"]*AIRAC AIP AMDT [^"]*index-v2\.html)"[^>]*>\s*(\d{1,2}\s+[A-Z]{3}\s+\d{4})/gi
+  const linkPattern = /href="([^"]*(?:AIRAC )?AIP AMDT [^"]*index-v2\.html)"[^>]*>\s*(\d{1,2}\s+[A-Z]{3}\s+\d{4})/gi
 
   for (const match of indexHtml.matchAll(linkPattern)) {
     const issuePath = match[1]
@@ -394,7 +394,10 @@ async function extractDatasourceSupplements(eAipRootUrl: string) {
   }
 
   const datasource = parseDatasourceObject(await datasourceResponse.text())
-  const rows = datasource?.tabs?.find((tab) => tab.id === 3)?.contents?.['en-GB']?.table?.rows ?? []
+  const rows = datasource?.tabs?.find((tab) => tab.id === 3)?.contents?.['en-GB']?.table?.rows
+  if (!Array.isArray(rows)) {
+    throw new Error('AIP SUP: LFV:s supplementlista saknas eller kunde inte tolkas.')
+  }
 
   const supplements = rows
     .map((row) => {
@@ -556,28 +559,30 @@ async function buildFreshCacheEntry(briefingKey: string, briefingDate: string | 
   let supplementSourceUrl: string | null = null
   let supplements: CachedSupplement[] = extractTriggerSupplements(enRouteText, warningsText)
 
-  try {
-    const eAipIndexResponse = await fetch(eAipIndexUrl)
-    if (eAipIndexResponse.ok) {
-      const eAipIndexHtml = await eAipIndexResponse.text()
-      const eAipRootUrl = selectEaipIssueForDate(eAipIndexHtml, briefingDate)?.rootUrl ?? extractCurrentEaipRootUrl(eAipIndexHtml)
-      if (eAipRootUrl) {
-        supplementSourceUrl = new URL(eAipDatasourcePath, eAipRootUrl).toString()
-        const datasourceSupplements = await extractDatasourceSupplements(eAipRootUrl)
-        const supplementMap = new Map<string, CachedSupplement>()
-
-        for (const supplement of [...datasourceSupplements, ...supplements]) {
-          if (!supplementMap.has(supplement.id) || supplement.source === 'eaip-datasource') {
-            supplementMap.set(supplement.id, supplement)
-          }
-        }
-
-        supplements = Array.from(supplementMap.values())
-      }
-    }
-  } catch {
-    // Supplement parsing is best-effort; NOTAM briefing should still work without eAIP.
+  const eAipIndexResponse = await fetch(eAipIndexUrl)
+  if (!eAipIndexResponse.ok) {
+    throw new Error(`AIP SUP: LFV eAIP-index kunde inte hämtas (${eAipIndexResponse.status}).`)
   }
+
+  const eAipIndexHtml = await eAipIndexResponse.text()
+  const eAipRootUrl = selectEaipIssueForDate(eAipIndexHtml, briefingDate)?.rootUrl ?? extractCurrentEaipRootUrl(eAipIndexHtml)
+  if (!eAipRootUrl) {
+    throw new Error('AIP SUP: Kunde inte identifiera LFV:s eAIP-utgåva.')
+  }
+
+  supplementSourceUrl = new URL(eAipDatasourcePath, eAipRootUrl).toString()
+  // Do not cache a successful-looking briefing when the SUP catalogue is missing.
+  // The caller reports the error and can fall back to an explicitly stale cache.
+  const datasourceSupplements = await extractDatasourceSupplements(eAipRootUrl)
+  const supplementMap = new Map<string, CachedSupplement>()
+
+  for (const supplement of [...datasourceSupplements, ...supplements]) {
+    if (!supplementMap.has(supplement.id) || supplement.source === 'eaip-datasource') {
+      supplementMap.set(supplement.id, supplement)
+    }
+  }
+
+  supplements = Array.from(supplementMap.values())
 
   return {
     briefing_key: briefingKey,
