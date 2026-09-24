@@ -1187,6 +1187,10 @@ export function FlightplanApp({
       return notamState.error ?? 'Kunde inte hämta NOTAM-briefing.'
     }
 
+    if (notamState.status === 'ready' && notamState.usedStaleCache) {
+      return `NOTAM/AIP SUP kunde inte uppdateras. Kartan visar äldre data. ${notamState.refreshError ?? ''}`.trim()
+    }
+
     if (notamState.status === 'ready' && notamMapCoverage.missingEntries.length > 0) {
       const missingCount = notamMapCoverage.missingEntries.length
       const missingLabel = missingCount === 1
@@ -1205,7 +1209,7 @@ export function FlightplanApp({
     }
 
     return null
-  }, [notamMapCoverage.missingEntries, notamMapFeatures.length, notamState.error, notamState.status, simulateNotamMapNotice])
+  }, [notamMapCoverage.missingEntries, notamMapFeatures.length, notamState.error, notamState.status, notamState.usedStaleCache, notamState.refreshError, simulateNotamMapNotice])
   const notamMapNoticeLinks = useMemo(() => {
     if (!notamMapNotice) {
       return []
