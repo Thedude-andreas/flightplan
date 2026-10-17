@@ -1,0 +1,10 @@
+.fp-bullseye-panel { position:absolute; z-index:1100; top:76px; left:12px; width:min(330px, calc(100% - 24px)); max-height:calc(100% - 100px); overflow:auto; padding:16px; border:1px solid #aab9c7; border-radius:12px; background:#fff; color:#172c40; box-shadow:0 5px 24px #142b4533; font-size:13px; pointer-events:auto; }
+.fp-bullseye-panel form { display:grid; gap:9px; margin:12px 0; }
+.fp-bullseye-panel label { display:grid; gap:4px; font-size:12px; min-width:0; }
+.fp-bullseye-panel input,.fp-bullseye-panel select,.fp-bullseye-panel textarea { box-sizing:border-box; width:100%; min-width:0; min-height:38px; border:1px solid #aab9c7; border-radius:5px; padding:7px; background:white; color:#172c40; }
+.fp-bullseye-fields { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.fp-bullseye-panel button,.fp-bullseye-toggle { min-height:40px; padding:8px 12px; border:1px solid #697f94; border-radius:7px; background:white; color:#172c40; cursor:pointer; }
+.fp-bullseye-toggle[aria-pressed=true] { background:#172c40; color:white; }
+.fp-bullseye-panel output { display:block; padding:12px; margin:10px 0; background:#edf7ff; border-radius:6px; }
+.fp-bullseye-panel [role=alert] { color:#a51d25; }
+.fp-bullseye-pin { border:3px solid #0079a8; border-radius:50%; width:22px; height:22px; background:white; color:#0079a8; text-align:center; font-size:19px; line-height:20px; }

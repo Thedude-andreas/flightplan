@@ -29,12 +29,16 @@
     "aviation:se:validate": "node ./scripts/aviation-se/validate-aviation-data.mjs",
     "aviation:se:diff-report": "node ./scripts/aviation-se/report-aviation-data-diff.mjs",
     "aviation:se:submit-update": "node ./scripts/aviation-se/submit-aviation-data-update.mjs",
-    "aviation:se:publish-current": "node ./scripts/aviation-se/submit-aviation-data-update.mjs --publish-current"
+    "aviation:se:publish-current": "node ./scripts/aviation-se/submit-aviation-data-update.mjs --publish-current",
+    "test:bullseye": "node --test tests/bullseye.test.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.101.1",
+    "geographiclib-geodesic": "^2.2.0",
     "leaflet": "^1.9.4",
     "mapbox-gl": "^3.24.0",
+    "mgrs": "^2.2.0",
+    "proj4": "^2.22.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-leaflet": "^5.0.0",
@@ -50,6 +54,7 @@
     "@types/react-dom": "^19.2.3",
     "@types/three": "^0.184.1",
     "@vitejs/plugin-react": "^5.1.1",
+    "esbuild": "^0.27.7",
     "eslint": "^9.39.1",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",

@@ -266,7 +266,7 @@ function computePolarBy(
   return by
 }
 
-function calculateMagneticVariation(
+export function calculateMagneticVariation(
   latitudeDeg: number,
   longitudeDeg: number,
   altitudeMetersMsl: number,

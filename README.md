@@ -338,3 +338,29 @@ Place-name updates are intentionally excluded from the nightly workflow. Run `np
 Official source:
 
 - [LFV ARO / eAIP](https://www.aro.lfv.se/)
+
+## Bullseye planning
+
+Open **⊙ Bullseye** in the map toolbar. Set the reference with WGS84 decimal degrees,
+degrees/minutes or degrees/minutes/seconds, SWEREF 99 TM, RT90 2.5 gon V,
+WGS84 UTM (zone and hemisphere), MGRS, or a supported PROJ definition.
+Projected coordinates are entered as north/Y then east/X; geographic inputs as latitude then longitude.
+MGRS references use the centre of the specified grid square. Custom definitions use
+Proj4js capabilities; external datum grids are not bundled. This is not an arbitrary EPSG-code lookup.
+
+Click the map to measure from the reference, or enter bearing and distance to mark a
+position. Choose magnetic or true north, and NM or km. Magnetic bearings use the
+existing WMM2025 model at the bullseye, at sea level, for the planned flight date
+(2025–2029); variation is rounded to degrees by the existing model API. WGS84
+ellipsoidal geodesics are used for forward and inverse calculations. Bearings are
+initial bearings **from** the bullseye. At zero distance the bearing is undefined.
+
+While the panel is open, route editing is disabled. Close it to resume normal map
+interaction. The reference is stored locally on the device, separately from saved
+flight plans; the measured position is temporary. Both Leaflet and Mapbox views
+show the reference and measured position; Leaflet also shows a connecting line.
+This feature is for planning; it does not use aircraft GPS or provide in-flight guidance.
+
+Core calculations and coordinate parsing are independent of React and map engines
+in `src/features/flightplan/bullseye.ts`, for reuse by a future navigation client.
+Run `npm run test:bullseye`, `npm run build` and `npm run lint` to verify changes.

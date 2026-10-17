@@ -1,4 +1,7 @@
-import { lazy, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { BullseyePanel } from './BullseyePanel'
+import { BullseyeMapLayer } from './BullseyeMapLayer'
+import { validatePoint, type BullseyePoint } from './bullseye'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import {
   CircleMarker,
   Circle,
@@ -2913,7 +2916,7 @@ export function FlightplanMapEditor({
   hudSlot,
   hudTopCenterSlot,
   hudStatusSlot,
-  routeEditingEnabled = true,
+  routeEditingEnabled: requestedRouteEditing = true,
   onRouteLegsChange,
   focusedLegIndex = null,
   initialViewport = null,
@@ -2943,6 +2946,19 @@ export function FlightplanMapEditor({
   onViewportChange?: (viewport: FlightplanMapViewport) => void
   printMode?: boolean
 }) {
+  const [bullseyeOpen, setBullseyeOpen] = useState(false)
+  const [bullseyeOrigin, setBullseyeOrigin] = useState<BullseyePoint | null>(() => {
+    try { const saved = localStorage.getItem('vfrplan.bullseye'); return saved ? validatePoint(JSON.parse(saved)) : null } catch { return null }
+  })
+  const [bullseyeTarget, setBullseyeTarget] = useState<BullseyePoint | null>(null)
+  const pickBullseye = useCallback((point: BullseyePoint) => { if (bullseyeOrigin) setBullseyeTarget(point) }, [bullseyeOrigin])
+  const bullseyeMapState = useMemo(() => bullseyeOpen ? { origin: bullseyeOrigin, target: bullseyeTarget } : null, [bullseyeOpen, bullseyeOrigin, bullseyeTarget])
+  const routeEditingEnabled = requestedRouteEditing && !bullseyeOpen
+  const saveBullseye = (point: BullseyePoint | null) => {
+    setBullseyeOrigin(point)
+    setBullseyeTarget(null)
+    try { if (point) localStorage.setItem('vfrplan.bullseye', JSON.stringify(point)); else localStorage.removeItem('vfrplan.bullseye') } catch { /* Storage may be unavailable in private mode. */ }
+  }
   const swedishAirspaces = getSwedishAirspaces()
   const swedishAirports = getSwedishAirports()
   const swedishNavaids = getSwedishNavaids()
@@ -4225,9 +4241,11 @@ export function FlightplanMapEditor({
   return (
     <section className={`fp-map-editor${printMode ? ' fp-map-editor--print' : ''}`}>
       <div className="fp-map-canvas" ref={mapCanvasRef}>
+        {!printMode && bullseyeOpen && <BullseyePanel origin={bullseyeOrigin} target={bullseyeTarget} date={plan.header.date} onOrigin={saveBullseye} onTarget={setBullseyeTarget} onClear={() => saveBullseye(null)} />}
         {!printMode ? <div className={`fp-map-hud-row ${isMapLayerMenuOpen ? 'fp-map-hud-row--layer-menu-open' : ''} ${hudTopCenterSlot ? 'fp-map-hud-row--with-open-plan' : ''}`}>
           <div className="fp-map-hud fp-map-hud--top-right">
             <div className="fp-map-controls">
+              <button type="button" className="fp-bullseye-toggle" aria-pressed={bullseyeOpen} onClick={() => { setBullseyeOpen(open => !open); setSelectedPointInfo(null) }}>⊙ Bullseye</button>
               {hasNotamMapNotice ? (
                 <button
                   type="button"
@@ -4539,17 +4557,17 @@ export function FlightplanMapEditor({
             ) : null}
           </aside>
         ) : null}
-        {!printMode && !isMapbox3dBasemap && !routeEditingEnabled && !selectedPointInfo && (
+        {!printMode && !bullseyeOpen && !isMapbox3dBasemap && !routeEditingEnabled && !selectedPointInfo && (
           <div className="fp-map-empty-hint">
             Utforska kartan. Klicka för "Vad finns här?" eller välj Skapa rutt.
           </div>
         )}
-        {!printMode && !isMapbox3dBasemap && routeEditingEnabled && waypoints.length === 0 && (
+        {!printMode && !bullseyeOpen && !isMapbox3dBasemap && routeEditingEnabled && waypoints.length === 0 && (
           <div className="fp-map-empty-hint">
             Klicka i kartan för att välja startpunkten
           </div>
         )}
-        {!printMode && !isMapbox3dBasemap && routeEditingEnabled && hasPendingStartPoint && (
+        {!printMode && !bullseyeOpen && !isMapbox3dBasemap && routeEditingEnabled && hasPendingStartPoint && (
           <div className="fp-map-empty-hint">
             Startpunkt vald. Klicka igen i kartan för nästa waypoint.
           </div>
@@ -4557,6 +4575,8 @@ export function FlightplanMapEditor({
         {isMapbox3dBasemap && !printMode ? (
           <Suspense fallback={<div className="fp-map-empty-hint">Laddar 3D-karta...</div>}>
             <FlightplanMapbox3D
+              bullseye={bullseyeMapState}
+              onBullseyePick={pickBullseye}
               airspaces={showAirspaces ? visibleAirspaces : []}
               airportFlightCategories={airportFlightCategories}
               airports={showAirportMarkers ? swedishAirports : []}
@@ -4618,6 +4638,7 @@ export function FlightplanMapEditor({
             url={activeBasemap.url ?? basemaps.topo.url ?? ''}
           />
           <MapInstanceHandler onReady={setMapInstance} />
+          {bullseyeOpen && !printMode && <BullseyeMapLayer origin={bullseyeOrigin} target={bullseyeTarget} onPick={pickBullseye} />}
           <InitialViewportHandler
             waypoints={displayWaypoints}
             focusedLegIndex={focusedLegIndex}
