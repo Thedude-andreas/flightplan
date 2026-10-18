@@ -1,6 +1,7 @@
 import { BullseyePanel } from './BullseyePanel'
 import { BullseyeMapLayer } from './BullseyeMapLayer'
-import { validatePoint, type BullseyePoint } from './bullseye'
+import { bullseyeRelative, validatePoint, type BullseyePoint } from './bullseye'
+import { calculateMagneticVariation } from './magneticVariation'
 import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import {
   CircleMarker,
@@ -2952,7 +2953,17 @@ export function FlightplanMapEditor({
   })
   const [bullseyeTarget, setBullseyeTarget] = useState<BullseyePoint | null>(null)
   const pickBullseye = useCallback((point: BullseyePoint) => { if (bullseyeOrigin) setBullseyeTarget(point) }, [bullseyeOrigin])
-  const bullseyeMapState = useMemo(() => bullseyeOpen ? { origin: bullseyeOrigin, target: bullseyeTarget } : null, [bullseyeOpen, bullseyeOrigin, bullseyeTarget])
+  const [bullseyeReference, setBullseyeReference] = useState<'M' | 'T'>('M')
+  const [bullseyeUnit, setBullseyeUnit] = useState<'NM' | 'km'>('NM')
+  const bullseyeDate = new Date(`${plan.header.date}T12:00:00`)
+  const validBullseyeDate = !Number.isNaN(bullseyeDate.getTime()) && bullseyeDate.getFullYear() >= 2025 && bullseyeDate.getFullYear() < 2030
+  const bullseyeVariation = bullseyeOrigin && validBullseyeDate ? calculateMagneticVariation(bullseyeOrigin.lat, bullseyeOrigin.lon, 0, bullseyeDate).declination : null
+  const bullseyeDeclination = bullseyeReference === 'M' ? bullseyeVariation : 0
+  const bullseyeRelativePosition = bullseyeOrigin && bullseyeTarget && bullseyeDeclination !== null ? bullseyeRelative(bullseyeOrigin, bullseyeTarget, bullseyeDeclination) : null
+  const bullseyeTargetLabel = bullseyeRelativePosition
+    ? `${bullseyeRelativePosition.bearing === null ? 'Vid bullseye' : `${String(Math.round(bullseyeRelativePosition.bearing) % 360).padStart(3, '0')}°${bullseyeReference}`} / ${(bullseyeRelativePosition.distanceNm * (bullseyeUnit === 'km' ? 1.852 : 1)).toFixed(2)} ${bullseyeUnit}`
+    : 'Magnetisk bäring kräver flygdatum 2025–2029'
+  const bullseyeMapState = useMemo(() => bullseyeOpen ? { origin: bullseyeOrigin, target: bullseyeTarget, targetLabel: bullseyeTargetLabel } : null, [bullseyeOpen, bullseyeOrigin, bullseyeTarget, bullseyeTargetLabel])
   const routeEditingEnabled = requestedRouteEditing && !bullseyeOpen
   const saveBullseye = (point: BullseyePoint | null) => {
     setBullseyeOrigin(point)
@@ -4284,7 +4295,7 @@ export function FlightplanMapEditor({
   return (
     <section className={`fp-map-editor${printMode ? ' fp-map-editor--print' : ''}`}>
       <div className="fp-map-canvas" ref={mapCanvasRef}>
-        {!printMode && bullseyeOpen && <BullseyePanel origin={bullseyeOrigin} target={bullseyeTarget} date={plan.header.date} onOrigin={saveBullseye} onTarget={setBullseyeTarget} onClear={() => saveBullseye(null)} onClose={() => setBullseyeOpen(false)} />}
+        {!printMode && bullseyeOpen && <BullseyePanel origin={bullseyeOrigin} target={bullseyeTarget} date={plan.header.date} reference={bullseyeReference} onReference={setBullseyeReference} unit={bullseyeUnit} onUnit={setBullseyeUnit} variation={bullseyeVariation} targetLabel={bullseyeTargetLabel} onOrigin={saveBullseye} onTarget={setBullseyeTarget} onClear={() => saveBullseye(null)} onClose={() => setBullseyeOpen(false)} />}
         {!printMode ? <div ref={mapHudRef} className={`fp-map-hud-row ${isMapLayerMenuOpen ? 'fp-map-hud-row--layer-menu-open' : ''} ${hudTopCenterSlot ? 'fp-map-hud-row--with-open-plan' : ''}`}>
           <div className="fp-map-hud fp-map-hud--top-right">
             <div className="fp-map-controls">
@@ -4685,7 +4696,7 @@ export function FlightplanMapEditor({
             url={activeBasemap.url ?? basemaps.topo.url ?? ''}
           />
           <MapInstanceHandler onReady={setMapInstance} />
-          {bullseyeOpen && !printMode && <BullseyeMapLayer origin={bullseyeOrigin} target={bullseyeTarget} onPick={pickBullseye} />}
+          {bullseyeOpen && !printMode && <BullseyeMapLayer origin={bullseyeOrigin} target={bullseyeTarget} targetLabel={bullseyeTargetLabel} onPick={pickBullseye} />}
           <InitialViewportHandler
             waypoints={displayWaypoints}
             focusedLegIndex={focusedLegIndex}

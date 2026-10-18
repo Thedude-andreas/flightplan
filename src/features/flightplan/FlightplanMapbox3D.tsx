@@ -2809,7 +2809,7 @@ export function FlightplanMapbox3D({
   visualPoints,
   weatherOverlays,
 }: {
-  bullseye: { origin: BullseyePoint | null; target: BullseyePoint | null } | null
+  bullseye: { origin: BullseyePoint | null; target: BullseyePoint | null; targetLabel: string } | null
   onBullseyePick: (point: BullseyePoint) => void
   airspaces: SwedishAirspace[]
   airportFlightCategories: Record<string, FlightplanMapboxAirportFlightCategory>
@@ -3933,7 +3933,13 @@ export function FlightplanMapbox3D({
       const element = document.createElement('div')
       element.className = 'fp-bullseye-pin'
       element.textContent = index === 0 ? '⊙' : '+'
-      element.title = index === 0 ? 'Bullseye' : 'Bullseye-position'
+      element.title = index === 0 ? 'Bullseye' : bullseye.targetLabel
+      if (index === 1) {
+        const label = document.createElement('span')
+        label.className = 'fp-bullseye-pin-label'
+        label.textContent = bullseye.targetLabel
+        element.appendChild(label)
+      }
       return [new mapboxgl.Marker({ element }).setLngLat([point.lon, point.lat]).addTo(map)]
     })
     const focus = bullseye.target ?? bullseye.origin

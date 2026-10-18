@@ -8,3 +8,4 @@
 .fp-bullseye-panel output { display:block; padding:12px; margin:10px 0; background:#edf7ff; border-radius:6px; }
 .fp-bullseye-panel [role=alert] { color:#a51d25; }
 .fp-bullseye-pin { border:3px solid #0079a8; border-radius:50%; width:22px; height:22px; background:white; color:#0079a8; text-align:center; font-size:19px; line-height:20px; }
+.fp-bullseye-pin-label { position:absolute; bottom:calc(100% + 8px); left:50%; transform:translateX(-50%); white-space:nowrap; padding:4px 7px; border:1px solid #aab9c7; border-radius:4px; background:white; color:#172c40; font-size:12px; line-height:18px; pointer-events:none; }
