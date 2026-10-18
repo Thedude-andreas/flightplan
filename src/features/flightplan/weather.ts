@@ -275,12 +275,15 @@ type AviationWeatherTafEntry = {
   rawTAF?: string | null
 }
 
-async function fetchJson<T>(url: string, signal: AbortSignal) {
+async function fetchJson<T>(url: string, signal: AbortSignal): Promise<T[]> {
   const response = await fetch(url, { signal })
   if (!response.ok) {
     throw new Error(`HTTP ${response.status}`)
   }
-  return response.json() as Promise<T>
+  if (response.status === 204) {
+    return []
+  }
+  return response.json() as Promise<T[]>
 }
 
 function parseAviationWeatherTimestampToMs(value: string | number | null | undefined) {
@@ -354,7 +357,7 @@ async function fetchAviationWeatherReports<T>(path: 'metar' | 'taf', icaos: stri
     params.set('metar', 'false')
   }
 
-  return fetchJson<T[]>(`${AVIATION_WEATHER_API_BASE_URL}/${path}?${params.toString()}`, signal)
+  return fetchJson<T>(`${AVIATION_WEATHER_API_BASE_URL}/${path}?${params.toString()}`, signal)
 }
 
 function parseStatuteMilesToMeters(rawValue: string) {
@@ -657,6 +660,7 @@ async function fetchMapWeatherViaSupabase(
   airports: NearbyAirport[],
   signal: AbortSignal,
   includeTaf: boolean,
+  forceRefresh: boolean,
 ) {
   const supabase = getSupabaseClient()
   if (!supabase) {
@@ -667,6 +671,7 @@ async function fetchMapWeatherViaSupabase(
     body: {
       icaos: airports.map((airport) => airport.icao),
       includeTaf,
+      forceRefresh,
     },
   })
 
@@ -697,20 +702,22 @@ export async function fetchMapWeatherForAirports(
   airports: NearbyAirport[],
   signal: AbortSignal,
   includeTaf = false,
+  forceRefresh = false,
 ): Promise<AirportMapWeather[]> {
   if (airports.length === 0) {
     return []
   }
 
-  return (await fetchMapWeatherViaSupabase(airports, signal, includeTaf))
+  return (await fetchMapWeatherViaSupabase(airports, signal, includeTaf, forceRefresh))
     ?? fetchAviationWeatherForAirports(airports, signal, includeTaf)
 }
 
 export async function fetchWeatherForAirports(
   airports: NearbyAirport[],
   signal: AbortSignal,
+  forceRefresh = false,
 ): Promise<AirportWeather[]> {
-  const results = await fetchMapWeatherForAirports(airports, signal, true)
+  const results = await fetchMapWeatherForAirports(airports, signal, true, forceRefresh)
   return results.map((result) => ({
     airport: result.airport,
     metarRawText: result.metarRawText,

@@ -130,7 +130,7 @@ function tafsByIcao(entries: TafApiEntry[]) {
   return byIcao
 }
 
-async function fetchAviationWeatherJson<T>(path: string, icaos: string[]) {
+async function fetchAviationWeatherJson<T>(path: string, icaos: string[]): Promise<T[]> {
   const params = new URLSearchParams({
     ids: icaos.join(','),
     format: 'json',
@@ -148,7 +148,12 @@ async function fetchAviationWeatherJson<T>(path: string, icaos: string[]) {
     throw new Error(`AviationWeather ${path.toUpperCase()} misslyckades (${response.status}).`)
   }
 
-  return await response.json() as T
+  // AviationWeather returns 204 when none of the requested stations has reports.
+  if (response.status === 204) {
+    return []
+  }
+
+  return await response.json() as T[]
 }
 
 async function fetchAviationWeatherJsonBatched<T>(path: string, icaos: string[]) {
@@ -157,7 +162,7 @@ async function fetchAviationWeatherJsonBatched<T>(path: string, icaos: string[])
     batches.push(icaos.slice(index, index + aviationWeatherBatchSize))
   }
 
-  const results = await Promise.all(batches.map((batch) => fetchAviationWeatherJson<T[]>(path, batch)))
+  const results = await Promise.all(batches.map((batch) => fetchAviationWeatherJson<T>(path, batch)))
   return results.flat()
 }
 
