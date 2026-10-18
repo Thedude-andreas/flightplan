@@ -1553,7 +1553,7 @@ export function FlightplanApp({
 
     Promise.all([
       activePanel === 'weather' && nearbyRouteAirports.length > 0
-        ? fetchWeatherForAirports(nearbyRouteAirports, controller.signal)
+        ? fetchWeatherForAirports(nearbyRouteAirports, controller.signal, forceRefresh)
         : Promise.resolve([]),
       fetchLfvWeatherBriefing(forceRefresh),
     ])
