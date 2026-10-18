@@ -1,7 +1,7 @@
 import { BullseyePanel } from './BullseyePanel'
 import { BullseyeMapLayer } from './BullseyeMapLayer'
 import { validatePoint, type BullseyePoint } from './bullseye'
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import {
   CircleMarker,
   Circle,
@@ -2992,6 +2992,49 @@ export function FlightplanMapEditor({
   const pendingAirportNotamRef = useRef(new Set<string>())
   const pendingAirportWeatherRef = useRef(new Set<string>())
   const mapCanvasRef = useRef<HTMLDivElement | null>(null)
+  const mapHudRef = useRef<HTMLDivElement | null>(null)
+  const closeNavigationMenu = () => {
+    const menu = mapCanvasRef.current?.querySelector<HTMLDetailsElement>('.fp-map-action-menu')
+    if (menu) menu.open = false
+  }
+  useLayoutEffect(() => {
+    const canvas = mapCanvasRef.current
+    const hud = mapHudRef.current
+    if (!canvas || !hud || printMode) return
+    const updatePanelBounds = () => {
+      const canvasRect = canvas.getBoundingClientRect()
+      const top = Math.ceil(hud.getBoundingClientRect().bottom - canvasRect.top + 8)
+      canvas.style.setProperty('--fp-map-panel-top', `${top}px`)
+      canvas.style.setProperty('--fp-map-panel-space', `${Math.max(0, canvasRect.height - top - 12)}px`)
+    }
+    const onNavigationToggle = (event: Event) => {
+      if (event.target instanceof HTMLDetailsElement && event.target.open) {
+        setBullseyeOpen(false)
+        setIsMapLayerMenuOpen(false)
+        setOpenNotamMapNoticeKey(null)
+        setSelectedPointInfo(null)
+      }
+    }
+    hud.addEventListener('toggle', onNavigationToggle, true)
+    updatePanelBounds()
+    const observer = new ResizeObserver(updatePanelBounds)
+    observer.observe(hud)
+    observer.observe(canvas)
+    window.addEventListener('resize', updatePanelBounds)
+    return () => { observer.disconnect(); window.removeEventListener('resize', updatePanelBounds); hud.removeEventListener('toggle', onNavigationToggle, true) }
+  }, [printMode])
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return
+      setBullseyeOpen(false)
+      setIsMapLayerMenuOpen(false)
+      setOpenNotamMapNoticeKey(null)
+      const menu = mapCanvasRef.current?.querySelector<HTMLDetailsElement>('.fp-map-action-menu')
+      if (menu) menu.open = false
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [])
   const [printMapSizeKey, setPrintMapSizeKey] = useState('print-map-initial')
   const isMapbox3dBasemap = isMapbox3dBasemapKey(basemap)
   const showAirspaces = mapLayerPreferences.airspaces
@@ -4241,11 +4284,11 @@ export function FlightplanMapEditor({
   return (
     <section className={`fp-map-editor${printMode ? ' fp-map-editor--print' : ''}`}>
       <div className="fp-map-canvas" ref={mapCanvasRef}>
-        {!printMode && bullseyeOpen && <BullseyePanel origin={bullseyeOrigin} target={bullseyeTarget} date={plan.header.date} onOrigin={saveBullseye} onTarget={setBullseyeTarget} onClear={() => saveBullseye(null)} />}
-        {!printMode ? <div className={`fp-map-hud-row ${isMapLayerMenuOpen ? 'fp-map-hud-row--layer-menu-open' : ''} ${hudTopCenterSlot ? 'fp-map-hud-row--with-open-plan' : ''}`}>
+        {!printMode && bullseyeOpen && <BullseyePanel origin={bullseyeOrigin} target={bullseyeTarget} date={plan.header.date} onOrigin={saveBullseye} onTarget={setBullseyeTarget} onClear={() => saveBullseye(null)} onClose={() => setBullseyeOpen(false)} />}
+        {!printMode ? <div ref={mapHudRef} className={`fp-map-hud-row ${isMapLayerMenuOpen ? 'fp-map-hud-row--layer-menu-open' : ''} ${hudTopCenterSlot ? 'fp-map-hud-row--with-open-plan' : ''}`}>
           <div className="fp-map-hud fp-map-hud--top-right">
             <div className="fp-map-controls">
-              <button type="button" className="fp-bullseye-toggle" aria-pressed={bullseyeOpen} onClick={() => { setBullseyeOpen(open => !open); setSelectedPointInfo(null) }}>⊙ Bullseye</button>
+              <button type="button" className="fp-bullseye-toggle" aria-pressed={bullseyeOpen} onClick={() => { closeNavigationMenu(); setIsMapLayerMenuOpen(false); setOpenNotamMapNoticeKey(null); setBullseyeOpen(open => !open); setSelectedPointInfo(null) }}>⊙ Bullseye</button>
               {hasNotamMapNotice ? (
                 <button
                   type="button"
@@ -4253,6 +4296,9 @@ export function FlightplanMapEditor({
                   aria-label={isNotamMapNoticeOpen ? 'Dölj NOTAM/AIP SUP-varning' : 'Visa NOTAM/AIP SUP-varning'}
                   aria-expanded={isNotamMapNoticeOpen}
                   onClick={() => {
+                    closeNavigationMenu()
+                    setBullseyeOpen(false)
+                    setSelectedPointInfo(null)
                     setIsMapLayerMenuOpen(false)
                     setOpenNotamMapNoticeKey((current) => (
                       current === notamMapNoticeKey ? null : notamMapNoticeKey
@@ -4268,7 +4314,7 @@ export function FlightplanMapEditor({
                   className="fp-map-layer-menu__button fp-map-layer-menu__button--hamburger"
                   aria-haspopup="menu"
                   aria-expanded={isMapLayerMenuOpen}
-                  onClick={() => setIsMapLayerMenuOpen((open) => !open)}
+                  onClick={() => { closeNavigationMenu(); setBullseyeOpen(false); setOpenNotamMapNoticeKey(null); setSelectedPointInfo(null); setIsMapLayerMenuOpen(open => !open) }}
                   aria-label="Öppna visningsmeny"
                 >
                   <span className="fp-map-layer-menu__button-main">
@@ -4285,6 +4331,7 @@ export function FlightplanMapEditor({
                 <div className="fp-map-layer-menu__popover" role="menu" aria-label="Kartdata">
                   <div className="fp-map-layer-menu__header">
                     <strong>Visning</strong>
+                    <button type="button" className="fp-map-panel-close" aria-label="Stäng visningsmeny" onClick={() => setIsMapLayerMenuOpen(false)}>×</button>
                   </div>
                   <div className="fp-map-layer-menu__section">
                     <label className="fp-basemap-control fp-basemap-control--menu">
