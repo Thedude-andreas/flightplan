@@ -3771,3 +3771,106 @@
     font-size: 6.2pt;
   }
 }
+
+/* Keep map tools and their panels in separate vertical regions. */
+.flightplan-page .fp-map-panel-header,
+.flightplan-page .fp-map-layer-menu__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.flightplan-page .fp-map-panel-close {
+  flex: 0 0 auto;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0.25rem;
+  border: 1px solid #aab9c7;
+  border-radius: 8px;
+  background: #fff;
+  color: #172c40;
+  font-size: 1.3rem;
+  cursor: pointer;
+}
+.flightplan-page .fp-map-layer-menu__popover {
+  box-sizing: border-box;
+}
+
+@media screen and (max-width: 900px) {
+  .flightplan-page.is-map-view .fp-map-canvas,
+  .flightplan-page.is-map-view .fp-leaflet-map {
+    height: 100dvh;
+    min-height: 100dvh;
+  }
+  .flightplan-page .fp-map-hud-row,
+  .flightplan-page.is-map-view .fp-map-hud-row {
+    top: max(8px, env(safe-area-inset-top));
+    left: max(8px, env(safe-area-inset-left));
+    right: max(8px, env(safe-area-inset-right));
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+  }
+  .flightplan-page .fp-map-hud-row > .fp-map-hud,
+  .flightplan-page.is-map-view .fp-map-hud-row > .fp-map-hud {
+    position: static;
+    width: 100%;
+    max-width: none;
+    transform: none;
+    min-width: 0;
+  }
+  .flightplan-page .fp-map-hud-row .fp-map-hud--top-left { order: 0; }
+  .flightplan-page .fp-map-hud-row .fp-map-hud--top-center { order: 1; }
+  .flightplan-page .fp-map-hud-row .fp-map-hud--top-right { order: 2; }
+  .flightplan-page .fp-map-hud-row .fp-map-controls {
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    align-items: center;
+  }
+  .flightplan-page .fp-map-primary-controls { width: 100%; }
+  .flightplan-page .fp-map-time-menu { flex-basis: 100%; }
+  .flightplan-page.is-map-view .fp-map-utc-control {
+    box-sizing: border-box;
+    width: fit-content;
+    max-width: 100%;
+  }
+  .flightplan-page .fp-map-hud-row .fp-map-layer-menu,
+  .flightplan-page .fp-map-hud-row .fp-map-action-menu {
+    position: static;
+  }
+  .flightplan-page .fp-map-hud-row:has(.fp-map-action-menu[open]) { z-index: 5000; }
+  .flightplan-page .fp-map-hud-row .fp-map-layer-menu__popover,
+  .flightplan-page .fp-map-hud-row .fp-map-action-menu__panel {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    right: 0;
+    width: 100%;
+    max-width: none;
+    max-height: var(--fp-map-panel-space, 50dvh);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    box-sizing: border-box;
+  }
+  .flightplan-page .fp-bullseye-panel {
+    left: max(8px, env(safe-area-inset-left));
+    right: max(8px, env(safe-area-inset-right));
+    width: auto;
+    padding: 12px;
+  }
+  .flightplan-page .fp-map-canvas .leaflet-top.leaflet-right {
+    top: var(--fp-map-panel-top, 180px);
+    margin-top: 0;
+    margin-right: 8px;
+    z-index: 1000;
+  }
+  .flightplan-page .fp-map-canvas .mapboxgl-ctrl-top-right {
+    top: var(--fp-map-panel-top, 180px);
+  }
+}
+
+@media screen and (min-width: 901px) {
+  .flightplan-page .fp-map-hud-row { right: 26rem; }
+}

@@ -1,4 +1,8 @@
-import { lazy, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { BullseyePanel } from './BullseyePanel'
+import { BullseyeMapLayer } from './BullseyeMapLayer'
+import { bullseyeRelative, validatePoint, type BullseyePoint } from './bullseye'
+import { calculateMagneticVariation } from './magneticVariation'
+import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import {
   CircleMarker,
   Circle,
@@ -2913,7 +2917,7 @@ export function FlightplanMapEditor({
   hudSlot,
   hudTopCenterSlot,
   hudStatusSlot,
-  routeEditingEnabled = true,
+  routeEditingEnabled: requestedRouteEditing = true,
   onRouteLegsChange,
   focusedLegIndex = null,
   initialViewport = null,
@@ -2943,6 +2947,29 @@ export function FlightplanMapEditor({
   onViewportChange?: (viewport: FlightplanMapViewport) => void
   printMode?: boolean
 }) {
+  const [bullseyeOpen, setBullseyeOpen] = useState(false)
+  const [bullseyeOrigin, setBullseyeOrigin] = useState<BullseyePoint | null>(() => {
+    try { const saved = localStorage.getItem('vfrplan.bullseye'); return saved ? validatePoint(JSON.parse(saved)) : null } catch { return null }
+  })
+  const [bullseyeTarget, setBullseyeTarget] = useState<BullseyePoint | null>(null)
+  const pickBullseye = useCallback((point: BullseyePoint) => { if (bullseyeOrigin) setBullseyeTarget(point) }, [bullseyeOrigin])
+  const [bullseyeReference, setBullseyeReference] = useState<'M' | 'T'>('M')
+  const [bullseyeUnit, setBullseyeUnit] = useState<'NM' | 'km'>('NM')
+  const bullseyeDate = new Date(`${plan.header.date}T12:00:00`)
+  const validBullseyeDate = !Number.isNaN(bullseyeDate.getTime()) && bullseyeDate.getFullYear() >= 2025 && bullseyeDate.getFullYear() < 2030
+  const bullseyeVariation = bullseyeOrigin && validBullseyeDate ? calculateMagneticVariation(bullseyeOrigin.lat, bullseyeOrigin.lon, 0, bullseyeDate).declination : null
+  const bullseyeDeclination = bullseyeReference === 'M' ? bullseyeVariation : 0
+  const bullseyeRelativePosition = bullseyeOrigin && bullseyeTarget && bullseyeDeclination !== null ? bullseyeRelative(bullseyeOrigin, bullseyeTarget, bullseyeDeclination) : null
+  const bullseyeTargetLabel = bullseyeRelativePosition
+    ? `${bullseyeRelativePosition.bearing === null ? 'Vid bullseye' : `${String(Math.round(bullseyeRelativePosition.bearing) % 360).padStart(3, '0')}°${bullseyeReference}`} / ${(bullseyeRelativePosition.distanceNm * (bullseyeUnit === 'km' ? 1.852 : 1)).toFixed(2)} ${bullseyeUnit}`
+    : 'Magnetisk bäring kräver flygdatum 2025–2029'
+  const bullseyeMapState = useMemo(() => bullseyeOpen ? { origin: bullseyeOrigin, target: bullseyeTarget, targetLabel: bullseyeTargetLabel } : null, [bullseyeOpen, bullseyeOrigin, bullseyeTarget, bullseyeTargetLabel])
+  const routeEditingEnabled = requestedRouteEditing && !bullseyeOpen
+  const saveBullseye = (point: BullseyePoint | null) => {
+    setBullseyeOrigin(point)
+    setBullseyeTarget(null)
+    try { if (point) localStorage.setItem('vfrplan.bullseye', JSON.stringify(point)); else localStorage.removeItem('vfrplan.bullseye') } catch { /* Storage may be unavailable in private mode. */ }
+  }
   const swedishAirspaces = getSwedishAirspaces()
   const swedishAirports = getSwedishAirports()
   const swedishNavaids = getSwedishNavaids()
@@ -2976,6 +3003,49 @@ export function FlightplanMapEditor({
   const pendingAirportNotamRef = useRef(new Set<string>())
   const pendingAirportWeatherRef = useRef(new Set<string>())
   const mapCanvasRef = useRef<HTMLDivElement | null>(null)
+  const mapHudRef = useRef<HTMLDivElement | null>(null)
+  const closeNavigationMenu = () => {
+    const menu = mapCanvasRef.current?.querySelector<HTMLDetailsElement>('.fp-map-action-menu')
+    if (menu) menu.open = false
+  }
+  useLayoutEffect(() => {
+    const canvas = mapCanvasRef.current
+    const hud = mapHudRef.current
+    if (!canvas || !hud || printMode) return
+    const updatePanelBounds = () => {
+      const canvasRect = canvas.getBoundingClientRect()
+      const top = Math.ceil(hud.getBoundingClientRect().bottom - canvasRect.top + 8)
+      canvas.style.setProperty('--fp-map-panel-top', `${top}px`)
+      canvas.style.setProperty('--fp-map-panel-space', `${Math.max(0, canvasRect.height - top - 12)}px`)
+    }
+    const onNavigationToggle = (event: Event) => {
+      if (event.target instanceof HTMLDetailsElement && event.target.open) {
+        setBullseyeOpen(false)
+        setIsMapLayerMenuOpen(false)
+        setOpenNotamMapNoticeKey(null)
+        setSelectedPointInfo(null)
+      }
+    }
+    hud.addEventListener('toggle', onNavigationToggle, true)
+    updatePanelBounds()
+    const observer = new ResizeObserver(updatePanelBounds)
+    observer.observe(hud)
+    observer.observe(canvas)
+    window.addEventListener('resize', updatePanelBounds)
+    return () => { observer.disconnect(); window.removeEventListener('resize', updatePanelBounds); hud.removeEventListener('toggle', onNavigationToggle, true) }
+  }, [printMode])
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return
+      setBullseyeOpen(false)
+      setIsMapLayerMenuOpen(false)
+      setOpenNotamMapNoticeKey(null)
+      const menu = mapCanvasRef.current?.querySelector<HTMLDetailsElement>('.fp-map-action-menu')
+      if (menu) menu.open = false
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [])
   const [printMapSizeKey, setPrintMapSizeKey] = useState('print-map-initial')
   const isMapbox3dBasemap = isMapbox3dBasemapKey(basemap)
   const showAirspaces = mapLayerPreferences.airspaces
@@ -4225,9 +4295,11 @@ export function FlightplanMapEditor({
   return (
     <section className={`fp-map-editor${printMode ? ' fp-map-editor--print' : ''}`}>
       <div className="fp-map-canvas" ref={mapCanvasRef}>
-        {!printMode ? <div className={`fp-map-hud-row ${isMapLayerMenuOpen ? 'fp-map-hud-row--layer-menu-open' : ''} ${hudTopCenterSlot ? 'fp-map-hud-row--with-open-plan' : ''}`}>
+        {!printMode && bullseyeOpen && <BullseyePanel origin={bullseyeOrigin} target={bullseyeTarget} date={plan.header.date} reference={bullseyeReference} onReference={setBullseyeReference} unit={bullseyeUnit} onUnit={setBullseyeUnit} variation={bullseyeVariation} targetLabel={bullseyeTargetLabel} onOrigin={saveBullseye} onTarget={setBullseyeTarget} onClear={() => saveBullseye(null)} onClose={() => setBullseyeOpen(false)} />}
+        {!printMode ? <div ref={mapHudRef} className={`fp-map-hud-row ${isMapLayerMenuOpen ? 'fp-map-hud-row--layer-menu-open' : ''} ${hudTopCenterSlot ? 'fp-map-hud-row--with-open-plan' : ''}`}>
           <div className="fp-map-hud fp-map-hud--top-right">
             <div className="fp-map-controls">
+              <button type="button" className="fp-bullseye-toggle" aria-pressed={bullseyeOpen} onClick={() => { closeNavigationMenu(); setIsMapLayerMenuOpen(false); setOpenNotamMapNoticeKey(null); setBullseyeOpen(open => !open); setSelectedPointInfo(null) }}>⊙ Bullseye</button>
               {hasNotamMapNotice ? (
                 <button
                   type="button"
@@ -4235,6 +4307,9 @@ export function FlightplanMapEditor({
                   aria-label={isNotamMapNoticeOpen ? 'Dölj NOTAM/AIP SUP-varning' : 'Visa NOTAM/AIP SUP-varning'}
                   aria-expanded={isNotamMapNoticeOpen}
                   onClick={() => {
+                    closeNavigationMenu()
+                    setBullseyeOpen(false)
+                    setSelectedPointInfo(null)
                     setIsMapLayerMenuOpen(false)
                     setOpenNotamMapNoticeKey((current) => (
                       current === notamMapNoticeKey ? null : notamMapNoticeKey
@@ -4250,7 +4325,7 @@ export function FlightplanMapEditor({
                   className="fp-map-layer-menu__button fp-map-layer-menu__button--hamburger"
                   aria-haspopup="menu"
                   aria-expanded={isMapLayerMenuOpen}
-                  onClick={() => setIsMapLayerMenuOpen((open) => !open)}
+                  onClick={() => { closeNavigationMenu(); setBullseyeOpen(false); setOpenNotamMapNoticeKey(null); setSelectedPointInfo(null); setIsMapLayerMenuOpen(open => !open) }}
                   aria-label="Öppna visningsmeny"
                 >
                   <span className="fp-map-layer-menu__button-main">
@@ -4267,6 +4342,7 @@ export function FlightplanMapEditor({
                 <div className="fp-map-layer-menu__popover" role="menu" aria-label="Kartdata">
                   <div className="fp-map-layer-menu__header">
                     <strong>Visning</strong>
+                    <button type="button" className="fp-map-panel-close" aria-label="Stäng visningsmeny" onClick={() => setIsMapLayerMenuOpen(false)}>×</button>
                   </div>
                   <div className="fp-map-layer-menu__section">
                     <label className="fp-basemap-control fp-basemap-control--menu">
@@ -4539,17 +4615,17 @@ export function FlightplanMapEditor({
             ) : null}
           </aside>
         ) : null}
-        {!printMode && !isMapbox3dBasemap && !routeEditingEnabled && !selectedPointInfo && (
+        {!printMode && !bullseyeOpen && !isMapbox3dBasemap && !routeEditingEnabled && !selectedPointInfo && (
           <div className="fp-map-empty-hint">
             Utforska kartan. Klicka för "Vad finns här?" eller välj Skapa rutt.
           </div>
         )}
-        {!printMode && !isMapbox3dBasemap && routeEditingEnabled && waypoints.length === 0 && (
+        {!printMode && !bullseyeOpen && !isMapbox3dBasemap && routeEditingEnabled && waypoints.length === 0 && (
           <div className="fp-map-empty-hint">
             Klicka i kartan för att välja startpunkten
           </div>
         )}
-        {!printMode && !isMapbox3dBasemap && routeEditingEnabled && hasPendingStartPoint && (
+        {!printMode && !bullseyeOpen && !isMapbox3dBasemap && routeEditingEnabled && hasPendingStartPoint && (
           <div className="fp-map-empty-hint">
             Startpunkt vald. Klicka igen i kartan för nästa waypoint.
           </div>
@@ -4557,6 +4633,8 @@ export function FlightplanMapEditor({
         {isMapbox3dBasemap && !printMode ? (
           <Suspense fallback={<div className="fp-map-empty-hint">Laddar 3D-karta...</div>}>
             <FlightplanMapbox3D
+              bullseye={bullseyeMapState}
+              onBullseyePick={pickBullseye}
               airspaces={showAirspaces ? visibleAirspaces : []}
               airportFlightCategories={airportFlightCategories}
               airports={showAirportMarkers ? swedishAirports : []}
@@ -4618,6 +4696,7 @@ export function FlightplanMapEditor({
             url={activeBasemap.url ?? basemaps.topo.url ?? ''}
           />
           <MapInstanceHandler onReady={setMapInstance} />
+          {bullseyeOpen && !printMode && <BullseyeMapLayer origin={bullseyeOrigin} target={bullseyeTarget} targetLabel={bullseyeTargetLabel} onPick={pickBullseye} />}
           <InitialViewportHandler
             waypoints={displayWaypoints}
             focusedLegIndex={focusedLegIndex}

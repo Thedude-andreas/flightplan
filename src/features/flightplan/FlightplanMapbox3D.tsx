@@ -1,3 +1,5 @@
+import { captureBullseyeClick } from './bullseyeMapClick'
+import type { BullseyePoint } from './bullseye'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import mapboxgl from 'mapbox-gl'
 import * as THREE from 'three'
@@ -2782,6 +2784,8 @@ function getInitialMapboxCamera(
 }
 
 export function FlightplanMapbox3D({
+  bullseye,
+  onBullseyePick,
   airspaces,
   airportFlightCategories,
   airports,
@@ -2805,6 +2809,8 @@ export function FlightplanMapbox3D({
   visualPoints,
   weatherOverlays,
 }: {
+  bullseye: { origin: BullseyePoint | null; target: BullseyePoint | null; targetLabel: string } | null
+  onBullseyePick: (point: BullseyePoint) => void
   airspaces: SwedishAirspace[]
   airportFlightCategories: Record<string, FlightplanMapboxAirportFlightCategory>
   airports: SwedishAirport[]
@@ -3907,6 +3913,39 @@ export function FlightplanMapbox3D({
       mapRef.current = null
     }
   }, [initialViewport, mapStyle])
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !bullseye) return
+    const element = map.getCanvasContainer()
+    const click = (event: MouseEvent) => {
+      const rect = map.getCanvas().getBoundingClientRect()
+      const point = map.unproject([event.clientX - rect.left, event.clientY - rect.top])
+      onBullseyePick({ lat: point.lat, lon: point.lng })
+    }
+    return captureBullseyeClick(element, click)
+  }, [bullseye, onBullseyePick, mapStyle, initialViewport])
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !bullseye) return
+    const markers = [bullseye.origin, bullseye.target].flatMap((point, index) => {
+      if (!point) return []
+      const element = document.createElement('div')
+      element.className = 'fp-bullseye-pin'
+      element.textContent = index === 0 ? '⊙' : '+'
+      element.title = index === 0 ? 'Bullseye' : bullseye.targetLabel
+      if (index === 1) {
+        const label = document.createElement('span')
+        label.className = 'fp-bullseye-pin-label'
+        label.textContent = bullseye.targetLabel
+        element.appendChild(label)
+      }
+      return [new mapboxgl.Marker({ element }).setLngLat([point.lon, point.lat]).addTo(map)]
+    })
+    const focus = bullseye.target ?? bullseye.origin
+    if (focus) map.panTo([focus.lon, focus.lat])
+    return () => { markers.forEach(marker => marker.remove()) }
+  }, [bullseye, mapStyle, initialViewport])
 
   useEffect(() => {
     if (!showObstacles || !mapboxObstacleView || mapboxObstacleView.zoom < obstacleVolumeMinZoom) {
